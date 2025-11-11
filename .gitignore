@@ -1,1 +1,25 @@
-.cursor
+# Firebase設定
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# 環境変数
+.env.local
+.env*.local
+
+# 依存関係
+node_modules/
+functions/node_modules/
+
+# ビルド出力
+.next/
+out/
+functions/lib/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
