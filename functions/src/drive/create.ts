@@ -19,17 +19,64 @@ export const createDriveFolder = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    // CORSヘッダーを設定
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    // OPTIONSリクエスト（preflight）に対応
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
       return;
     }
 
     try {
-      const projectId = req.path.match(/\/projects\/([^\/]+)/)?.[1];
-      const taskId = req.path.match(/\/tasks\/([^\/]+)/)?.[1];
+      // リクエストボディからuserIdを取得
+      const userId = req.body?.userId;
+      if (!userId) {
+        res.status(400).json({ error: "Missing userId in request body" });
+        return;
+      }
+
+      // Firebase Functions v2では、req.pathは関数のルートからの相対パス
+      // 例: /projects/{projectId}/tasks/{taskId}
+      const pathParts = req.path.split("/").filter(Boolean);
+      const projectIdIndex = pathParts.indexOf("projects");
+      const taskIdIndex = pathParts.indexOf("tasks");
+      
+      if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
+        res.status(400).json({ error: "Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}" });
+        return;
+      }
+      
+      const projectId = pathParts[projectIdIndex + 1];
+      const taskId = pathParts[taskIdIndex + 1];
 
       if (!projectId || !taskId) {
         res.status(400).json({ error: "Missing projectId or taskId" });
+        return;
+      }
+
+      // ユーザーのリフレッシュトークンを取得
+      const userDoc = await db.collection("users").doc(userId).get();
+      if (!userDoc.exists) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      const userData = userDoc.data();
+      const refreshToken = userData?.googleRefreshToken;
+
+      if (!refreshToken) {
+        res.status(400).json({ 
+          error: "Google Drive認証が必要です。設定ページでGoogle Driveと連携してください。",
+          requiresAuth: true 
+        });
         return;
       }
 
@@ -52,41 +99,68 @@ export const createDriveFolder = onRequest(
         return;
       }
 
-      const projectDoc = await db.collection("projects").doc(projectId).get();
-      const project = projectDoc.data();
-
-      if (!project?.driveParentId) {
-        res.status(400).json({ error: "Drive parent ID not configured" });
-        return;
-      }
-
       // 既存フォルダを検索
-      const folderName = `[${project.backlogProjectKey || ""}] ${task.external?.issueKey || ""} ${task.title}`;
+      // フォルダ名の構成: issueKey + タイトル（backlogProjectKeyは使用しない）
+      const parts: string[] = [];
+      if (task.external?.issueKey) {
+        parts.push(task.external.issueKey);
+      }
+      parts.push(task.title);
+      const folderName = parts.join(" ");
       
       // Secrets取得
-      const serviceAccountKey = await getSecret("DRIVE_SERVICE_ACCOUNT_KEY");
+      const oauthClientId = await getSecret("GOOGLE_OAUTH_CLIENT_ID");
+      const oauthClientSecret = await getSecret("GOOGLE_OAUTH_CLIENT_SECRET");
       const driveParentId = await getSecret("DRIVE_PARENT_ID");
       const checksheetTemplateId = await getSecret("CHECKSHEET_TEMPLATE_ID");
 
-      if (!serviceAccountKey || !driveParentId || !checksheetTemplateId) {
-        res.status(500).json({ error: "Failed to retrieve secrets" });
+      if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
+        res.status(500).json({ error: "Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager." });
         return;
       }
 
-      const auth = new google.auth.GoogleAuth({
-        credentials: JSON.parse(serviceAccountKey),
-        scopes: [
-          "https://www.googleapis.com/auth/drive",
-          "https://www.googleapis.com/auth/spreadsheets",
-        ],
+      // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
+      const oauth2Client = new google.auth.OAuth2(
+        oauthClientId,
+        oauthClientSecret,
+        // リダイレクトURIは使用しないが、OAuth2Clientのコンストラクタに必要
+        "urn:ietf:wg:oauth:2.0:oob"
+      );
+
+      oauth2Client.setCredentials({
+        refresh_token: refreshToken,
       });
 
-      const drive = google.drive({ version: "v3", auth });
+      // アクセストークンを取得（必要に応じて自動的にリフレッシュされる）
+      const accessToken = await oauth2Client.getAccessToken();
+      if (!accessToken.token) {
+        res.status(401).json({ 
+          error: "Google Drive認証トークンの取得に失敗しました。設定ページで再認証してください。",
+          requiresAuth: true 
+        });
+        return;
+      }
+
+      const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+      // 親フォルダが共有ドライブかどうかを確認
+      const parentFolder = await drive.files.get({
+        fileId: driveParentId,
+        fields: "id, name, driveId",
+        supportsAllDrives: true,
+      });
+
+      const isSharedDrive = !!parentFolder.data.driveId;
+      const driveId = parentFolder.data.driveId || undefined;
 
       // 同名フォルダ検索
       const searchResponse = await drive.files.list({
         q: `name='${folderName.replace(/'/g, "\\'")}' and parents in '${driveParentId}' and trashed=false`,
         fields: "files(id, name)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        corpora: isSharedDrive ? "drive" : "user",
+        driveId: isSharedDrive ? driveId : undefined,
       });
 
       let folderId: string;
@@ -105,53 +179,105 @@ export const createDriveFolder = onRequest(
             mimeType: "application/vnd.google-apps.folder",
           },
           fields: "id",
+          supportsAllDrives: true,
         });
 
         folderId = folderResponse.data.id!;
         folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
 
         // チェックシートテンプレートを複製
-        const copyResponse = await drive.files.copy({
-          fileId: checksheetTemplateId,
-          requestBody: {
-            name: "チェックリスト",
-            parents: [folderId],
-          },
-        });
+        let checksheetError: Error | null = null;
+        try {
+          const copyResponse = await drive.files.copy({
+            fileId: checksheetTemplateId,
+            requestBody: {
+              name: "チェックリスト",
+              parents: [folderId],
+            },
+            supportsAllDrives: true,
+          });
 
-        const sheetId = copyResponse.data.id!;
-        const sheets = google.sheets({ version: "v4", auth });
+          const sheetId = copyResponse.data.id!;
+          const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-        // セル書き込み
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: sheetId,
-          range: "シート1!C4",
-          valueInputOption: "RAW",
-          requestBody: {
-            values: [[task.title]],
-          },
-        });
+          // セル書き込み
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: "シート1!C4",
+            valueInputOption: "RAW",
+            requestBody: {
+              values: [[task.title]],
+            },
+          });
 
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: sheetId,
-          range: "シート1!C5",
-          valueInputOption: "RAW",
-          requestBody: {
-            values: [[task.external?.url || ""]],
-          },
-        });
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: "シート1!C5",
+            valueInputOption: "RAW",
+            requestBody: {
+              values: [[task.external?.url || ""]],
+            },
+          });
 
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: sheetId,
-          range: "シート1!C7",
-          valueInputOption: "RAW",
-          requestBody: {
-            values: [[folderUrl]],
-          },
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: "シート1!C7",
+            valueInputOption: "RAW",
+            requestBody: {
+              values: [[folderUrl]],
+            },
+          });
+        } catch (error) {
+          // チェックシート作成でエラーが発生した場合、エラー情報を保存
+          checksheetError = error instanceof Error ? error : new Error(String(error));
+          console.error("チェックシートの作成に失敗しました:", {
+            error: checksheetError.message,
+            stack: checksheetError.stack,
+            checksheetTemplateId,
+            folderId,
+            taskTitle: task.title,
+          });
+          
+          // Google APIエラーの場合は詳細情報を取得
+          if (error && typeof error === 'object' && 'response' in error) {
+            const apiError = error as any;
+            console.error("Google API Error:", {
+              status: apiError.response?.status,
+              statusText: apiError.response?.statusText,
+              data: apiError.response?.data,
+            });
+          }
+        }
+
+        // タスクにURLを保存
+        await db
+          .collection("projects")
+          .doc(projectId)
+          .collection("tasks")
+          .doc(taskId)
+          .update({
+            googleDriveUrl: folderUrl,
+            updatedAt: new Date(),
+          });
+
+        // チェックシート作成エラーがある場合は警告付きで返す
+        if (checksheetError) {
+          res.status(200).json({
+            success: true,
+            url: folderUrl,
+            warning: "チェックシートの作成に失敗しました",
+            error: checksheetError.message,
+          });
+          return;
+        }
+
+        res.status(200).json({
+          success: true,
+          url: folderUrl,
         });
       }
 
-      // タスクにURLを保存
+      // 既存フォルダの場合もURLを保存
       await db
         .collection("projects")
         .doc(projectId)
