@@ -28,6 +28,11 @@ export const createDriveFolder = onRequest(
       const projectId = req.path.match(/\/projects\/([^\/]+)/)?.[1];
       const taskId = req.path.match(/\/tasks\/([^\/]+)/)?.[1];
 
+      if (!projectId || !taskId) {
+        res.status(400).json({ error: "Missing projectId or taskId" });
+        return;
+      }
+
       // タスク情報取得
       const taskDoc = await db
         .collection("projects")
@@ -42,6 +47,11 @@ export const createDriveFolder = onRequest(
       }
 
       const task = taskDoc.data();
+      if (!task) {
+        res.status(404).json({ error: "Task data not found" });
+        return;
+      }
+
       const projectDoc = await db.collection("projects").doc(projectId).get();
       const project = projectDoc.data();
 
@@ -57,6 +67,11 @@ export const createDriveFolder = onRequest(
       const serviceAccountKey = await getSecret("DRIVE_SERVICE_ACCOUNT_KEY");
       const driveParentId = await getSecret("DRIVE_PARENT_ID");
       const checksheetTemplateId = await getSecret("CHECKSHEET_TEMPLATE_ID");
+
+      if (!serviceAccountKey || !driveParentId || !checksheetTemplateId) {
+        res.status(500).json({ error: "Failed to retrieve secrets" });
+        return;
+      }
 
       const auth = new google.auth.GoogleAuth({
         credentials: JSON.parse(serviceAccountKey),

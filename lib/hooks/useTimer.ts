@@ -18,7 +18,7 @@ export function useTimer() {
       userId: string;
     }) => {
       const response = await fetch(
-        `${functionsUrl}/projects/${projectId}/tasks/${taskId}/timer:start`,
+        `${functionsUrl}/startTimer/projects/${projectId}/tasks/${taskId}`,
         {
           method: "POST",
           headers: {
@@ -50,7 +50,7 @@ export function useTimer() {
       sessionId: string;
     }) => {
       const response = await fetch(
-        `${functionsUrl}/projects/${projectId}/tasks/timer:stop`,
+        `${functionsUrl}/stopTimer/projects/${projectId}/tasks`,
         {
           method: "POST",
           headers: {

@@ -28,6 +28,11 @@ export const createFireIssue = onRequest(
       const projectId = req.path.match(/\/projects\/([^\/]+)/)?.[1];
       const taskId = req.path.match(/\/tasks\/([^\/]+)/)?.[1];
 
+      if (!projectId || !taskId) {
+        res.status(400).json({ error: "Missing projectId or taskId" });
+        return;
+      }
+
       // タスク情報取得
       const taskDoc = await db
         .collection("projects")
@@ -42,6 +47,10 @@ export const createFireIssue = onRequest(
       }
 
       const task = taskDoc.data();
+      if (!task) {
+        res.status(404).json({ error: "Task data not found" });
+        return;
+      }
 
       // 既にIssueが作成されている場合はスキップ
       if (task.fireIssueUrl) {
@@ -55,6 +64,10 @@ export const createFireIssue = onRequest(
 
       // GitHubトークン取得
       const githubToken = await getSecret("GITHUB_TOKEN");
+      if (!githubToken) {
+        res.status(500).json({ error: "Failed to retrieve GitHub token" });
+        return;
+      }
       const octokit = new Octokit({ auth: githubToken });
 
       // ユーザー情報取得（assignees用）

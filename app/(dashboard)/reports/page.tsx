@@ -27,7 +27,7 @@ export default function ReportsPage() {
         type: activeTab,
       });
 
-      const response = await fetch(`${functionsUrl}/reports/time?${params}`);
+      const response = await fetch(`${functionsUrl}/getTimeReport?${params}`);
       if (!response.ok) {
         throw new Error("Failed to fetch report");
       }
@@ -42,7 +42,7 @@ export default function ReportsPage() {
       type: activeTab,
     });
 
-    const response = await fetch(`${functionsUrl}/reports/time.csv?${params}`);
+    const response = await fetch(`${functionsUrl}/exportTimeReportCSV?${params}`);
     if (!response.ok) {
       alert("CSVのエクスポートに失敗しました");
       return;

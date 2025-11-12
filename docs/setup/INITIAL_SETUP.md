@@ -1,4 +1,9 @@
-# 次のステップ：ユーザーが行うべき作業チェックリスト
+# 初期セットアップ手順
+
+> ⚠️ **このドキュメントは初期構築フェーズ専用です**  
+> プロジェクトのセットアップが完了した後は、`docs/operations/` ディレクトリのドキュメントを参照してください。
+
+> **GCP Secret Managerがわからない場合**: `docs/setup/SECRET_MANAGER.md` を参照してください。
 
 ## Phase 1: GCP Secret Manager設定（必須）
 
@@ -10,6 +15,10 @@
 
 ### 1-2. Secrets作成
 以下のSecretsをGCP Secret Managerに作成してください：
+
+> **Secretsの作成方法がわからない場合**: `docs/setup/SECRETS_CREATE.md` を参照してください。
+
+**作成方法**: GCP Console（Web UI）またはgcloud CLIのどちらでも作成できます。初心者の方はGCP Consoleがおすすめです。
 
 #### `MAKE_WEBHOOK_SECRET`
 - **用途**: Make Webhookの署名検証用
@@ -50,6 +59,7 @@ echo -n "1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M" | gcloud secrets create C
 ```bash
 echo -n "ghp_your_token_here" | gcloud secrets create GITHUB_TOKEN --data-file=- --project=chumo-3506a
 ```
+- **⚠️ 重要**: GitHubトークンには有効期限があります。期限切れ時の再登録手順は `docs/operations/GITHUB_TOKEN_RENEWAL.md` を参照してください。
 
 #### `DRIVE_SERVICE_ACCOUNT_KEY`
 - **用途**: Google Drive API認証用（サービスアカウントのJSONキー）
@@ -69,6 +79,8 @@ cat /path/to/service-account-key.json | gcloud secrets create DRIVE_SERVICE_ACCO
 ```
 
 ### 1-3. Cloud FunctionsにSecretsアクセス権限付与
+
+> **権限付与の手順がわからない場合**: `docs/setup/SECRETS_ACCESS.md` を参照してください。
 ```bash
 # Cloud FunctionsのサービスアカウントにSecrets読み取り権限を付与
 PROJECT_NUMBER=$(gcloud projects describe chumo-3506a --format="value(projectNumber)")
@@ -162,13 +174,16 @@ firebase deploy --only functions:exportTimeReportCSV
 
 ---
 
-## Phase 4: Make Webhook設定（必須）
+## Phase 4: Make Webhook設定（後回し）
+
+> ⚠️ **現在は後回しにしています**  
+> 詳細は `.github/ISSUE_TEMPLATE/make-webhook-setup.md` を参照してください。
 
 ### 4-1. MakeでWebhook作成
 1. Makeで新しいシナリオを作成
 2. Backlogモジュールを追加
 3. 「Webhook」モジュールを追加
-4. Webhook URL: `https://asia-northeast1-chumo-3506a.cloudfunctions.net/syncBacklog`
+4. Webhook URL: `https://us-central1-chumo-3506a.cloudfunctions.net/syncBacklog`
 5. HTTPメソッド: POST
 6. 認証: カスタムヘッダー
    - ヘッダー名: `Authorization`

@@ -16,7 +16,7 @@ export function useDriveIntegration() {
       taskId: string;
     }) => {
       const response = await fetch(
-        `${functionsUrl}/projects/${projectId}/tasks/${taskId}/drive:create`,
+        `${functionsUrl}/createDriveFolder/projects/${projectId}/tasks/${taskId}`,
         {
           method: "POST",
         }
@@ -51,7 +51,7 @@ export function useFireIntegration() {
       taskId: string;
     }) => {
       const response = await fetch(
-        `${functionsUrl}/projects/${projectId}/tasks/${taskId}/fire:create`,
+        `${functionsUrl}/createFireIssue/projects/${projectId}/tasks/${taskId}`,
         {
           method: "POST",
         }

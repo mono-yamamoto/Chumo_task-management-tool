@@ -21,6 +21,9 @@ functions/lib/
 .idea/
 .cursor/
 
+# MCP
+.playwright-mcp/
+
 # OS
 .DS_Store
 Thumbs.db
