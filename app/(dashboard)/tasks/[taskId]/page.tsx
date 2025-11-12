@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Task, FlowStatus, Label, User } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -12,7 +12,7 @@ import { useDriveIntegration, useFireIntegration } from "@/lib/hooks/useIntegrat
 import { Button as CustomButton } from "@/components/ui/button";
 import { Button } from "@mui/material";
 import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Link as MUILink, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from "@mui/material";
-import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete } from "@mui/icons-material";
+import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete, Edit, Add } from "@mui/icons-material";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
@@ -40,6 +40,17 @@ export default function TaskDetailPage() {
   const [activeSession, setActiveSession] = useState<{ projectId: string; taskId: string; sessionId: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
+  const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
+  const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<any | null>(null);
+  const [sessionFormData, setSessionFormData] = useState({
+    startedAt: "",
+    startedAtTime: "",
+    endedAt: "",
+    endedAtTime: "",
+    userId: "",
+    note: "",
+  });
 
   const { data: task, isLoading: taskLoading } = useQuery({
     queryKey: ["task", taskId],
@@ -142,7 +153,7 @@ export default function TaskDetailPage() {
   });
 
   // セッション履歴（すべてのユーザーの終了したセッションを含む）を取得
-  const { data: sessions, error: sessionsError } = useQuery({
+  const { data: sessions } = useQuery({
     queryKey: ["sessionHistory", taskId],
     queryFn: async () => {
       if (!task?.projectId || !db) return [];
@@ -159,44 +170,58 @@ export default function TaskDetailPage() {
           orderBy("startedAt", "desc")
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          startedAt: doc.data().startedAt?.toDate(),
-          endedAt: doc.data().endedAt?.toDate() || null,
-        }));
+        return snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            startedAt: data.startedAt?.toDate(),
+            endedAt: data.endedAt?.toDate() || null,
+            durationSec: data.durationSec ?? 0,
+          };
+        });
       } catch (error: any) {
-        console.error("Error fetching sessions:", error);
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
-          console.warn("Index not found, fetching without orderBy");
-          const sessionsRef = collection(
-            db,
-            "projects",
-            task.projectId,
-            "taskSessions"
-          );
-          const q = query(
-            sessionsRef,
-            where("taskId", "==", taskId)
-          );
-          const snapshot = await getDocs(q);
-          const sessions = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            startedAt: doc.data().startedAt?.toDate(),
-            endedAt: doc.data().endedAt?.toDate() || null,
-          }));
-          // クライアント側でソート
-          return sessions.sort((a, b) => {
-            if (!a.startedAt || !b.startedAt) return 0;
-            return b.startedAt.getTime() - a.startedAt.getTime();
-          });
+          try {
+            const sessionsRef = collection(
+              db,
+              "projects",
+              task.projectId,
+              "taskSessions"
+            );
+            const q = query(
+              sessionsRef,
+              where("taskId", "==", taskId)
+            );
+            const snapshot = await getDocs(q);
+            const sessions = snapshot.docs.map((doc) => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                ...data,
+                startedAt: data.startedAt?.toDate(),
+                endedAt: data.endedAt?.toDate() || null,
+                durationSec: data.durationSec ?? 0,
+              };
+            });
+            // クライアント側でソート
+            return sessions.sort((a, b) => {
+              if (!a.startedAt || !b.startedAt) return 0;
+              return b.startedAt.getTime() - a.startedAt.getTime();
+            });
+          } catch (retryError) {
+            console.error("Failed to fetch sessions after retry:", retryError);
+            return [];
+          }
         }
-        throw error;
+        // エラーが発生した場合でも空配列を返してUIを壊さない
+        console.error("Failed to fetch sessions:", error);
+        return [];
       }
     },
     enabled: !!task && !!task.projectId && !!taskId && !taskLoading,
+    retry: false, // エラー時に自動リトライしない（フォールバック処理で対応済み）
   });
 
   const handleStartTimer = async () => {
@@ -305,6 +330,164 @@ export default function TaskDetailPage() {
       setDeleteDialogOpen(false);
       setDeleteConfirmTitle("");
     }
+  };
+
+  // セッション更新
+  const updateSession = useMutation({
+    mutationFn: async ({ sessionId, updates }: { sessionId: string; updates: Partial<any> }) => {
+      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
+      const sessionRef = doc(db, "projects", task.projectId, "taskSessions", sessionId);
+      
+      // startedAtとendedAtを更新する場合、durationSecも再計算
+      const updateData: any = {};
+      if (updates.startedAt) {
+        updateData.startedAt = updates.startedAt;
+      }
+      if (updates.endedAt !== undefined) {
+        updateData.endedAt = updates.endedAt;
+      }
+      if (updates.userId) {
+        updateData.userId = updates.userId;
+      }
+      if (updates.note !== undefined) {
+        updateData.note = updates.note;
+      }
+      
+      // durationSecを再計算
+      const startedAt = updates.startedAt ? (updates.startedAt instanceof Date ? updates.startedAt : updates.startedAt.toDate()) : editingSession?.startedAt;
+      const endedAt = updates.endedAt !== null && updates.endedAt !== undefined 
+        ? (updates.endedAt instanceof Date ? updates.endedAt : updates.endedAt.toDate())
+        : editingSession?.endedAt;
+      if (startedAt && endedAt) {
+        updateData.durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+      }
+      
+      await updateDoc(sessionRef, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      setSessionEditDialogOpen(false);
+      setEditingSession(null);
+    },
+  });
+
+  // セッション削除
+  const deleteSession = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
+      const sessionRef = doc(db, "projects", task.projectId, "taskSessions", sessionId);
+      await deleteDoc(sessionRef);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+    },
+  });
+
+  // セッション追加
+  const addSession = useMutation({
+    mutationFn: async (sessionData: any) => {
+      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
+      const sessionsRef = collection(db, "projects", task.projectId, "taskSessions");
+      
+      // startedAtとendedAtからdurationSecを計算
+      let durationSec = 0;
+      if (sessionData.startedAt && sessionData.endedAt) {
+        durationSec = Math.floor((sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000);
+      }
+      
+      await addDoc(sessionsRef, {
+        ...sessionData,
+        taskId: task.id,
+        durationSec,
+        startedAt: Timestamp.fromDate(sessionData.startedAt),
+        endedAt: sessionData.endedAt ? Timestamp.fromDate(sessionData.endedAt) : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      setSessionAddDialogOpen(false);
+      setSessionFormData({
+        startedAt: "",
+        startedAtTime: "",
+        endedAt: "",
+        endedAtTime: "",
+        userId: "",
+        note: "",
+      });
+    },
+  });
+
+  const handleEditSession = (session: any) => {
+    setEditingSession(session);
+    const startedAt = session.startedAt ? new Date(session.startedAt) : new Date();
+    const endedAt = session.endedAt ? new Date(session.endedAt) : null;
+    
+    setSessionFormData({
+      startedAt: format(startedAt, "yyyy-MM-dd"),
+      startedAtTime: format(startedAt, "HH:mm"),
+      endedAt: endedAt ? format(endedAt, "yyyy-MM-dd") : "",
+      endedAtTime: endedAt ? format(endedAt, "HH:mm") : "",
+      userId: session.userId,
+      note: session.note || "",
+    });
+    setSessionEditDialogOpen(true);
+  };
+
+  const handleAddSession = () => {
+    setEditingSession(null);
+    const now = new Date();
+    setSessionFormData({
+      startedAt: format(now, "yyyy-MM-dd"),
+      startedAtTime: format(now, "HH:mm"),
+      endedAt: format(now, "yyyy-MM-dd"),
+      endedAtTime: format(now, "HH:mm"),
+      userId: user?.id || "",
+      note: "",
+    });
+    setSessionAddDialogOpen(true);
+  };
+
+  const handleSaveSession = async () => {
+    if (!sessionFormData.startedAt || !sessionFormData.startedAtTime) {
+      alert("開始日時を入力してください");
+      return;
+    }
+    
+    const startedAt = new Date(`${sessionFormData.startedAt}T${sessionFormData.startedAtTime}`);
+    const endedAt = sessionFormData.endedAt && sessionFormData.endedAtTime
+      ? new Date(`${sessionFormData.endedAt}T${sessionFormData.endedAtTime}`)
+      : null;
+    
+    if (endedAt && endedAt <= startedAt) {
+      alert("終了時刻は開始時刻より後である必要があります");
+      return;
+    }
+    
+    if (editingSession) {
+      // 更新
+      await updateSession.mutateAsync({
+        sessionId: editingSession.id,
+        updates: {
+          startedAt: Timestamp.fromDate(startedAt),
+          endedAt: endedAt ? Timestamp.fromDate(endedAt) : null,
+          userId: sessionFormData.userId,
+          note: sessionFormData.note || null,
+        },
+      });
+    } else {
+      // 追加
+      await addSession.mutateAsync({
+        startedAt,
+        endedAt,
+        userId: sessionFormData.userId,
+        note: sessionFormData.note || null,
+      });
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm("このセッションを削除しますか？")) return;
+    await deleteSession.mutateAsync(sessionId);
   };
 
   const updateTask = useMutation({
@@ -484,14 +667,26 @@ export default function TaskDetailPage() {
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                       {activeSession?.taskId === task.id ? (
-                        <CustomButton
+                        <Button
                           fullWidth
-                          variant="outline"
+                          variant="contained"
+                          color="error"
                           onClick={handleStopTimer}
+                          sx={{
+                            animation: "pulse 2s ease-in-out infinite",
+                            "@keyframes pulse": {
+                              "0%, 100%": {
+                                opacity: 1,
+                              },
+                              "50%": {
+                                opacity: 0.8,
+                              },
+                            },
+                          }}
                         >
                           <Stop fontSize="small" sx={{ mr: 1 }} />
                           タイマー停止
-                        </CustomButton>
+                        </Button>
                       ) : (
                         <CustomButton
                           fullWidth
@@ -560,28 +755,44 @@ export default function TaskDetailPage() {
 
       <Card>
         <CardContent>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
-            セッション履歴
-          </Typography>
-          {sessionsError && (
-            <Typography sx={{ color: "error.main", mb: 2 }}>
-              エラー: {sessionsError instanceof Error ? sessionsError.message : "セッション履歴の取得に失敗しました"}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold" }}>
+              セッション履歴
             </Typography>
-          )}
+            <CustomButton
+              variant="outline"
+              onClick={handleAddSession}
+            >
+              <Add fontSize="small" sx={{ mr: 1 }} />
+              追加
+            </CustomButton>
+          </Box>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {sessions && sessions.length > 0 ? (
               sessions.map((session: any) => {
                 const sessionUser = allUsers?.find((u) => u.id === session.userId);
-                const formatDuration = (seconds: number) => {
-                  const hours = Math.floor(seconds / 3600);
-                  const minutes = Math.floor((seconds % 3600) / 60);
-                  const secs = seconds % 60;
-                  if (hours > 0) {
-                    return `${hours}時間${minutes}分${secs}秒`;
-                  } else if (minutes > 0) {
-                    return `${minutes}分${secs}秒`;
+                const formatDuration = (seconds: number | undefined | null) => {
+                  // durationSecが0または無効な場合、開始時刻と終了時刻から計算
+                  let secs = 0;
+                  if (seconds === undefined || seconds === null || isNaN(seconds) || seconds === 0) {
+                    if (session.endedAt && session.startedAt) {
+                      secs = Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000);
+                    } else {
+                      return "0秒";
+                    }
                   } else {
-                    return `${secs}秒`;
+                    secs = Math.floor(Number(seconds));
+                  }
+                  
+                  const hours = Math.floor(secs / 3600);
+                  const minutes = Math.floor((secs % 3600) / 60);
+                  const remainingSecs = secs % 60;
+                  if (hours > 0) {
+                    return `${hours}時間${minutes}分${remainingSecs}秒`;
+                  } else if (minutes > 0) {
+                    return `${minutes}分${remainingSecs}秒`;
+                  } else {
+                    return `${remainingSecs}秒`;
                   }
                 };
                 return (
@@ -589,7 +800,7 @@ export default function TaskDetailPage() {
                     key={session.id}
                     sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
                   >
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1 }}>
                       <Typography variant="body2" sx={{ color: "text.secondary" }}>
                         {sessionUser?.displayName || "不明なユーザー"}
                       </Typography>
@@ -605,9 +816,31 @@ export default function TaskDetailPage() {
                           : "実行中"}
                       </Typography>
                     </Box>
-                    <Typography sx={{ fontWeight: "medium" }}>
-                      {session.endedAt ? formatDuration(session.durationSec) : "-"}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography sx={{ fontWeight: "medium", minWidth: "80px", textAlign: "right" }}>
+                        {session.endedAt ? formatDuration(session.durationSec) : "-"}
+                      </Typography>
+                      {user?.id === session.userId && (
+                        <Box sx={{ display: "flex", gap: 0.5 }}>
+                          <Button
+                            size="small"
+                            onClick={() => handleEditSession(session)}
+                            sx={{ minWidth: "auto", p: 0.5 }}
+                          >
+                            <Edit fontSize="small" />
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => handleDeleteSession(session.id)}
+                            color="error"
+                            sx={{ minWidth: "auto", p: 0.5 }}
+                            disabled={deleteSession.isPending}
+                          >
+                            <Delete fontSize="small" />
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
                   </Box>
                 );
               })
@@ -619,6 +852,95 @@ export default function TaskDetailPage() {
           </Box>
         </CardContent>
       </Card>
+
+      {/* セッション編集ダイアログ */}
+      <Dialog open={sessionEditDialogOpen || sessionAddDialogOpen} onClose={() => {
+        setSessionEditDialogOpen(false);
+        setSessionAddDialogOpen(false);
+        setEditingSession(null);
+      }} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingSession ? "セッション編集" : "セッション追加"}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>ユーザー</InputLabel>
+              <Select
+                value={sessionFormData.userId}
+                onChange={(e) => setSessionFormData({ ...sessionFormData, userId: e.target.value })}
+                label="ユーザー"
+              >
+                {allUsers?.map((u) => (
+                  <MenuItem key={u.id} value={u.id}>
+                    {u.displayName || u.email}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="開始日"
+                type="date"
+                value={sessionFormData.startedAt}
+                onChange={(e) => setSessionFormData({ ...sessionFormData, startedAt: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="開始時刻"
+                type="time"
+                value={sessionFormData.startedAtTime}
+                onChange={(e) => setSessionFormData({ ...sessionFormData, startedAtTime: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="終了日"
+                type="date"
+                value={sessionFormData.endedAt}
+                onChange={(e) => setSessionFormData({ ...sessionFormData, endedAt: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="終了時刻"
+                type="time"
+                value={sessionFormData.endedAtTime}
+                onChange={(e) => setSessionFormData({ ...sessionFormData, endedAtTime: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
+            <TextField
+              label="メモ"
+              multiline
+              rows={3}
+              value={sessionFormData.note}
+              onChange={(e) => setSessionFormData({ ...sessionFormData, note: e.target.value })}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setSessionEditDialogOpen(false);
+            setSessionAddDialogOpen(false);
+            setEditingSession(null);
+          }}>
+            キャンセル
+          </Button>
+          <Button
+            onClick={handleSaveSession}
+            variant="contained"
+            disabled={updateSession.isPending || addSession.isPending}
+          >
+            {editingSession ? "更新" : "追加"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
