@@ -46,6 +46,16 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=ここにstorageBucketの値を貼り付け
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=ここにmessagingSenderIdの値を貼り付け
 NEXT_PUBLIC_FIREBASE_APP_ID=ここにappIdの値を貼り付け
 NEXT_PUBLIC_FUNCTIONS_URL=https://asia-northeast1-chumo-3506a.cloudfunctions.net
+
+# Firebase Admin SDK用（サーバーサイドで使用）
+FIREBASE_PROJECT_ID=chumo-3506a
+FIREBASE_CLIENT_EMAIL=ここにサービスアカウントのメールアドレスを貼り付け
+FIREBASE_PRIVATE_KEY=ここにサービスアカウントの秘密鍵を貼り付け
+
+# Google OAuth 2.0用
+GOOGLE_OAUTH_CLIENT_ID=ここにOAuth 2.0クライアントIDを貼り付け
+GOOGLE_OAUTH_CLIENT_SECRET=ここにOAuth 2.0クライアントシークレットを貼り付け
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 ```
 
 **注意**: 
