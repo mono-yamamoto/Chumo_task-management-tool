@@ -1,5 +1,5 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const db = getFirestore();
 
@@ -63,14 +63,46 @@ export const getTimeReport = onRequest(
           }
 
           // セッション取得
-          const sessionsSnapshot = await db
-            .collection("projects")
-            .doc(projectId)
-            .collection("taskSessions")
-            .where("taskId", "==", taskDoc.id)
-            .where("startedAt", ">=", fromDate)
-            .where("startedAt", "<=", toDate)
-            .get();
+          // インデックスエラーを避けるため、まずtaskIdでフィルタしてから日付範囲でフィルタ
+          let sessionsSnapshot;
+          try {
+            sessionsSnapshot = await db
+              .collection("projects")
+              .doc(projectId)
+              .collection("taskSessions")
+              .where("taskId", "==", taskDoc.id)
+              .where("startedAt", ">=", fromDate)
+              .where("startedAt", "<=", toDate)
+              .get();
+          } catch (indexError: any) {
+            // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
+            if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index")) {
+              const allSessionsSnapshot = await db
+                .collection("projects")
+                .doc(projectId)
+                .collection("taskSessions")
+                .where("taskId", "==", taskDoc.id)
+                .get();
+              
+              // クライアント側で日付範囲をフィルタ
+              sessionsSnapshot = {
+                docs: allSessionsSnapshot.docs.filter((doc) => {
+                  const session = doc.data();
+                  const startedAt = session.startedAt;
+                  if (!startedAt) return false;
+                  // Firestore Admin SDKではTimestampオブジェクトをDateに変換
+                  const startedAtDate = startedAt instanceof Timestamp 
+                    ? startedAt.toDate() 
+                    : (startedAt as any).toDate 
+                      ? (startedAt as any).toDate() 
+                      : new Date(startedAt);
+                  return startedAtDate >= fromDate && startedAtDate <= toDate;
+                }),
+              } as any;
+            } else {
+              throw indexError;
+            }
+          }
 
           let taskDurationMin = 0;
           for (const sessionDoc of sessionsSnapshot.docs) {
@@ -163,14 +195,47 @@ export const exportTimeReportCSV = onRequest(
             continue;
           }
 
-          const sessionsSnapshot = await db
-            .collection("projects")
-            .doc(projectId)
-            .collection("taskSessions")
-            .where("taskId", "==", taskDoc.id)
-            .where("startedAt", ">=", fromDate)
-            .where("startedAt", "<=", toDate)
-            .get();
+          // セッション取得
+          // インデックスエラーを避けるため、まずtaskIdでフィルタしてから日付範囲でフィルタ
+          let sessionsSnapshot;
+          try {
+            sessionsSnapshot = await db
+              .collection("projects")
+              .doc(projectId)
+              .collection("taskSessions")
+              .where("taskId", "==", taskDoc.id)
+              .where("startedAt", ">=", fromDate)
+              .where("startedAt", "<=", toDate)
+              .get();
+          } catch (indexError: any) {
+            // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
+            if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index")) {
+              const allSessionsSnapshot = await db
+                .collection("projects")
+                .doc(projectId)
+                .collection("taskSessions")
+                .where("taskId", "==", taskDoc.id)
+                .get();
+              
+              // クライアント側で日付範囲をフィルタ
+              sessionsSnapshot = {
+                docs: allSessionsSnapshot.docs.filter((doc) => {
+                  const session = doc.data();
+                  const startedAt = session.startedAt;
+                  if (!startedAt) return false;
+                  // Firestore Admin SDKではTimestampオブジェクトをDateに変換
+                  const startedAtDate = startedAt instanceof Timestamp 
+                    ? startedAt.toDate() 
+                    : (startedAt as any).toDate 
+                      ? (startedAt as any).toDate() 
+                      : new Date(startedAt);
+                  return startedAtDate >= fromDate && startedAtDate <= toDate;
+                }),
+              } as any;
+            } else {
+              throw indexError;
+            }
+          }
 
           let taskDurationMin = 0;
           for (const sessionDoc of sessionsSnapshot.docs) {
