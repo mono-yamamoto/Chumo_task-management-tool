@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import { Task, FlowStatus, Label } from "@/types";
+import { Task, FlowStatus, Label, User } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useParams } from "next/navigation";
 import { useTimer } from "@/lib/hooks/useTimer";
@@ -87,36 +87,116 @@ export default function TaskDetailPage() {
     enabled: !!task?.projectId,
   });
 
-  const { data: sessions } = useQuery({
-    queryKey: ["sessions", taskId],
+  // すべてのユーザーを取得（セッション履歴のユーザー表示用）
+  const { data: allUsers } = useQuery({
+    queryKey: ["allUsers"],
     queryFn: async () => {
-      if (!task?.projectId || !db || !user) return [];
+      if (!db) return [];
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(usersRef);
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as User[];
+    },
+    enabled: !!db,
+  });
+
+  // アクティブなセッション（未終了）を取得
+  const { data: activeSessionData } = useQuery({
+    queryKey: ["activeSession", taskId, user?.id],
+    queryFn: async () => {
+      if (!task?.projectId || !db || !user) return null;
       const sessionsRef = collection(
         db,
         "projects",
         task.projectId,
         "taskSessions"
       );
-      const q = query(sessionsRef, where("taskId", "==", taskId), where("userId", "==", user.id), where("endedAt", "==", null));
+      const q = query(
+        sessionsRef,
+        where("taskId", "==", taskId),
+        where("userId", "==", user.id),
+        where("endedAt", "==", null)
+      );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        const session = snapshot.docs[0].data();
+        const session = snapshot.docs[0];
         setActiveSession({
           projectId: task.projectId,
           taskId: taskId,
-          sessionId: snapshot.docs[0].id,
+          sessionId: session.id,
         });
+        return {
+          id: session.id,
+          ...session.data(),
+          startedAt: session.data().startedAt?.toDate(),
+          endedAt: null,
+        };
       } else {
         setActiveSession(null);
+        return null;
       }
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        startedAt: doc.data().startedAt?.toDate(),
-        endedAt: doc.data().endedAt?.toDate() || null,
-      }));
     },
     enabled: !!task?.projectId && !!taskId && !!user,
+  });
+
+  // セッション履歴（すべてのユーザーの終了したセッションを含む）を取得
+  const { data: sessions, error: sessionsError } = useQuery({
+    queryKey: ["sessionHistory", taskId],
+    queryFn: async () => {
+      if (!task?.projectId || !db) return [];
+      try {
+        const sessionsRef = collection(
+          db,
+          "projects",
+          task.projectId,
+          "taskSessions"
+        );
+        const q = query(
+          sessionsRef,
+          where("taskId", "==", taskId),
+          orderBy("startedAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          startedAt: doc.data().startedAt?.toDate(),
+          endedAt: doc.data().endedAt?.toDate() || null,
+        }));
+      } catch (error: any) {
+        console.error("Error fetching sessions:", error);
+        // インデックスエラーの場合、orderByなしで再試行
+        if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+          console.warn("Index not found, fetching without orderBy");
+          const sessionsRef = collection(
+            db,
+            "projects",
+            task.projectId,
+            "taskSessions"
+          );
+          const q = query(
+            sessionsRef,
+            where("taskId", "==", taskId)
+          );
+          const snapshot = await getDocs(q);
+          const sessions = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            startedAt: doc.data().startedAt?.toDate(),
+            endedAt: doc.data().endedAt?.toDate() || null,
+          }));
+          // クライアント側でソート
+          return sessions.sort((a, b) => {
+            if (!a.startedAt || !b.startedAt) return 0;
+            return b.startedAt.getTime() - a.startedAt.getTime();
+          });
+        }
+        throw error;
+      }
+    },
+    enabled: !!task && !!task.projectId && !!taskId && !taskLoading,
   });
 
   const handleStartTimer = async () => {
@@ -128,7 +208,10 @@ export default function TaskDetailPage() {
         userId: user.id,
       });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.refetchQueries({ queryKey: ["sessions", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["activeSession", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.refetchQueries({ queryKey: ["activeSession", taskId, user.id] });
+      queryClient.refetchQueries({ queryKey: ["sessionHistory", taskId] });
     } catch (error: any) {
       console.error("Timer start error:", error);
       if (error.message?.includes("稼働中")) {
@@ -148,7 +231,10 @@ export default function TaskDetailPage() {
       });
       setActiveSession(null);
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.refetchQueries({ queryKey: ["sessions", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["activeSession", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.refetchQueries({ queryKey: ["activeSession", taskId, user?.id] });
+      queryClient.refetchQueries({ queryKey: ["sessionHistory", taskId] });
     } catch (error: any) {
       console.error("Timer stop error:", error);
       alert("タイマーの停止に失敗しました: " + (error.message || "不明なエラー"));
@@ -475,30 +561,61 @@ export default function TaskDetailPage() {
       <Card>
         <CardContent>
           <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
-            セッション一覧
+            セッション履歴
           </Typography>
+          {sessionsError && (
+            <Typography sx={{ color: "error.main", mb: 2 }}>
+              エラー: {sessionsError instanceof Error ? sessionsError.message : "セッション履歴の取得に失敗しました"}
+            </Typography>
+          )}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {sessions?.map((session: any) => (
-              <Box
-                key={session.id}
-                sx={{ display: "flex", justifyContent: "space-between", borderBottom: 1, borderColor: "divider", pb: 1 }}
-              >
-                <Typography>
-                  {format(session.startedAt, "yyyy-MM-dd HH:mm", {
-                    locale: ja,
-                  })}
-                  {" - "}
-                  {session.endedAt
-                    ? format(session.endedAt, "yyyy-MM-dd HH:mm", {
-                        locale: ja,
-                      })
-                    : "実行中"}
-                </Typography>
-                <Typography>
-                  {Math.floor(session.durationSec / 60)}分
-                </Typography>
-              </Box>
-            ))}
+            {sessions && sessions.length > 0 ? (
+              sessions.map((session: any) => {
+                const sessionUser = allUsers?.find((u) => u.id === session.userId);
+                const formatDuration = (seconds: number) => {
+                  const hours = Math.floor(seconds / 3600);
+                  const minutes = Math.floor((seconds % 3600) / 60);
+                  const secs = seconds % 60;
+                  if (hours > 0) {
+                    return `${hours}時間${minutes}分${secs}秒`;
+                  } else if (minutes > 0) {
+                    return `${minutes}分${secs}秒`;
+                  } else {
+                    return `${secs}秒`;
+                  }
+                };
+                return (
+                  <Box
+                    key={session.id}
+                    sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
+                  >
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        {sessionUser?.displayName || "不明なユーザー"}
+                      </Typography>
+                      <Typography>
+                        {format(session.startedAt, "yyyy-MM-dd HH:mm:ss", {
+                          locale: ja,
+                        })}
+                        {" - "}
+                        {session.endedAt
+                          ? format(session.endedAt, "yyyy-MM-dd HH:mm:ss", {
+                              locale: ja,
+                            })
+                          : "実行中"}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontWeight: "medium" }}>
+                      {session.endedAt ? formatDuration(session.durationSec) : "-"}
+                    </Typography>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography sx={{ color: "text.secondary", py: 2 }}>
+                セッション履歴がありません
+              </Typography>
+            )}
           </Box>
         </CardContent>
       </Card>
