@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Task, FlowStatus, Label } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Link as MUILink, CircularProgress } from "@mui/material";
+import { useTimer } from "@/lib/hooks/useTimer";
+import { useDriveIntegration, useFireIntegration } from "@/lib/hooks/useIntegrations";
+import { Button as CustomButton } from "@/components/ui/button";
+import { Button } from "@mui/material";
+import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Link as MUILink, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from "@mui/material";
+import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete } from "@mui/icons-material";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
@@ -29,7 +33,13 @@ export default function TaskDetailPage() {
   const params = useParams();
   const taskId = params?.taskId as string;
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(true); // デフォルトで編集モード
+  const { startTimer, stopTimer } = useTimer();
+  const { createDriveFolder } = useDriveIntegration();
+  const { createFireIssue } = useFireIntegration();
+  const [activeSession, setActiveSession] = useState<{ projectId: string; taskId: string; sessionId: string } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
 
   const { data: task, isLoading: taskLoading } = useQuery({
     queryKey: ["task", taskId],
@@ -80,15 +90,25 @@ export default function TaskDetailPage() {
   const { data: sessions } = useQuery({
     queryKey: ["sessions", taskId],
     queryFn: async () => {
-      if (!task?.projectId || !db) return [];
+      if (!task?.projectId || !db || !user) return [];
       const sessionsRef = collection(
         db,
         "projects",
         task.projectId,
         "taskSessions"
       );
-      const q = query(sessionsRef, where("taskId", "==", taskId));
+      const q = query(sessionsRef, where("taskId", "==", taskId), where("userId", "==", user.id), where("endedAt", "==", null));
       const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const session = snapshot.docs[0].data();
+        setActiveSession({
+          projectId: task.projectId,
+          taskId: taskId,
+          sessionId: snapshot.docs[0].id,
+        });
+      } else {
+        setActiveSession(null);
+      }
       return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -96,8 +116,110 @@ export default function TaskDetailPage() {
         endedAt: doc.data().endedAt?.toDate() || null,
       }));
     },
-    enabled: !!task?.projectId && !!taskId,
+    enabled: !!task?.projectId && !!taskId && !!user,
   });
+
+  const handleStartTimer = async () => {
+    if (!user || !task) return;
+    try {
+      await startTimer.mutateAsync({
+        projectId: task.projectId,
+        taskId: task.id,
+        userId: user.id,
+      });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.refetchQueries({ queryKey: ["sessions", taskId] });
+    } catch (error: any) {
+      console.error("Timer start error:", error);
+      if (error.message?.includes("稼働中")) {
+        alert("他のタイマーが稼働中です。停止してから開始してください。");
+      } else {
+        alert("タイマーの開始に失敗しました: " + (error.message || "不明なエラー"));
+      }
+    }
+  };
+
+  const handleStopTimer = async () => {
+    if (!activeSession) return;
+    try {
+      await stopTimer.mutateAsync({
+        projectId: activeSession.projectId,
+        sessionId: activeSession.sessionId,
+      });
+      setActiveSession(null);
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.refetchQueries({ queryKey: ["sessions", taskId] });
+    } catch (error: any) {
+      console.error("Timer stop error:", error);
+      alert("タイマーの停止に失敗しました: " + (error.message || "不明なエラー"));
+    }
+  };
+
+      const handleDriveCreate = async () => {
+        if (!task) return;
+        try {
+          const result = await createDriveFolder.mutateAsync({ projectId: task.projectId, taskId: task.id });
+          // タスク詳細を更新（URLが反映されるように）
+          queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+          queryClient.refetchQueries({ queryKey: ["task", taskId] });
+          // タスク一覧も更新
+          queryClient.invalidateQueries({ queryKey: ["tasks"] });
+          
+          if (result.warning) {
+            // チェックシート作成エラーがある場合
+            alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}\n\nエラー: ${result.error || "不明なエラー"}`);
+          } else {
+            // 完全に成功した場合
+            alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}`);
+          }
+        } catch (error: any) {
+          console.error("Drive create error:", error);
+          const errorMessage = error?.message || "不明なエラー";
+          alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
+        }
+      };
+
+  const handleFireCreate = async () => {
+    if (!task) return;
+    try {
+      await createFireIssue.mutateAsync({ projectId: task.projectId, taskId: task.id });
+      alert("GitHub Issueを作成しました");
+      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+      queryClient.refetchQueries({ queryKey: ["task", taskId] });
+    } catch (error: any) {
+      console.error("Fire create error:", error);
+      alert("GitHub Issueの作成に失敗しました: " + (error.message || "不明なエラー"));
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!task || !db) return;
+    
+    // タイトルが一致しない場合は削除しない
+    if (deleteConfirmTitle !== task.title) {
+      alert("タイトルが一致しません。削除をキャンセルしました。");
+      setDeleteDialogOpen(false);
+      setDeleteConfirmTitle("");
+      return;
+    }
+
+    try {
+      const taskRef = doc(db, "projects", task.projectId, "tasks", taskId);
+      await deleteDoc(taskRef);
+      
+      // タスク一覧を更新
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      
+      // タスク詳細ページから離れる（一覧ページにリダイレクト）
+      window.location.href = "/tasks";
+    } catch (error: any) {
+      console.error("Delete task error:", error);
+      alert("タスクの削除に失敗しました: " + (error.message || "不明なエラー"));
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteConfirmTitle("");
+    }
+  };
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
@@ -109,7 +231,11 @@ export default function TaskDetailPage() {
       });
     },
     onSuccess: () => {
+      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+      queryClient.refetchQueries({ queryKey: ["task", taskId] });
+      // タスク一覧も更新
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setEditing(false);
     },
   });
@@ -136,9 +262,18 @@ export default function TaskDetailPage() {
         <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
           {task.title}
         </Typography>
-        <Button onClick={() => setEditing(!editing)}>
-          {editing ? "保存" : "編集"}
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <CustomButton onClick={() => setEditing(!editing)}>
+            {editing ? "保存" : "編集"}
+          </CustomButton>
+          <CustomButton
+            variant="destructive"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Delete fontSize="small" sx={{ mr: 1 }} />
+            削除
+          </CustomButton>
+        </Box>
       </Box>
 
       {task.external && (
@@ -254,47 +389,87 @@ export default function TaskDetailPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
-                連携
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {task.googleDriveUrl && (
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
-                      Google Drive
-                    </Typography>
-                    <MUILink
-                      href={task.googleDriveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
-                    >
-                      フォルダを開く
-                    </MUILink>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+                    連携
+                  </Typography>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      {activeSession?.taskId === task.id ? (
+                        <CustomButton
+                          fullWidth
+                          variant="outline"
+                          onClick={handleStopTimer}
+                        >
+                          <Stop fontSize="small" sx={{ mr: 1 }} />
+                          タイマー停止
+                        </CustomButton>
+                      ) : (
+                        <CustomButton
+                          fullWidth
+                          variant="outline"
+                          onClick={handleStartTimer}
+                          disabled={!!activeSession}
+                        >
+                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                          タイマー開始
+                        </CustomButton>
+                      )}
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {task.googleDriveUrl ? (
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={() => window.open(task.googleDriveUrl!, "_blank")}
+                            sx={{ flex: 1 }}
+                          >
+                            <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                            Driveを開く
+                          </Button>
+                        ) : (
+                          <CustomButton
+                            fullWidth
+                            variant="outline"
+                            onClick={handleDriveCreate}
+                            disabled={createDriveFolder.isPending}
+                            sx={{ flex: 1 }}
+                          >
+                            <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                            Drive作成
+                          </CustomButton>
+                        )}
+                        {task.fireIssueUrl ? (
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={() => window.open(task.fireIssueUrl!, "_blank")}
+                            sx={{ flex: 1 }}
+                          >
+                            <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                            Issueを開く
+                          </Button>
+                        ) : (
+                          <CustomButton
+                            fullWidth
+                            variant="outline"
+                            onClick={handleFireCreate}
+                            disabled={createFireIssue.isPending}
+                            sx={{ flex: 1 }}
+                          >
+                            <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                            Issue作成
+                          </CustomButton>
+                        )}
+                      </Box>
+                    </Box>
                   </Box>
-                )}
-                {task.fireIssueUrl && (
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
-                      GitHub Issue
-                    </Typography>
-                    <MUILink
-                      href={task.fireIssueUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
-                    >
-                      Issueを開く
-                    </MUILink>
-                  </Box>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
       </Grid>
 
       <Card>
