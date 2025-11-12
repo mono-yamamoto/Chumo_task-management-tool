@@ -10,8 +10,6 @@ import { ja } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Box, Typography, TextField, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from "@mui/material";
 
-const functionsUrl = process.env.NEXT_PUBLIC_FUNCTIONS_URL || "";
-
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<"normal" | "brg">("normal");
   const [fromDate, setFromDate] = useState(
@@ -19,7 +17,7 @@ export default function ReportsPage() {
   );
   const [toDate, setToDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
-  const { data: reportData, isLoading } = useQuery({
+  const { data: reportData, isLoading, error } = useQuery({
     queryKey: ["reports", activeTab, fromDate, toDate],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -28,9 +26,12 @@ export default function ReportsPage() {
         type: activeTab,
       });
 
-      const response = await fetch(`${functionsUrl}/getTimeReport?${params}`);
+      // Firebase Functions v2では関数ごとにURLが割り当てられる
+      const reportUrl = "https://gettimereport-zbk3yr5vta-uc.a.run.app";
+      const response = await fetch(`${reportUrl}?${params}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch report");
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`);
       }
       return response.json();
     },
@@ -43,7 +44,9 @@ export default function ReportsPage() {
       type: activeTab,
     });
 
-    const response = await fetch(`${functionsUrl}/exportTimeReportCSV?${params}`);
+      // Firebase Functions v2では関数ごとにURLが割り当てられる
+      const csvUrl = "https://exporttimereportcsv-zbk3yr5vta-uc.a.run.app";
+      const response = await fetch(`${csvUrl}?${params}`);
     if (!response.ok) {
       alert("CSVのエクスポートに失敗しました");
       return;
@@ -100,6 +103,15 @@ export default function ReportsPage() {
       {isLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
           <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Box sx={{ p: 3, bgcolor: "error.light", borderRadius: 1 }}>
+          <Typography variant="h6" sx={{ color: "error.main", mb: 1 }}>
+            エラーが発生しました
+          </Typography>
+          <Typography variant="body2" sx={{ color: "error.dark" }}>
+            {error instanceof Error ? error.message : "不明なエラーが発生しました"}
+          </Typography>
         </Box>
       ) : (
         <Box>
