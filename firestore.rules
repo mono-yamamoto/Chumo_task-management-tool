@@ -31,6 +31,7 @@ service cloud.firestore {
         allow read: if isSignedIn() && isProjectMember(projectId);
         allow create: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == request.resource.data.userId;
         allow update: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == resource.data.userId;
+        allow delete: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == resource.data.userId;
       }
 
       match /taskActivities/{activityId} {
