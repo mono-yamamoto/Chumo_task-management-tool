@@ -15,6 +15,9 @@ export default function ProjectsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [projectName, setProjectName] = useState("");
 
+  // 管理者のみが編集・削除・作成可能
+  const isAdmin = user?.role === "admin";
+
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -56,7 +59,9 @@ export default function ProjectsPage() {
       return docRef.id;
     },
     onSuccess: () => {
+      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.refetchQueries({ queryKey: ["projects"] });
       setShowCreateForm(false);
       setProjectName("");
     },
@@ -86,7 +91,9 @@ export default function ProjectsPage() {
         <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
           プロジェクト
         </Typography>
-        <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
+        {isAdmin && (
+          <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
+        )}
       </Box>
 
       {showCreateForm && (
@@ -133,9 +140,34 @@ export default function ProjectsPage() {
                   メンバー数: {project.memberIds.length}
                 </Typography>
                 {project.backlogProjectKey && (
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
                     Backlog: {project.backlogProjectKey}
                   </Typography>
+                )}
+                {isAdmin && (
+                  <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      // TODO: 編集機能を実装
+                      alert("編集機能は今後実装予定です");
+                    }}>
+                      編集
+                    </Button>
+                    <Button size="sm" variant="outline" color="error" onClick={async () => {
+                      if (confirm("このプロジェクトを削除しますか？")) {
+                        try {
+                          if (!db) throw new Error("Firestore not initialized");
+                          await deleteDoc(doc(db, "projects", project.id));
+                          queryClient.invalidateQueries({ queryKey: ["projects"] });
+                          queryClient.refetchQueries({ queryKey: ["projects"] });
+                        } catch (error) {
+                          console.error("Error deleting project:", error);
+                          alert("プロジェクトの削除に失敗しました");
+                        }
+                      }
+                    }}>
+                      削除
+                    </Button>
+                  </Box>
                 )}
               </CardContent>
             </Card>

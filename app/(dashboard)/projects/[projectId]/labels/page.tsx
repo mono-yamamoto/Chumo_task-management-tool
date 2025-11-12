@@ -49,6 +49,7 @@ export default function LabelsPage() {
         name: data.name,
         color: data.color,
         projectId,
+        ownerId: user.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -56,10 +57,16 @@ export default function LabelsPage() {
       return docRef.id;
     },
     onSuccess: () => {
+      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ["labels", projectId] });
+      queryClient.refetchQueries({ queryKey: ["labels", projectId] });
       setShowCreateForm(false);
       setLabelName("");
       setLabelColor("#3b82f6");
+    },
+    onError: (error: Error) => {
+      console.error("Error creating label:", error);
+      alert("ラベルの作成に失敗しました: " + error.message);
     },
   });
 
