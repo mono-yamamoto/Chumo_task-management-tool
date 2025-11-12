@@ -34,6 +34,7 @@ export default function TaskDetailPage() {
   const { data: task, isLoading: taskLoading } = useQuery({
     queryKey: ["task", taskId],
     queryFn: async () => {
+      if (!db) return null;
       // まずプロジェクトIDを取得する必要がある
       // 簡略化のため、全プロジェクトから検索
       const projectsRef = collection(db, "projects");
@@ -64,7 +65,7 @@ export default function TaskDetailPage() {
   const { data: labels } = useQuery({
     queryKey: ["labels", task?.projectId],
     queryFn: async () => {
-      if (!task?.projectId) return [];
+      if (!task?.projectId || !db) return [];
       const labelsRef = collection(db, "labels");
       const q = query(labelsRef, where("projectId", "==", task.projectId));
       const snapshot = await getDocs(q);
@@ -79,7 +80,7 @@ export default function TaskDetailPage() {
   const { data: sessions } = useQuery({
     queryKey: ["sessions", taskId],
     queryFn: async () => {
-      if (!task?.projectId) return [];
+      if (!task?.projectId || !db) return [];
       const sessionsRef = collection(
         db,
         "projects",
@@ -100,7 +101,7 @@ export default function TaskDetailPage() {
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
-      if (!task?.projectId) throw new Error("Task not found");
+      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
       const taskRef = doc(db, "projects", task.projectId, "tasks", taskId);
       await updateDoc(taskRef, {
         ...updates,
@@ -159,7 +160,7 @@ export default function TaskDetailPage() {
       )}
 
       <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
@@ -253,7 +254,7 @@ export default function TaskDetailPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>

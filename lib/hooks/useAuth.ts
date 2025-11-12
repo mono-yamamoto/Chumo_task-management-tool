@@ -26,7 +26,9 @@ export function useAuth() {
         try {
           const isAllowed = await checkUserAllowed(firebaseUser.uid);
           if (!isAllowed) {
-            await signOut(auth);
+            if (auth) {
+              await signOut(auth);
+            }
             setUser(null);
             setLoading(false);
             router.push("/login?error=not_allowed");

@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
+      if (!db) return [];
       const usersRef = collection(db, "users");
       const snapshot = await getDocs(usersRef);
       return snapshot.docs.map((doc) => ({
@@ -29,7 +30,7 @@ export default function SettingsPage() {
 
   const updateGithubUsername = useMutation({
     mutationFn: async (username: string) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !db) throw new Error("Not authenticated or Firestore not initialized");
       await updateDoc(doc(db, "users", user.id), {
         githubUsername: username,
         updatedAt: new Date(),
@@ -42,6 +43,7 @@ export default function SettingsPage() {
 
   const toggleUserAllowed = useMutation({
     mutationFn: async ({ userId, isAllowed }: { userId: string; isAllowed: boolean }) => {
+      if (!db) throw new Error("Firestore not initialized");
       await updateDoc(doc(db, "users", userId), {
         isAllowed,
         updatedAt: new Date(),
@@ -126,8 +128,8 @@ export default function SettingsPage() {
                         isAllowed: !u.isAllowed,
                       })
                     }
-                    variant="outlined"
-                    size="small"
+                    variant="outline"
+                    size="sm"
                   >
                     {u.isAllowed ? "拒否" : "許可"}
                   </Button>

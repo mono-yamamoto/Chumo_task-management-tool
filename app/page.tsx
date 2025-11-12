@@ -17,7 +17,7 @@ export default function Home() {
             <Button>ログインページへ</Button>
           </Link>
           <Link href="/dashboard" style={{ textDecoration: "none" }}>
-            <Button variant="outlined">ダッシュボードへ</Button>
+            <Button variant="outline">ダッシュボードへ</Button>
           </Link>
         </Box>
       </Container>

@@ -24,6 +24,7 @@ export default function ProjectsPage() {
         return [];
       }
       try {
+        if (!db) return [];
         const projectsRef = collection(db, "projects");
         const q = query(projectsRef, where("memberIds", "array-contains", user.id));
         const snapshot = await getDocs(q);
@@ -43,8 +44,7 @@ export default function ProjectsPage() {
 
   const createProject = useMutation({
     mutationFn: async (name: string) => {
-      if (!user) throw new Error("Not authenticated");
-      if (!db) throw new Error("Firestore is not initialized");
+      if (!user || !db) throw new Error("Not authenticated or Firestore not initialized");
       const projectData = {
         name,
         ownerId: user.id,
@@ -112,7 +112,7 @@ export default function ProjectsPage() {
                   setShowCreateForm(false);
                   setProjectName("");
                 }}
-                variant="outlined"
+                variant="outline"
               >
                 キャンセル
               </Button>
@@ -123,7 +123,7 @@ export default function ProjectsPage() {
 
       <Grid container spacing={2}>
         {projects?.map((project) => (
-          <Grid item xs={12} sm={6} md={4} key={project.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={project.id}>
             <Card>
               <CardContent>
                 <Typography variant="h6" component="h3" sx={{ fontWeight: "semibold", mb: 1 }}>

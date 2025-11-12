@@ -53,7 +53,7 @@ export default function DashboardLayout({
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {user?.displayName}
               </Typography>
-              <Button onClick={logout} variant="outlined" size="small">
+              <Button onClick={logout} variant="outline" size="sm">
                 ログアウト
               </Button>
             </Box>

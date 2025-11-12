@@ -38,7 +38,7 @@ export default function TasksPage() {
   const { data: projects } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user || !db) return [];
       const projectsRef = collection(db, "projects");
       const q = query(projectsRef, where("memberIds", "array-contains", user.id));
       const snapshot = await getDocs(q);
@@ -52,7 +52,7 @@ export default function TasksPage() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["tasks", selectedProject],
     queryFn: async () => {
-      if (selectedProject === "all") return [];
+      if (selectedProject === "all" || !db) return [];
       const tasksRef = collection(db, "projects", selectedProject, "tasks");
       const snapshot = await getDocs(tasksRef);
       return snapshot.docs.map((doc) => ({
@@ -73,7 +73,7 @@ export default function TasksPage() {
   const { data: sessions } = useQuery({
     queryKey: ["sessions", selectedProject],
     queryFn: async () => {
-      if (selectedProject === "all" || !user) return [];
+      if (selectedProject === "all" || !user || !db) return [];
       const sessionsRef = collection(db, "projects", selectedProject, "taskSessions");
       const q = query(sessionsRef, where("userId", "==", user.id), where("endedAt", "==", null));
       const snapshot = await getDocs(q);
@@ -230,16 +230,16 @@ export default function TasksPage() {
                     <Box sx={{ display: "flex", gap: 1 }}>
                       {isActive ? (
                         <Button
-                          size="small"
-                          variant="outlined"
+                          size="sm"
+                          variant="outline"
                           onClick={handleStopTimer}
                         >
                           <Stop fontSize="small" />
                         </Button>
                       ) : (
                         <Button
-                          size="small"
-                          variant="outlined"
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleStartTimer(task.projectId, task.id)}
                           disabled={!!activeSession}
                         >
@@ -247,16 +247,16 @@ export default function TasksPage() {
                         </Button>
                       )}
                       <Button
-                        size="small"
-                        variant="outlined"
+                        size="sm"
+                        variant="outline"
                         onClick={() => handleDriveCreate(task.projectId, task.id)}
                         disabled={createDriveFolder.isPending}
                       >
                         <FolderOpen fontSize="small" />
                       </Button>
                       <Button
-                        size="small"
-                        variant="outlined"
+                        size="sm"
+                        variant="outline"
                         onClick={() => handleFireCreate(task.projectId, task.id)}
                         disabled={createFireIssue.isPending}
                       >

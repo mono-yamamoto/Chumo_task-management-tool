@@ -28,7 +28,7 @@ export default function LabelsPage() {
   const { data: labels, isLoading } = useQuery({
     queryKey: ["labels", projectId],
     queryFn: async () => {
-      if (!projectId) return [];
+      if (!projectId || !db) return [];
       const labelsRef = collection(db, "labels");
       const q = query(labelsRef, where("projectId", "==", projectId));
       const snapshot = await getDocs(q);
@@ -44,7 +44,7 @@ export default function LabelsPage() {
 
   const createLabel = useMutation({
     mutationFn: async (data: { name: string; color: string }) => {
-      if (!user || !projectId) throw new Error("Not authenticated");
+      if (!user || !projectId || !db) throw new Error("Not authenticated or Firestore not initialized");
       const labelData = {
         name: data.name,
         color: data.color,
@@ -120,7 +120,7 @@ export default function LabelsPage() {
                   setLabelName("");
                   setLabelColor("#3b82f6");
                 }}
-                variant="outlined"
+                variant="outline"
               >
                 キャンセル
               </Button>
@@ -131,7 +131,7 @@ export default function LabelsPage() {
 
       <Grid container spacing={2}>
         {labels?.map((label) => (
-          <Grid item xs={12} sm={6} md={4} key={label.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={label.id}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
