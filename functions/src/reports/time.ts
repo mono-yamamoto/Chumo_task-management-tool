@@ -25,6 +25,15 @@ export const getTimeReport = onRequest(
       const fromDate = new Date(from as string);
       const toDate = new Date(to as string);
 
+      // 日付の検証
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        res.status(400).json({ error: "Invalid date format" });
+        return;
+      }
+
+      // toDateをその日の終了時刻（23:59:59.999）まで含める
+      toDate.setHours(23, 59, 59, 999);
+
       // 全プロジェクトからタスクとセッションを取得
       const projectsSnapshot = await db.collection("projects").get();
       const items: Array<{
@@ -88,7 +97,11 @@ export const getTimeReport = onRequest(
       });
     } catch (error) {
       console.error("Get time report error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        details: errorMessage 
+      });
     }
   }
 );
@@ -114,6 +127,15 @@ export const exportTimeReportCSV = onRequest(
 
       const fromDate = new Date(from as string);
       const toDate = new Date(to as string);
+
+      // 日付の検証
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        res.status(400).json({ error: "Invalid date format" });
+        return;
+      }
+
+      // toDateをその日の終了時刻（23:59:59.999）まで含める
+      toDate.setHours(23, 59, 59, 999);
 
       // データ取得（getTimeReportと同じロジック）
       const projectsSnapshot = await db.collection("projects").get();
@@ -189,7 +211,11 @@ export const exportTimeReportCSV = onRequest(
       res.status(200).send(csv);
     } catch (error) {
       console.error("Export CSV error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        details: errorMessage 
+      });
     }
   }
 );

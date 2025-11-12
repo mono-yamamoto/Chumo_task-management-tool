@@ -19,14 +19,36 @@ export const createFireIssue = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    // CORSヘッダーを設定
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    // OPTIONSリクエスト（preflight）に対応
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
       return;
     }
 
     try {
-      const projectId = req.path.match(/\/projects\/([^\/]+)/)?.[1];
-      const taskId = req.path.match(/\/tasks\/([^\/]+)/)?.[1];
+      // Firebase Functions v2では、req.pathは関数のルートからの相対パス
+      // 例: /projects/{projectId}/tasks/{taskId}
+      const pathParts = req.path.split("/").filter(Boolean);
+      const projectIdIndex = pathParts.indexOf("projects");
+      const taskIdIndex = pathParts.indexOf("tasks");
+      
+      if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
+        res.status(400).json({ error: "Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}" });
+        return;
+      }
+      
+      const projectId = pathParts[projectIdIndex + 1];
+      const taskId = pathParts[taskIdIndex + 1];
 
       if (!projectId || !taskId) {
         res.status(400).json({ error: "Missing projectId or taskId" });
