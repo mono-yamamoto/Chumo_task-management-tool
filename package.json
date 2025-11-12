@@ -7,7 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-user": "ts-node scripts/create-user.ts"
+    "create-user": "ts-node scripts/create-user.ts",
+    "functions:build": "cd functions && npm run build",
+    "functions:deploy": "cd functions && npm run build && firebase deploy --only functions",
+    "functions:deploy:timer": "cd functions && npm run build && firebase deploy --only functions:startTimer,functions:stopTimer",
+    "functions:deploy:drive": "cd functions && npm run build && firebase deploy --only functions:createDriveFolder",
+    "functions:deploy:github": "cd functions && npm run build && firebase deploy --only functions:createFireIssue",
+    "mcp:serena": "uvx --from git+https://github.com/oraios/serena serena start-mcp-server"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
