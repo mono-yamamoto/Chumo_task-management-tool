@@ -41,7 +41,8 @@ service cloud.firestore {
 
     match /labels/{labelId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId;
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
   }
 }
