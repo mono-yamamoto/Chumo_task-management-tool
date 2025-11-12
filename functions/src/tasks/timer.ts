@@ -154,22 +154,23 @@ export const stopTimer = onRequest(
       const endedAt = new Date();
       const durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
 
-      // 1分単位に丸める
-      const durationMin = Math.floor(durationSec / 60);
-
+      // 秒数をそのまま保存（秒単位で記録）
       await sessionRef.update({
         endedAt,
-        durationSec: durationMin * 60,
+        durationSec,
       });
+
+      const durationMin = Math.floor(durationSec / 60);
 
       res.status(200).json({
         success: true,
         durationMin,
+        durationSec,
       });
     } catch (error) {
       console.error("Stop timer error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
-);
+);;
 
