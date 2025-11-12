@@ -30,8 +30,10 @@ export default function ReportsPage() {
       const reportUrl = "https://gettimereport-zbk3yr5vta-uc.a.run.app";
       const response = await fetch(`${reportUrl}?${params}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: "Unknown error", details: `HTTP ${response.status}: ${response.statusText}` }));
+        const errorMessage = errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`;
+        const errorDetails = errorData.details ? `\n詳細: ${errorData.details}` : "";
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
       return response.json();
     },
@@ -109,9 +111,14 @@ export default function ReportsPage() {
           <Typography variant="h6" sx={{ color: "error.main", mb: 1 }}>
             エラーが発生しました
           </Typography>
-          <Typography variant="body2" sx={{ color: "error.dark" }}>
+          <Typography variant="body2" sx={{ color: "error.dark", mb: 2 }}>
             {error instanceof Error ? error.message : "不明なエラーが発生しました"}
           </Typography>
+          {error instanceof Error && error.message.includes("details") && (
+            <Typography variant="body2" sx={{ color: "error.dark", fontFamily: "monospace", fontSize: "0.875rem" }}>
+              {JSON.stringify(error, null, 2)}
+            </Typography>
+          )}
         </Box>
       ) : (
         <Box>
