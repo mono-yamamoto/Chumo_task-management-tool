@@ -2,7 +2,7 @@
 
 import { useState, Suspense, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Task, FlowStatus, User, Label, Project } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -38,6 +38,9 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Close, Delete } from "@mui/icons-material";
 import Link from "next/link";
@@ -82,6 +85,13 @@ function TasksPageContent() {
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
+  // フィルタリング用のstate
+  const [filterStatus, setFilterStatus] = useState<FlowStatus | "all">("all");
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [filterLabel, setFilterLabel] = useState<string>("all");
+  const [filterTimerActive, setFilterTimerActive] = useState<string>("all");
+  const [filterItUpDateMonth, setFilterItUpDateMonth] = useState<string>("");
+  const [filterReleaseDateMonth, setFilterReleaseDateMonth] = useState<string>("");
 
       const { data: projects } = useQuery<Project[]>({
         queryKey: ["projects"],
@@ -198,10 +208,72 @@ function TasksPageContent() {
     enabled: !!db && !!projects && projects.length > 0,
   });
 
+  // フィルタリングされたタスクを取得
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    
+    return tasks.filter((task) => {
+      // ステータスフィルタ
+      if (filterStatus !== "all" && task.flowStatus !== filterStatus) {
+        return false;
+      }
+      
+      // アサインフィルタ
+      if (filterAssignee !== "all" && !task.assigneeIds.includes(filterAssignee)) {
+        return false;
+      }
+      
+      // 区分フィルタ
+      if (filterLabel !== "all" && task.kubunLabelId !== filterLabel) {
+        return false;
+      }
+      
+      // タイマー稼働中フィルタ
+      if (filterTimerActive === "active" && activeSession?.taskId !== task.id) {
+        return false;
+      }
+      if (filterTimerActive === "inactive" && activeSession?.taskId === task.id) {
+        return false;
+      }
+      
+      // ITアップ日フィルタ（月指定）
+      if (filterItUpDateMonth && task.itUpDate) {
+        const [year, month] = filterItUpDateMonth.split("-");
+        const taskDate = new Date(task.itUpDate);
+        const taskYear = taskDate.getFullYear();
+        const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
+        if (taskYear !== parseInt(year) || taskMonth !== parseInt(month)) {
+          return false;
+        }
+      }
+      // ITアップ日が未設定の場合、月フィルタが設定されていれば除外
+      if (filterItUpDateMonth && !task.itUpDate) {
+        return false;
+      }
+      
+      // リリース日フィルタ（月指定）
+      if (filterReleaseDateMonth && task.releaseDate) {
+        const [year, month] = filterReleaseDateMonth.split("-");
+        const taskDate = new Date(task.releaseDate);
+        const taskYear = taskDate.getFullYear();
+        const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
+        if (taskYear !== parseInt(year) || taskMonth !== parseInt(month)) {
+          return false;
+        }
+      }
+      // リリース日が未設定の場合、月フィルタが設定されていれば除外
+      if (filterReleaseDateMonth && !task.releaseDate) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [tasks, filterStatus, filterAssignee, filterLabel, filterTimerActive, filterItUpDateMonth, filterReleaseDateMonth, activeSession]);
+
   // 選択されたタスクの詳細を取得
   const selectedTask = useMemo(() => {
-    return tasks?.find((t) => t.id === selectedTaskId) || null;
-  }, [tasks, selectedTaskId]);
+    return filteredTasks?.find((t) => t.id === selectedTaskId) || null;
+  }, [filteredTasks, selectedTaskId]);
 
   // 選択されたタスクが変更されたらフォームデータを初期化
   useEffect(() => {
@@ -229,6 +301,77 @@ function TasksPageContent() {
     if (!selectedTask || !allLabels) return [];
     return allLabels.filter((l) => l.projectId === selectedTask.projectId);
   }, [selectedTask, allLabels]);
+
+  // 選択されたタスクのセッション履歴を取得
+  const { data: taskSessions } = useQuery({
+    queryKey: ["taskSessions", selectedTaskId],
+    queryFn: async () => {
+      if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
+      try {
+        const sessionsRef = collection(
+          db,
+          "projects",
+          selectedTask.projectId,
+          "taskSessions"
+        );
+        const q = query(
+          sessionsRef,
+          where("taskId", "==", selectedTaskId),
+          orderBy("startedAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            startedAt: data.startedAt?.toDate(),
+            endedAt: data.endedAt?.toDate() || null,
+            durationSec: data.durationSec ?? 0,
+          };
+        });
+      } catch (error: any) {
+        // インデックスエラーの場合、orderByなしで再試行
+        if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+          try {
+            const sessionsRef = collection(
+              db,
+              "projects",
+              selectedTask.projectId,
+              "taskSessions"
+            );
+            const q = query(
+              sessionsRef,
+              where("taskId", "==", selectedTaskId)
+            );
+            const snapshot = await getDocs(q);
+            const sessions = snapshot.docs.map((doc) => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                ...data,
+                startedAt: data.startedAt?.toDate(),
+                endedAt: data.endedAt?.toDate() || null,
+                durationSec: data.durationSec ?? 0,
+              };
+            });
+            // クライアント側でソート
+            return sessions.sort((a, b) => {
+              const aTime = a.startedAt?.getTime() || 0;
+              const bTime = b.startedAt?.getTime() || 0;
+              return bTime - aTime;
+            });
+          } catch (retryError) {
+            console.error("Error fetching sessions:", retryError);
+            return [];
+          }
+        }
+        console.error("Error fetching sessions:", error);
+        return [];
+      }
+    },
+    enabled: !!selectedTask?.projectId && !!selectedTaskId,
+  });
 
   // アクティブなセッションを取得（すべてのプロジェクトから）
   const { data: sessions } = useQuery({
@@ -285,16 +428,16 @@ function TasksPageContent() {
   // タスクが選択されたらフォームデータを初期化
   const handleTaskSelect = (taskId: string) => {
     setSelectedTaskId(taskId);
-    const task = tasks?.find((t) => t.id === taskId);
+    const task = filteredTasks?.find((t) => t.id === taskId);
     if (task) {
       setTaskFormData({
         title: task.title,
         description: task.description || "",
         flowStatus: task.flowStatus,
         kubunLabelId: task.kubunLabelId,
+        assigneeIds: task.assigneeIds,
         itUpDate: task.itUpDate,
         releaseDate: task.releaseDate,
-        dueDate: task.dueDate,
       });
     }
   };
@@ -302,6 +445,40 @@ function TasksPageContent() {
   const handleSave = () => {
     if (!taskFormData || !selectedTask) return;
     updateTask.mutate(taskFormData);
+  };
+
+  const formatDuration = (seconds: number | undefined | null, startedAt?: Date, endedAt?: Date | null) => {
+    let secs = 0;
+    if (seconds === undefined || seconds === null || isNaN(seconds) || seconds === 0) {
+      if (endedAt && startedAt) {
+        secs = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+      } else {
+        return "0秒";
+      }
+    } else {
+      secs = Math.floor(Number(seconds));
+    }
+    
+    const hours = Math.floor(secs / 3600);
+    const minutes = Math.floor((secs % 3600) / 60);
+    const remainingSecs = secs % 60;
+    if (hours > 0) {
+      return `${hours}時間${minutes}分${remainingSecs}秒`;
+    } else if (minutes > 0) {
+      return `${minutes}分${remainingSecs}秒`;
+    } else {
+      return `${remainingSecs}秒`;
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSelectedProject("all");
+    setFilterStatus("all");
+    setFilterAssignee("all");
+    setFilterLabel("all");
+    setFilterTimerActive("all");
+    setFilterItUpDateMonth("");
+    setFilterReleaseDateMonth("");
   };
 
   const handleStartTimer = async (projectId: string, taskId: string) => {
@@ -458,27 +635,133 @@ function TasksPageContent() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
             タスク一覧
           </Typography>
-              <Link href="/tasks/new" style={{ textDecoration: "none" }}>
-                <CustomButton>新規作成</CustomButton>
-              </Link>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <CustomButton variant="outline" onClick={handleResetFilters}>
+              フィルタリセット
+            </CustomButton>
+            <Link href="/tasks/new" style={{ textDecoration: "none" }}>
+              <CustomButton>新規作成</CustomButton>
+            </Link>
+          </Box>
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <FormControl fullWidth>
-            <InputLabel>プロジェクト</InputLabel>
-            <Select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              label="プロジェクト"
-            >
-              <MenuItem value="all">すべて</MenuItem>
-              {projects?.map((project: any) => (
-                <MenuItem key={project.id} value={project.id}>
-                  {project.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>プロジェクト</InputLabel>
+                <Select
+                  value={selectedProject}
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  label="プロジェクト"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  {projects?.map((project: any) => (
+                    <MenuItem key={project.id} value={project.id}>
+                      {project.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>ステータス</InputLabel>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | "all")}
+                  label="ステータス"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  {flowStatusOptions.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {flowStatusLabels[status]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>アサイン</InputLabel>
+                <Select
+                  value={filterAssignee}
+                  onChange={(e) => setFilterAssignee(e.target.value)}
+                  label="アサイン"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  {allUsers?.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.displayName || user.email}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>区分</InputLabel>
+                <Select
+                  value={filterLabel}
+                  onChange={(e) => setFilterLabel(e.target.value)}
+                  label="区分"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  {allLabels?.map((label) => (
+                    <MenuItem key={label.id} value={label.id}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: "50%",
+                            backgroundColor: label.color,
+                          }}
+                        />
+                        {label.name}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>タイマー</InputLabel>
+                <Select
+                  value={filterTimerActive}
+                  onChange={(e) => setFilterTimerActive(e.target.value)}
+                  label="タイマー"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  <MenuItem value="active">稼働中のみ</MenuItem>
+                  <MenuItem value="inactive">停止中のみ</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                label="ITアップ日（月）"
+                type="month"
+                value={filterItUpDateMonth}
+                onChange={(e) => setFilterItUpDateMonth(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                label="リリース日（月）"
+                type="month"
+                value={filterReleaseDateMonth}
+                onChange={(e) => setFilterReleaseDateMonth(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
         </Box>
 
         <TableContainer component={Paper}>
@@ -496,16 +779,20 @@ function TasksPageContent() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {tasks && tasks.length === 0 ? (
+              {filteredTasks && filteredTasks.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} sx={{ textAlign: "center", py: 4 }}>
                     <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      {selectedProject === "all" ? "タスクがありません" : "このプロジェクトにタスクがありません"}
+                      {tasks && tasks.length === 0
+                        ? selectedProject === "all"
+                          ? "タスクがありません"
+                          : "このプロジェクトにタスクがありません"
+                        : "フィルタ条件に一致するタスクがありません"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                tasks?.map((task) => {
+                filteredTasks?.map((task) => {
                   const isActive = activeSession?.taskId === task.id;
                   return (
                     <TableRow
@@ -695,26 +982,32 @@ function TasksPageContent() {
                 InputLabelProps={{ shrink: true }}
               />
 
-              <TextField
-                fullWidth
-                label="期日"
-                type="date"
-                value={taskFormData.dueDate ? format(taskFormData.dueDate, "yyyy-MM-dd") : ""}
-                onChange={(e) =>
-                  setTaskFormData({
-                    ...taskFormData,
-                    dueDate: e.target.value ? new Date(e.target.value) : null,
-                  })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, color: "text.secondary" }}>
-                  アサイン
-                </Typography>
-                <Typography>{getAssigneeNames(selectedTask.assigneeIds)}</Typography>
-              </Box>
+              <FormControl fullWidth>
+                <InputLabel>アサイン</InputLabel>
+                <Select
+                  multiple
+                  value={taskFormData.assigneeIds || selectedTask.assigneeIds || []}
+                  onChange={(e) => {
+                    const value = typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
+                    setTaskFormData({ ...taskFormData, assigneeIds: value });
+                  }}
+                  input={<OutlinedInput label="アサイン" />}
+                  renderValue={(selected) => {
+                    if (!selected || selected.length === 0) return "-";
+                    return selected
+                      .map((id) => allUsers?.find((u) => u.id === id)?.displayName)
+                      .filter(Boolean)
+                      .join(", ");
+                  }}
+                >
+                  {allUsers?.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      <Checkbox checked={(taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(user.id)} />
+                      <ListItemText primary={user.displayName || user.email} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
                 <Box sx={{ display: "flex", gap: 1 }}>
@@ -795,6 +1088,52 @@ function TasksPageContent() {
                       詳細ページを開く
                     </CustomButton>
                   </Link>
+              </Box>
+
+              {/* セッション履歴 */}
+              <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: "divider" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: "semibold" }}>
+                    セッション履歴
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 300, overflowY: "auto" }}>
+                  {taskSessions && taskSessions.length > 0 ? (
+                    taskSessions.map((session: any) => {
+                      const sessionUser = allUsers?.find((u) => u.id === session.userId);
+                      return (
+                        <Box
+                          key={session.id}
+                          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
+                        >
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1 }}>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              {sessionUser?.displayName || "不明なユーザー"}
+                            </Typography>
+                            <Typography variant="body2">
+                              {format(session.startedAt, "yyyy-MM-dd HH:mm:ss", {
+                                locale: ja,
+                              })}
+                              {" - "}
+                              {session.endedAt
+                                ? format(session.endedAt, "yyyy-MM-dd HH:mm:ss", {
+                                    locale: ja,
+                                  })
+                                : "実行中"}
+                            </Typography>
+                          </Box>
+                          <Typography sx={{ fontWeight: "medium", minWidth: "80px", textAlign: "right", fontSize: "0.875rem" }}>
+                            {session.endedAt ? formatDuration(session.durationSec, session.startedAt, session.endedAt) : "-"}
+                          </Typography>
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography sx={{ color: "text.secondary", py: 2, fontSize: "0.875rem" }}>
+                      セッション履歴がありません
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             </Box>
           </Box>
