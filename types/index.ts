@@ -23,6 +23,8 @@ export interface User {
   role: UserRole;
   isAllowed: boolean;
   githubUsername?: string;
+  googleRefreshToken?: string;
+  googleOAuthUpdatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,7 @@ export interface Label {
   name: string;
   color: string;
   projectId: string;
+  ownerId: string;
   createdAt: Date;
   updatedAt: Date;
 }

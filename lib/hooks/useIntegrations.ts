@@ -1,11 +1,13 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const functionsUrl = process.env.NEXT_PUBLIC_FUNCTIONS_URL || "";
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const createDriveFolder = useMutation({
     mutationFn: async ({
@@ -15,16 +17,36 @@ export function useDriveIntegration() {
       projectId: string;
       taskId: string;
     }) => {
+      if (!user) {
+        throw new Error("ユーザーがログインしていません");
+      }
+
+      // Firebase Functions v2では関数ごとにURLが割り当てられる
+      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
+      const driveUrl = "https://createdrivefolder-zbk3yr5vta-uc.a.run.app";
       const response = await fetch(
-        `${functionsUrl}/createDriveFolder/projects/${projectId}/tasks/${taskId}`,
+        `${driveUrl}/projects/${projectId}/tasks/${taskId}`,
         {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.id,
+          }),
         }
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Driveフォルダの作成に失敗しました");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        
+        // 認証が必要なエラーの場合、特別なエラーを投げる
+        if (errorData.requiresAuth) {
+          throw new Error(errorMessage);
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return response.json();
@@ -50,16 +72,20 @@ export function useFireIntegration() {
       projectId: string;
       taskId: string;
     }) => {
+      // Firebase Functions v2では関数ごとにURLが割り当てられる
+      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
+      const fireUrl = "https://createfireissue-zbk3yr5vta-uc.a.run.app";
       const response = await fetch(
-        `${functionsUrl}/createFireIssue/projects/${projectId}/tasks/${taskId}`,
+        `${fireUrl}/projects/${projectId}/tasks/${taskId}`,
         {
           method: "POST",
         }
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "GitHub Issueの作成に失敗しました");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
       return response.json();
