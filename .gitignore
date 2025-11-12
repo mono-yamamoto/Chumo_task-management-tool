@@ -20,6 +20,10 @@ functions/lib/
 .vscode/
 .idea/
 .cursor/
+# .cursor/rules/は共有するため除外
+!.cursor/
+!.cursor/rules/
+!.cursor/rules/**
 
 # MCP
 .playwright-mcp/

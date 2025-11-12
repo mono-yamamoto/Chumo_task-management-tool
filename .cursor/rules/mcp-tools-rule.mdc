@@ -1,0 +1,87 @@
+---
+description: MCPツールの使用ルール
+globs: **/*
+alwaysApply: true
+---
+
+# MCPツールの使用ルール
+
+## Serena MCPの使用
+
+### コード修正時の原則
+
+**Serena MCPが有効な場合は、常にSerena MCPのツールを使用してコードを修正してください。**
+
+- コードの読み取り: `mcp_serena_read_file`、`mcp_serena_find_symbol`、`mcp_serena_get_symbols_overview`などを使用
+- コードの編集: `mcp_serena_replace_symbol_body`、`mcp_serena_replace_regex`、`mcp_serena_insert_after_symbol`、`mcp_serena_insert_before_symbol`などを使用
+- シンボルの検索: `mcp_serena_find_symbol`、`mcp_serena_find_referencing_symbols`を使用
+- パターン検索: `mcp_serena_search_for_pattern`を使用
+
+### 使用すべき場面
+
+- ファイルの読み取り・編集
+- 関数・クラス・メソッドの修正
+- シンボルの検索・参照の確認
+- コードのリファクタリング
+- バグ修正
+
+### 通常のツールとの使い分け
+
+Serena MCPが利用できない場合や、以下のような場合のみ通常のツールを使用してください：
+
+- ファイルの作成・削除（`write`、`delete_file`）
+- ディレクトリの一覧取得（`list_dir`）
+- ターミナルコマンドの実行（`run_terminal_cmd`）
+- リンターエラーの確認（`read_lints`）
+
+## Chrome DevTools MCPの使用
+
+### ローカルサーバーでの動作確認
+
+**ローカルサーバーが起動している場合、またはローカルサーバーのURL（例: `http://localhost:3000`）が共有された場合は、Chrome DevTools MCPを使用してページを確認してください。**
+
+### 使用すべき場面
+
+- ページの表示確認
+- UIの動作確認
+- コンソールエラーの確認
+- ネットワークリクエストの確認
+- パフォーマンスの確認
+- 要素の状態確認
+
+### 基本的なワークフロー
+
+1. **ページに移動**: `mcp_chrome-devtools_navigate_page`でURLに移動
+2. **スナップショット取得**: `mcp_chrome-devtools_take_snapshot`でページの状態を確認
+3. **操作**: 必要に応じてクリック、入力などの操作を実行
+4. **確認**: コンソールメッセージやネットワークリクエストを確認
+5. **スクリーンショット**: 必要に応じて`mcp_chrome-devtools_take_screenshot`でスクリーンショットを取得
+
+### 確認すべき項目
+
+- ページが正しく表示されているか
+- エラーメッセージが表示されていないか
+- コンソールにエラーが出ていないか（`mcp_chrome-devtools_list_console_messages`）
+- ネットワークリクエストが正常に完了しているか（`mcp_chrome-devtools_list_network_requests`）
+- UIの動作が期待通りか
+
+### URLの検出
+
+以下のような情報が提供された場合は、Chrome DevTools MCPを使用してください：
+
+- `http://localhost:*` の形式のURL
+- `localhost:3000` などのローカルサーバーのURL
+- ユーザーが「ローカルサーバーが起動している」と明示的に述べた場合
+- ユーザーが「ページを確認して」と依頼した場合
+
+## 優先順位
+
+1. **Serena MCP**: コードの修正・読み取りは常に優先
+2. **Chrome DevTools MCP**: ローカルサーバーでの動作確認が必要な場合
+3. **通常のツール**: 上記のMCPツールが使用できない場合のみ
+
+## 注意事項
+
+- Serena MCPとChrome DevTools MCPは併用可能です
+- コード修正後は、Chrome DevTools MCPで動作確認を行うことを推奨します
+- MCPツールが利用できない場合は、通常のツールを使用してください
