@@ -8,6 +8,7 @@ import { Task, FlowStatus, Label } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Link as MUILink, CircularProgress } from "@mui/material";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
@@ -113,68 +114,82 @@ export default function TaskDetailPage() {
   });
 
   if (taskLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (!task) {
-    return <div>タスクが見つかりません</div>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography>タスクが見つかりません</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{task.title}</h1>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+          {task.title}
+        </Typography>
         <Button onClick={() => setEditing(!editing)}>
           {editing ? "保存" : "編集"}
         </Button>
-      </div>
+      </Box>
 
       {task.external && (
-        <div className="rounded-lg border p-4">
-          <h2 className="font-semibold">Backlog情報</h2>
-          <p>
-            <a
+        <Card>
+          <CardContent>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 1 }}>
+              Backlog情報
+            </Typography>
+            <MUILink
               href={task.external.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
             >
               {task.external.issueKey}
-            </a>
-          </p>
-        </div>
+            </MUILink>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-4 font-semibold">基本情報</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">ステータス</label>
-              {editing ? (
-                <select
-                  value={task.flowStatus}
-                  onChange={(e) =>
-                    updateTask.mutate({
-                      flowStatus: e.target.value as FlowStatus,
-                    })
-                  }
-                  className="mt-1 w-full rounded border px-3 py-2"
-                >
-                  {flowStatusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="mt-1">{task.flowStatus}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium">ITアップ日</label>
-              {editing ? (
-                <input
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+                基本情報
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>ステータス</InputLabel>
+                  {editing ? (
+                    <Select
+                      value={task.flowStatus}
+                      onChange={(e) =>
+                        updateTask.mutate({
+                          flowStatus: e.target.value as FlowStatus,
+                        })
+                      }
+                      label="ステータス"
+                    >
+                      {flowStatusOptions.map((status) => (
+                        <MenuItem key={status} value={status}>
+                          {status}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Typography sx={{ mt: 1 }}>{task.flowStatus}</Typography>
+                  )}
+                </FormControl>
+                <TextField
+                  label="ITアップ日"
                   type="date"
                   value={
                     task.itUpDate
@@ -188,20 +203,12 @@ export default function TaskDetailPage() {
                         : null,
                     })
                   }
-                  className="mt-1 w-full rounded border px-3 py-2"
+                  InputLabelProps={{ shrink: true }}
+                  disabled={!editing}
+                  fullWidth
                 />
-              ) : (
-                <p className="mt-1">
-                  {task.itUpDate
-                    ? format(task.itUpDate, "yyyy-MM-dd", { locale: ja })
-                    : "-"}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium">リリース日</label>
-              {editing ? (
-                <input
+                <TextField
+                  label="リリース日"
                   type="date"
                   value={
                     task.releaseDate
@@ -215,83 +222,92 @@ export default function TaskDetailPage() {
                         : null,
                     })
                   }
-                  className="mt-1 w-full rounded border px-3 py-2"
+                  InputLabelProps={{ shrink: true }}
+                  disabled={!editing}
+                  fullWidth
                 />
-              ) : (
-                <p className="mt-1">
-                  {task.releaseDate
-                    ? format(task.releaseDate, "yyyy-MM-dd", { locale: ja })
-                    : "-"}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium">区分</label>
-              {editing ? (
-                <select
-                  value={task.kubunLabelId}
-                  onChange={(e) =>
-                    updateTask.mutate({ kubunLabelId: e.target.value })
-                  }
-                  className="mt-1 w-full rounded border px-3 py-2"
-                >
-                  {labels?.map((label) => (
-                    <option key={label.id} value={label.id}>
-                      {label.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="mt-1">
-                  {labels?.find((l) => l.id === task.kubunLabelId)?.name || "-"}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+                <FormControl fullWidth>
+                  <InputLabel>区分</InputLabel>
+                  {editing ? (
+                    <Select
+                      value={task.kubunLabelId}
+                      onChange={(e) =>
+                        updateTask.mutate({ kubunLabelId: e.target.value })
+                      }
+                      label="区分"
+                    >
+                      {labels?.map((label) => (
+                        <MenuItem key={label.id} value={label.id}>
+                          {label.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Typography sx={{ mt: 1 }}>
+                      {labels?.find((l) => l.id === task.kubunLabelId)?.name || "-"}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-4 font-semibold">連携</h2>
-          <div className="space-y-4">
-            {task.googleDriveUrl && (
-              <div>
-                <label className="block text-sm font-medium">
-                  Google Drive
-                </label>
-                <a
-                  href={task.googleDriveUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 text-blue-600 hover:underline"
-                >
-                  フォルダを開く
-                </a>
-              </div>
-            )}
-            {task.fireIssueUrl && (
-              <div>
-                <label className="block text-sm font-medium">GitHub Issue</label>
-                <a
-                  href={task.fireIssueUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 text-blue-600 hover:underline"
-                >
-                  Issueを開く
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+                連携
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {task.googleDriveUrl && (
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      Google Drive
+                    </Typography>
+                    <MUILink
+                      href={task.googleDriveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
+                    >
+                      フォルダを開く
+                    </MUILink>
+                  </Box>
+                )}
+                {task.fireIssueUrl && (
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      GitHub Issue
+                    </Typography>
+                    <MUILink
+                      href={task.fireIssueUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
+                    >
+                      Issueを開く
+                    </MUILink>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-4 font-semibold">セッション一覧</h2>
-        <div className="space-y-2">
-          {sessions?.map((session: any) => (
-            <div key={session.id} className="flex justify-between border-b pb-2">
-              <div>
-                <p>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+            セッション一覧
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {sessions?.map((session: any) => (
+              <Box
+                key={session.id}
+                sx={{ display: "flex", justifyContent: "space-between", borderBottom: 1, borderColor: "divider", pb: 1 }}
+              >
+                <Typography>
                   {format(session.startedAt, "yyyy-MM-dd HH:mm", {
                     locale: ja,
                   })}
@@ -301,16 +317,16 @@ export default function TaskDetailPage() {
                         locale: ja,
                       })
                     : "実行中"}
-                </p>
-              </div>
-              <div>
-                {Math.floor(session.durationSec / 60)}分
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+                </Typography>
+                <Typography>
+                  {Math.floor(session.durationSec / 60)}分
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

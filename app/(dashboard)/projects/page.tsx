@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase/config";
 import { Project } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, TextField, Grid, Card, CardContent, CircularProgress } from "@mui/material";
 import { useState } from "react";
 
 export default function ProjectsPage() {
@@ -72,59 +73,76 @@ export default function ProjectsPage() {
   };
 
   if (isLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">プロジェクト</h1>
+    <Box>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+          プロジェクト
+        </Typography>
         <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
-      </div>
+      </Box>
 
       {showCreateForm && (
-        <div className="mb-6 rounded-lg border p-4">
-          <h2 className="mb-4 font-semibold">新規プロジェクト作成</h2>
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="プロジェクト名"
-              className="flex-1 rounded border px-3 py-2"
-            />
-            <Button onClick={handleCreate} disabled={createProject.isPending}>
-              作成
-            </Button>
-            <Button
-              onClick={() => {
-                setShowCreateForm(false);
-                setProjectName("");
-              }}
-              variant="outline"
-            >
-              キャンセル
-            </Button>
-          </div>
-        </div>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+              新規プロジェクト作成
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                fullWidth
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                placeholder="プロジェクト名"
+                variant="outlined"
+              />
+              <Button onClick={handleCreate} disabled={createProject.isPending}>
+                作成
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setProjectName("");
+                }}
+                variant="outlined"
+              >
+                キャンセル
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Grid container spacing={2}>
         {projects?.map((project) => (
-          <div key={project.id} className="rounded-lg border p-4">
-            <h3 className="text-lg font-semibold">{project.name}</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              メンバー数: {project.memberIds.length}
-            </p>
-            {project.backlogProjectKey && (
-              <p className="mt-1 text-sm text-gray-600">
-                Backlog: {project.backlogProjectKey}
-              </p>
-            )}
-          </div>
+          <Grid item xs={12} sm={6} md={4} key={project.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" component="h3" sx={{ fontWeight: "semibold", mb: 1 }}>
+                  {project.name}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+                  メンバー数: {project.memberIds.length}
+                </Typography>
+                {project.backlogProjectKey && (
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Backlog: {project.backlogProjectKey}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Box>
   );
 }
 

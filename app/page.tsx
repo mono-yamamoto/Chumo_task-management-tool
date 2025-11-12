@@ -1,20 +1,27 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, Container } from "@mui/material";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">タスク管理ツール</h1>
-      <p className="mt-4 text-lg">準備中...</p>
-      <div className="mt-8 space-x-4">
-        <Link href="/login">
-          <Button>ログインページへ</Button>
-        </Link>
-        <Link href="/dashboard">
-          <Button variant="outline">ダッシュボードへ</Button>
-        </Link>
-      </div>
-    </main>
+    <Box component="main" sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", p: 6 }}>
+      <Container maxWidth="md">
+        <Typography variant="h2" component="h1" sx={{ fontWeight: "bold", mb: 2, textAlign: "center" }}>
+          タスク管理ツール
+        </Typography>
+        <Typography variant="h6" sx={{ mb: 4, textAlign: "center" }}>
+          準備中...
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+          <Link href="/login" style={{ textDecoration: "none" }}>
+            <Button>ログインページへ</Button>
+          </Link>
+          <Link href="/dashboard" style={{ textDecoration: "none" }}>
+            <Button variant="outlined">ダッシュボードへ</Button>
+          </Link>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 

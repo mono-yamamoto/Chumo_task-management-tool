@@ -16,6 +16,7 @@ import { Label } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, TextField, Card, CardContent, Grid, CircularProgress } from "@mui/material";
 import { useState } from "react";
 
 export default function LabelsPage() {
@@ -72,67 +73,89 @@ export default function LabelsPage() {
   };
 
   if (isLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">ラベル管理</h1>
+    <Box>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+          ラベル管理
+        </Typography>
         <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
-      </div>
+      </Box>
 
       {showCreateForm && (
-        <div className="mb-6 rounded-lg border p-4">
-          <h2 className="mb-4 font-semibold">新規ラベル作成</h2>
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={labelName}
-              onChange={(e) => setLabelName(e.target.value)}
-              placeholder="ラベル名"
-              className="flex-1 rounded border px-3 py-2"
-            />
-            <input
-              type="color"
-              value={labelColor}
-              onChange={(e) => setLabelColor(e.target.value)}
-              className="h-10 w-20 rounded border"
-            />
-            <Button onClick={handleCreate} disabled={createLabel.isPending}>
-              作成
-            </Button>
-            <Button
-              onClick={() => {
-                setShowCreateForm(false);
-                setLabelName("");
-                setLabelColor("#3b82f6");
-              }}
-              variant="outline"
-            >
-              キャンセル
-            </Button>
-          </div>
-        </div>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+              新規ラベル作成
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                fullWidth
+                type="text"
+                value={labelName}
+                onChange={(e) => setLabelName(e.target.value)}
+                placeholder="ラベル名"
+                variant="outlined"
+              />
+              <TextField
+                type="color"
+                value={labelColor}
+                onChange={(e) => setLabelColor(e.target.value)}
+                variant="outlined"
+                sx={{ width: 80 }}
+                InputProps={{
+                  sx: { height: 56, padding: 0.5 }
+                }}
+              />
+              <Button onClick={handleCreate} disabled={createLabel.isPending}>
+                作成
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setLabelName("");
+                  setLabelColor("#3b82f6");
+                }}
+                variant="outlined"
+              >
+                キャンセル
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Grid container spacing={2}>
         {labels?.map((label) => (
-          <div
-            key={label.id}
-            className="flex items-center justify-between rounded-lg border p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="h-4 w-4 rounded-full"
-                style={{ backgroundColor: label.color }}
-              />
-              <span className="font-medium">{label.name}</span>
-            </div>
-          </div>
+          <Grid item xs={12} sm={6} md={4} key={label.id}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      backgroundColor: label.color,
+                    }}
+                  />
+                  <Typography sx={{ fontWeight: "medium" }}>
+                    {label.name}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Box>
   );
 }
 

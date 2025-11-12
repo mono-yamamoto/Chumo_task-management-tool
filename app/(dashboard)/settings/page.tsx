@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase/config";
 import { User } from "@/types";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, TextField, Card, CardContent, List, ListItem, ListItemText, Chip, CircularProgress } from "@mui/material";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -52,67 +53,91 @@ export default function SettingsPage() {
   });
 
   if (!user || user.role !== "admin") {
-    return <div>アクセス権限がありません</div>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography>アクセス権限がありません</Typography>
+      </Box>
+    );
   }
 
   if (isLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">設定</h1>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+        設定
+      </Typography>
 
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-4 font-semibold">GitHubユーザー名</h2>
-        <div className="flex gap-4">
-          <input
-            type="text"
-            value={githubUsername}
-            onChange={(e) => setGithubUsername(e.target.value)}
-            placeholder="GitHubユーザー名"
-            className="flex-1 rounded border px-3 py-2"
-          />
-          <Button
-            onClick={() => updateGithubUsername.mutate(githubUsername)}
-            disabled={updateGithubUsername.isPending}
-          >
-            保存
-          </Button>
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+            GitHubユーザー名
+          </Typography>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <TextField
+              fullWidth
+              type="text"
+              value={githubUsername}
+              onChange={(e) => setGithubUsername(e.target.value)}
+              placeholder="GitHubユーザー名"
+              variant="outlined"
+            />
+            <Button
+              onClick={() => updateGithubUsername.mutate(githubUsername)}
+              disabled={updateGithubUsername.isPending}
+            >
+              保存
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-4 font-semibold">許可リスト管理</h2>
-        <div className="space-y-2">
-          {users?.map((u) => (
-            <div key={u.id} className="flex items-center justify-between border-b pb-2">
-              <div>
-                <p className="font-medium">{u.displayName}</p>
-                <p className="text-sm text-gray-600">{u.email}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className={`text-sm ${u.isAllowed ? "text-green-600" : "text-red-600"}`}>
-                  {u.isAllowed ? "許可" : "拒否"}
-                </span>
-                <Button
-                  onClick={() =>
-                    toggleUserAllowed.mutate({
-                      userId: u.id,
-                      isAllowed: !u.isAllowed,
-                    })
-                  }
-                  variant="outline"
-                  size="sm"
-                >
-                  {u.isAllowed ? "拒否" : "許可"}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+            許可リスト管理
+          </Typography>
+          <List>
+            {users?.map((u) => (
+              <ListItem
+                key={u.id}
+                sx={{ borderBottom: 1, borderColor: "divider", display: "flex", justifyContent: "space-between" }}
+              >
+                <ListItemText
+                  primary={u.displayName}
+                  secondary={u.email}
+                />
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Chip
+                    label={u.isAllowed ? "許可" : "拒否"}
+                    color={u.isAllowed ? "success" : "error"}
+                    size="small"
+                  />
+                  <Button
+                    onClick={() =>
+                      toggleUserAllowed.mutate({
+                        userId: u.id,
+                        isAllowed: !u.isAllowed,
+                      })
+                    }
+                    variant="outlined"
+                    size="small"
+                  >
+                    {u.isAllowed ? "拒否" : "許可"}
+                  </Button>
+                </Box>
+              </ListItem>
+            ))}
+          </List>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

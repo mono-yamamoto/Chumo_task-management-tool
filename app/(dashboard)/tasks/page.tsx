@@ -9,10 +9,11 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useTimer } from "@/lib/hooks/useTimer";
 import { useDriveIntegration, useFireIntegration } from "@/lib/hooks/useIntegrations";
 import { Button } from "@/components/ui/button";
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Link as MUILink, CircularProgress, Chip } from "@mui/material";
+import { PlayArrow, Stop, FolderOpen, LocalFireDepartment } from "@mui/icons-material";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Play, Square, FolderOpen, Flame } from "lucide-react";
 
 const flowStatusLabels: Record<FlowStatus, string> = {
   未着手: "未着手",
@@ -141,128 +142,135 @@ export default function TasksPage() {
   };
 
   if (isLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">タスク一覧</h1>
-        <Link href="/tasks/new">
+    <Box>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+          タスク一覧
+        </Typography>
+        <Link href="/tasks/new" style={{ textDecoration: "none" }}>
           <Button>新規作成</Button>
         </Link>
-      </div>
+      </Box>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium">プロジェクト</label>
-        <select
-          value={selectedProject}
-          onChange={(e) => setSelectedProject(e.target.value)}
-          className="mt-1 rounded border px-3 py-2"
-        >
-          <option value="all">すべて</option>
-          {projects?.map((project: any) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Box sx={{ mb: 3 }}>
+        <FormControl fullWidth>
+          <InputLabel>プロジェクト</InputLabel>
+          <Select
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(e.target.value)}
+            label="プロジェクト"
+          >
+            <MenuItem value="all">すべて</MenuItem>
+            {projects?.map((project: any) => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="border p-2 text-left">タイトル</th>
-              <th className="border p-2 text-left">アサイン</th>
-              <th className="border p-2 text-left">ITアップ</th>
-              <th className="border p-2 text-left">リリース</th>
-              <th className="border p-2 text-left">ステータス</th>
-              <th className="border p-2 text-left">区分</th>
-              <th className="border p-2 text-left">ロールアップ</th>
-              <th className="border p-2 text-left">操作</th>
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ bgcolor: "grey.50" }}>
+              <TableCell>タイトル</TableCell>
+              <TableCell>アサイン</TableCell>
+              <TableCell>ITアップ</TableCell>
+              <TableCell>リリース</TableCell>
+              <TableCell>ステータス</TableCell>
+              <TableCell>区分</TableCell>
+              <TableCell>ロールアップ</TableCell>
+              <TableCell>操作</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {tasks?.map((task) => {
               const isActive = activeSession?.taskId === task.id;
               return (
-                <tr key={task.id}>
-                  <td className="border p-2">
-                    <Link
-                      href={`/dashboard/tasks/${task.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {task.title}
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
+                      <MUILink component="span" sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}>
+                        {task.title}
+                      </MUILink>
                     </Link>
-                  </td>
-                  <td className="border p-2">
+                  </TableCell>
+                  <TableCell>
                     {task.assigneeIds.length > 0
                       ? task.assigneeIds.join(", ")
                       : "-"}
-                  </td>
-                  <td className="border p-2">
+                  </TableCell>
+                  <TableCell>
                     {task.itUpDate
                       ? format(task.itUpDate, "yyyy-MM-dd", { locale: ja })
                       : "-"}
-                  </td>
-                  <td className="border p-2">
+                  </TableCell>
+                  <TableCell>
                     {task.releaseDate
                       ? format(task.releaseDate, "yyyy-MM-dd", { locale: ja })
                       : "-"}
-                  </td>
-                  <td className="border p-2">
+                  </TableCell>
+                  <TableCell>
                     {flowStatusLabels[task.flowStatus]}
-                  </td>
-                  <td className="border p-2">{task.kubunLabelId}</td>
-                  <td className="border p-2">
-                    {isActive && <span className="text-green-600">● 稼働中</span>}
-                  </td>
-                  <td className="border p-2">
-                    <div className="flex gap-2">
+                  </TableCell>
+                  <TableCell>{task.kubunLabelId}</TableCell>
+                  <TableCell>
+                    {isActive && <Chip label="稼働中" color="success" size="small" />}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", gap: 1 }}>
                       {isActive ? (
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="small"
+                          variant="outlined"
                           onClick={handleStopTimer}
                         >
-                          <Square className="h-4 w-4" />
+                          <Stop fontSize="small" />
                         </Button>
                       ) : (
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="small"
+                          variant="outlined"
                           onClick={() => handleStartTimer(task.projectId, task.id)}
                           disabled={!!activeSession}
                         >
-                          <Play className="h-4 w-4" />
+                          <PlayArrow fontSize="small" />
                         </Button>
                       )}
                       <Button
-                        size="sm"
-                        variant="outline"
+                        size="small"
+                        variant="outlined"
                         onClick={() => handleDriveCreate(task.projectId, task.id)}
                         disabled={createDriveFolder.isPending}
                       >
-                        <FolderOpen className="h-4 w-4" />
+                        <FolderOpen fontSize="small" />
                       </Button>
                       <Button
-                        size="sm"
-                        variant="outline"
+                        size="small"
+                        variant="outlined"
                         onClick={() => handleFireCreate(task.projectId, task.id)}
                         disabled={createFireIssue.isPending}
                       >
-                        <Flame className="h-4 w-4" />
+                        <LocalFireDepartment fontSize="small" />
                       </Button>
-                    </div>
-                  </td>
-                </tr>
+                    </Box>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 }
 

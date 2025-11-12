@@ -1,9 +1,15 @@
+import { Box, Typography } from "@mui/material";
+
 export default function DashboardPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">ダッシュボード</h1>
-      <p className="mt-4 text-gray-600">ようこそ、タスク管理ツールへ</p>
-    </div>
+    <Box>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: "bold", mb: 2 }}>
+        ダッシュボード
+      </Typography>
+      <Typography sx={{ color: "text.secondary" }}>
+        ようこそ、タスク管理ツールへ
+      </Typography>
+    </Box>
   );
 }
 

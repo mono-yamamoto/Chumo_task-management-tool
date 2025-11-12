@@ -1,4 +1,2 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* MUIを使用するため、Tailwind CSSは不要 */
 
