@@ -822,16 +822,33 @@ function TasksPageContent() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {isActive ? (
-                          <CustomButton
-                            size="sm"
-                            variant="outline"
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStopTimer();
                             }}
+                            disabled={stopTimer.isPending}
+                            sx={{
+                              animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
+                              "@keyframes pulse": {
+                                "0%, 100%": {
+                                  opacity: 1,
+                                },
+                                "50%": {
+                                  opacity: 0.8,
+                                },
+                              },
+                            }}
                           >
-                            <Stop fontSize="small" />
-                          </CustomButton>
+                            {stopTimer.isPending ? (
+                              <CircularProgress size={16} sx={{ color: "inherit" }} />
+                            ) : (
+                              <Stop fontSize="small" />
+                            )}
+                          </Button>
                         ) : (
                           <CustomButton
                             size="sm"
@@ -840,9 +857,13 @@ function TasksPageContent() {
                               e.stopPropagation();
                               handleStartTimer(task.projectId, task.id);
                             }}
-                            disabled={!!activeSession && activeSession.taskId !== task.id}
+                            disabled={(!!activeSession && activeSession.taskId !== task.id) || startTimer.isPending}
                           >
-                            <PlayArrow fontSize="small" />
+                            {startTimer.isPending ? (
+                              <CircularProgress size={14} sx={{ color: "inherit" }} />
+                            ) : (
+                              <PlayArrow fontSize="small" />
+                            )}
                           </CustomButton>
                         )}
                       </TableCell>
@@ -1012,23 +1033,54 @@ function TasksPageContent() {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
                 <Box sx={{ display: "flex", gap: 1 }}>
                   {activeSession?.taskId === selectedTask.id ? (
-                    <CustomButton
+                    <Button
                       fullWidth
-                      variant="outline"
+                      variant="contained"
+                      color="error"
                       onClick={() => handleStopTimer()}
+                      disabled={stopTimer.isPending}
+                      sx={{
+                        animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
+                        "@keyframes pulse": {
+                          "0%, 100%": {
+                            opacity: 1,
+                          },
+                          "50%": {
+                            opacity: 0.8,
+                          },
+                        },
+                      }}
                     >
-                      <Stop fontSize="small" sx={{ mr: 1 }} />
-                      タイマー停止
-                    </CustomButton>
+                      {stopTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                          停止中...
+                        </>
+                      ) : (
+                        <>
+                          <Stop fontSize="small" sx={{ mr: 1 }} />
+                          タイマー停止
+                        </>
+                      )}
+                    </Button>
                   ) : (
                     <CustomButton
                       fullWidth
                       variant="outline"
                       onClick={() => handleStartTimer(selectedTask.projectId, selectedTask.id)}
-                      disabled={!!activeSession}
+                      disabled={!!activeSession || startTimer.isPending}
                     >
-                      <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                      タイマー開始
+                      {startTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                          開始中...
+                        </>
+                      ) : (
+                        <>
+                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                          タイマー開始
+                        </>
+                      )}
                     </CustomButton>
                   )}
                 </Box>

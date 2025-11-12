@@ -672,8 +672,9 @@ export default function TaskDetailPage() {
                           variant="contained"
                           color="error"
                           onClick={handleStopTimer}
+                          disabled={stopTimer.isPending}
                           sx={{
-                            animation: "pulse 2s ease-in-out infinite",
+                            animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
                             "@keyframes pulse": {
                               "0%, 100%": {
                                 opacity: 1,
@@ -684,18 +685,36 @@ export default function TaskDetailPage() {
                             },
                           }}
                         >
-                          <Stop fontSize="small" sx={{ mr: 1 }} />
-                          タイマー停止
+                          {stopTimer.isPending ? (
+                            <>
+                              <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                              停止中...
+                            </>
+                          ) : (
+                            <>
+                              <Stop fontSize="small" sx={{ mr: 1 }} />
+                              タイマー停止
+                            </>
+                          )}
                         </Button>
                       ) : (
                         <CustomButton
                           fullWidth
                           variant="outline"
                           onClick={handleStartTimer}
-                          disabled={!!activeSession}
+                          disabled={!!activeSession || startTimer.isPending}
                         >
-                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                          タイマー開始
+                          {startTimer.isPending ? (
+                            <>
+                              <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                              開始中...
+                            </>
+                          ) : (
+                            <>
+                              <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                              タイマー開始
+                            </>
+                          )}
                         </CustomButton>
                       )}
                       <Box sx={{ display: "flex", gap: 1 }}>
