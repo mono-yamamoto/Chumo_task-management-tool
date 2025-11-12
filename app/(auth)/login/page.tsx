@@ -28,7 +28,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     try {
       await login();
-    } catch (error) {
+    } catch {
       setError("ログインに失敗しました。もう一度お試しください。");
     }
   };
