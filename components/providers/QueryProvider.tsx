@@ -10,8 +10,9 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: 0, // 常に最新データを取得するため、staleTimeを0に設定
             refetchOnWindowFocus: false,
+            refetchOnMount: true, // マウント時に再取得
           },
         },
       })
