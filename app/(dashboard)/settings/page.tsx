@@ -33,7 +33,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentUser) {
-      setOauthStatus(currentUser.googleRefreshToken ? "connected" : "disconnected");
+      const hasToken = !!currentUser.googleRefreshToken;
+      console.log("OAuth status check:", {
+        userId: currentUser.id,
+        hasToken,
+        tokenLength: currentUser.googleRefreshToken?.length || 0,
+        allFields: Object.keys(currentUser),
+      });
+      setOauthStatus(hasToken ? "connected" : "disconnected");
     }
   }, [currentUser]);
 

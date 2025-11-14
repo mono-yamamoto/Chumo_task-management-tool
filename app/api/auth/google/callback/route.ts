@@ -42,10 +42,24 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = state;
+    console.log("Saving refresh token for userId:", userId);
+    console.log("Refresh token length:", tokens.refresh_token?.length || 0);
+    
+    // ユーザードキュメントが存在するか確認
+    const userDoc = await adminDb.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+      console.error("User document does not exist for userId:", userId);
+      return NextResponse.redirect(
+        new URL("/settings?error=user_not_found", request.url)
+      );
+    }
+
     await adminDb.collection("users").doc(userId).update({
       googleRefreshToken: tokens.refresh_token,
       googleOAuthUpdatedAt: new Date(),
     });
+
+    console.log("Refresh token saved successfully for userId:", userId);
 
     // 設定ページにリダイレクト（成功メッセージ付き）
     return NextResponse.redirect(
