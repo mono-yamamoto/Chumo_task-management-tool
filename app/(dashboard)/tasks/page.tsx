@@ -26,7 +26,6 @@ import {
   Paper,
   CircularProgress,
   Chip,
-  Drawer,
   TextField,
   Card,
   CardContent,
@@ -46,6 +45,7 @@ import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Close, Delete } from 
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { TaskDetailDrawer } from "@/components/Drawer/TaskDetailDrawer";
 
 const flowStatusOptions: FlowStatus[] = [
   "未着手",
@@ -877,320 +877,32 @@ function TasksPageContent() {
       </Box>
 
       {/* サイドバー */}
-      <Drawer
-        anchor="right"
+      <TaskDetailDrawer
         open={!!selectedTaskId}
         onClose={() => {
           setSelectedTaskId(null);
           setTaskFormData(null);
         }}
-        PaperProps={{
-          sx: { width: { xs: "100%", sm: 500 }, p: 3 },
-        }}
-      >
-        {selectedTask && taskFormData && (
-          <Box>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-                タスク詳細
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <CustomButton onClick={handleSave} size="sm" disabled={updateTask.isPending}>
-                  {updateTask.isPending ? "保存中..." : "保存"}
-                </CustomButton>
-                <CustomButton
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteClick(selectedTask.id, selectedTask.projectId)}
-                >
-                  <Delete fontSize="small" sx={{ mr: 0.5 }} />
-                  削除
-                </CustomButton>
-                <IconButton
-                  onClick={() => {
-                    setSelectedTaskId(null);
-                    setTaskFormData(null);
-                  }}
-                  size="small"
-                >
-                  <Close />
-                </IconButton>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <TextField
-                fullWidth
-                label="タイトル"
-                value={taskFormData.title || ""}
-                onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
-              />
-
-              <TextField
-                fullWidth
-                label="説明"
-                value={taskFormData.description || ""}
-                onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
-                multiline
-                rows={4}
-              />
-
-              <FormControl fullWidth>
-                <InputLabel>ステータス</InputLabel>
-                <Select
-                  value={taskFormData.flowStatus || "未着手"}
-                  onChange={(e) => setTaskFormData({ ...taskFormData, flowStatus: e.target.value as FlowStatus })}
-                  label="ステータス"
-                >
-                  {flowStatusOptions.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {status}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth>
-                <InputLabel>区分</InputLabel>
-                <Select
-                  value={taskFormData.kubunLabelId || ""}
-                  onChange={(e) => setTaskFormData({ ...taskFormData, kubunLabelId: e.target.value })}
-                  label="区分"
-                >
-                  {taskLabels.map((label) => (
-                    <MenuItem key={label.id} value={label.id}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            backgroundColor: label.color,
-                          }}
-                        />
-                        {label.name}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                fullWidth
-                label="ITアップ日"
-                type="date"
-                value={taskFormData.itUpDate ? format(taskFormData.itUpDate, "yyyy-MM-dd") : ""}
-                onChange={(e) =>
-                  setTaskFormData({
-                    ...taskFormData,
-                    itUpDate: e.target.value ? new Date(e.target.value) : null,
-                  })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <TextField
-                fullWidth
-                label="リリース日"
-                type="date"
-                value={taskFormData.releaseDate ? format(taskFormData.releaseDate, "yyyy-MM-dd") : ""}
-                onChange={(e) =>
-                  setTaskFormData({
-                    ...taskFormData,
-                    releaseDate: e.target.value ? new Date(e.target.value) : null,
-                  })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <FormControl fullWidth>
-                <InputLabel>アサイン</InputLabel>
-                <Select
-                  multiple
-                  value={taskFormData.assigneeIds || selectedTask.assigneeIds || []}
-                  onChange={(e) => {
-                    const value = typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
-                    setTaskFormData({ ...taskFormData, assigneeIds: value });
-                  }}
-                  input={<OutlinedInput label="アサイン" />}
-                  renderValue={(selected) => {
-                    if (!selected || selected.length === 0) return "-";
-                    return selected
-                      .map((id) => allUsers?.find((u) => u.id === id)?.displayName)
-                      .filter(Boolean)
-                      .join(", ");
-                  }}
-                >
-                  {allUsers?.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      <Checkbox checked={(taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(user.id)} />
-                      <ListItemText primary={user.displayName || user.email} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  {activeSession?.taskId === selectedTask.id ? (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleStopTimer()}
-                      disabled={stopTimer.isPending}
-                      sx={{
-                        animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
-                        "@keyframes pulse": {
-                          "0%, 100%": {
-                            opacity: 1,
-                          },
-                          "50%": {
-                            opacity: 0.8,
-                          },
-                        },
-                      }}
-                    >
-                      {stopTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
-                          停止中...
-                        </>
-                      ) : (
-                        <>
-                          <Stop fontSize="small" sx={{ mr: 1 }} />
-                          タイマー停止
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <CustomButton
-                      fullWidth
-                      variant="outline"
-                      onClick={() => handleStartTimer(selectedTask.projectId, selectedTask.id)}
-                      disabled={!!activeSession || startTimer.isPending}
-                    >
-                      {startTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
-                          開始中...
-                        </>
-                      ) : (
-                        <>
-                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                          タイマー開始
-                        </>
-                      )}
-                    </CustomButton>
-                  )}
-                </Box>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  {selectedTask.googleDriveUrl ? (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="primary"
-                      onClick={() => window.open(selectedTask.googleDriveUrl!, "_blank")}
-                      sx={{ flex: 1 }}
-                    >
-                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                      Driveを開く
-                    </Button>
-                  ) : (
-                    <CustomButton
-                      fullWidth
-                      variant="outline"
-                      onClick={() => handleDriveCreate(selectedTask.projectId, selectedTask.id)}
-                      disabled={createDriveFolder.isPending}
-                      sx={{ flex: 1 }}
-                    >
-                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                      Drive作成
-                    </CustomButton>
-                  )}
-                  {selectedTask.fireIssueUrl ? (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="primary"
-                      onClick={() => window.open(selectedTask.fireIssueUrl!, "_blank")}
-                      sx={{ flex: 1 }}
-                    >
-                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                      Issueを開く
-                    </Button>
-                  ) : (
-                    <CustomButton
-                      fullWidth
-                      variant="outline"
-                      onClick={() => handleFireCreate(selectedTask.projectId, selectedTask.id)}
-                      disabled={createFireIssue.isPending}
-                      sx={{ flex: 1 }}
-                    >
-                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                      Issue作成
-                    </CustomButton>
-                  )}
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 2 }}>
-                  <Link href={`/tasks/${selectedTask.id}`} style={{ textDecoration: "none" }}>
-                    <CustomButton fullWidth variant="outline">
-                      詳細ページを開く
-                    </CustomButton>
-                  </Link>
-              </Box>
-
-              {/* セッション履歴 */}
-              <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: "divider" }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: "semibold" }}>
-                    セッション履歴
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 300, overflowY: "auto" }}>
-                  {taskSessions && taskSessions.length > 0 ? (
-                    taskSessions.map((session: any) => {
-                      const sessionUser = allUsers?.find((u) => u.id === session.userId);
-                      return (
-                        <Box
-                          key={session.id}
-                          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
-                        >
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1 }}>
-                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              {sessionUser?.displayName || "不明なユーザー"}
-                            </Typography>
-                            <Typography variant="body2">
-                              {format(session.startedAt, "yyyy-MM-dd HH:mm:ss", {
-                                locale: ja,
-                              })}
-                              {" - "}
-                              {session.endedAt
-                                ? format(session.endedAt, "yyyy-MM-dd HH:mm:ss", {
-                                    locale: ja,
-                                  })
-                                : "実行中"}
-                            </Typography>
-                          </Box>
-                          <Typography sx={{ fontWeight: "medium", minWidth: "80px", textAlign: "right", fontSize: "0.875rem" }}>
-                            {session.endedAt ? formatDuration(session.durationSec, session.startedAt, session.endedAt) : "-"}
-                          </Typography>
-                        </Box>
-                      );
-                    })
-                  ) : (
-                    <Typography sx={{ color: "text.secondary", py: 2, fontSize: "0.875rem" }}>
-                      セッション履歴がありません
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        )}
-          </Drawer>
+        selectedTask={selectedTask}
+        taskFormData={taskFormData}
+        onTaskFormDataChange={setTaskFormData}
+        onSave={handleSave}
+        onDelete={handleDeleteClick}
+        isSaving={updateTask.isPending}
+        taskLabels={taskLabels}
+        allUsers={allUsers}
+        activeSession={activeSession}
+        onStartTimer={handleStartTimer}
+        onStopTimer={handleStopTimer}
+        isStartingTimer={startTimer.isPending}
+        isStoppingTimer={stopTimer.isPending}
+        onDriveCreate={handleDriveCreate}
+        isCreatingDrive={createDriveFolder.isPending}
+        onFireCreate={handleFireCreate}
+        isCreatingFire={createFireIssue.isPending}
+        taskSessions={taskSessions || []}
+        formatDuration={formatDuration}
+      />
 
           {/* 削除確認ダイアログ */}
           <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>

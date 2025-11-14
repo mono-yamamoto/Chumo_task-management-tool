@@ -28,11 +28,11 @@ import {
   List,
   Chip,
   Link as MUILink,
-  Drawer,
   IconButton,
   LinearProgress,
 } from "@mui/material";
 import { Close, CloudUpload, Image as ImageIcon, CheckCircle } from "@mui/icons-material";
+import { ContactFormDrawer } from "@/components/Drawer/ContactFormDrawer";
 
 function getContactTypeLabel(type: ContactType): string {
   switch (type) {
@@ -789,309 +789,46 @@ export default function ContactPage() {
 
       {/* 右側: 新規作成フォーム（管理者の場合のみDrawerで表示） */}
       {isAdmin && (
-        <Drawer
-          anchor="right"
+        <ContactFormDrawer
           open={showForm}
           onClose={() => setShowForm(false)}
-          PaperProps={{
-            sx: {
-              width: { xs: "100%", sm: 600 },
-              p: 3,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-            },
+          type={type}
+          onTypeChange={setType}
+          title={title}
+          onTitleChange={setTitle}
+          content={content}
+          onContentChange={setContent}
+          message={message}
+          onMessageClose={() => setMessage(null)}
+          errorIssue={errorIssue}
+          onErrorIssueChange={setErrorIssue}
+          errorReproductionSteps={errorReproductionSteps}
+          onErrorReproductionStepsChange={setErrorReproductionSteps}
+          errorDevice={errorDevice}
+          onErrorDeviceChange={handleDeviceChange}
+          errorOS={errorOS}
+          onErrorOSChange={handleOSChange}
+          errorOSVersion={errorOSVersion}
+          onErrorOSVersionChange={setErrorOSVersion}
+          errorBrowser={errorBrowser}
+          onErrorBrowserChange={handleBrowserChange}
+          errorBrowserVersion={errorBrowserVersion}
+          onErrorBrowserVersionChange={setErrorBrowserVersion}
+          errorScreenshotUrl={errorScreenshotUrl}
+          onErrorScreenshotUrlChange={(url) => {
+            setErrorScreenshotUrl(url);
+            setErrorScreenshotFile(null);
+            setErrorScreenshotPreview(null);
           }}
-        >
-          <Box sx={{ flex: 1, pb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-                新規お問い合わせ
-              </Typography>
-              <IconButton onClick={() => setShowForm(false)} size="small">
-                <Close />
-              </IconButton>
-            </Box>
-
-            {message && (
-              <Alert
-                severity={message.type}
-                onClose={() => setMessage(null)}
-                sx={{ mb: 2 }}
-              >
-                {message.text}
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <FormControl fullWidth>
-                  <InputLabel id="contact-type-label">お問い合わせの種類</InputLabel>
-                  <Select
-                    labelId="contact-type-label"
-                    id="contact-type"
-                    value={type}
-                    label="お問い合わせの種類"
-                    onChange={(e) => setType(e.target.value as ContactType)}
-                  >
-                    <MenuItem value="error">エラー報告</MenuItem>
-                    <MenuItem value="feature">要望</MenuItem>
-                    <MenuItem value="other">そのほか</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <TextField
-                  fullWidth
-                  label="タイトル"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  variant="outlined"
-                  placeholder="お問い合わせのタイトルを入力してください"
-                />
-
-                {type === "error" ? (
-                  <>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: "semibold", mb: 2 }}>
-                      エラー報告の詳細情報
-                    </Typography>
-
-                    <TextField
-                      fullWidth
-                      label="事象"
-                      value={errorIssue}
-                      onChange={(e) => setErrorIssue(e.target.value)}
-                      required
-                      multiline
-                      rows={3}
-                      variant="outlined"
-                      placeholder="どのような問題が発生しましたか？"
-                    />
-
-                    <TextField
-                      fullWidth
-                      label="再現方法"
-                      value={errorReproductionSteps}
-                      onChange={(e) => setErrorReproductionSteps(e.target.value)}
-                      required
-                      multiline
-                      rows={4}
-                      variant="outlined"
-                      placeholder="問題を再現する手順を詳しく入力してください"
-                    />
-
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      <FormControl component="fieldset">
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                          デバイス（必須）
-                        </Typography>
-                        <RadioGroup
-                          row
-                          value={errorDevice}
-                          onChange={(e) => handleDeviceChange(e.target.value as DeviceType)}
-                        >
-                          <FormControlLabel value="PC" control={<Radio />} label="PC" />
-                          <FormControlLabel value="SP" control={<Radio />} label="SP" />
-                        </RadioGroup>
-                      </FormControl>
-
-                      <FormControl component="fieldset">
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                          {errorDevice === "SP" ? "スマホの種類（必須）" : "OS（必須）"}
-                        </Typography>
-                        <RadioGroup
-                          row
-                          value={errorOS}
-                          onChange={(e) => handleOSChange(e.target.value as PCOSType | SPOSType | SmartphoneType)}
-                        >
-                          {errorDevice === "PC" ? (
-                            <>
-                              <FormControlLabel value="Mac" control={<Radio />} label="Mac" />
-                              <FormControlLabel value="Windows" control={<Radio />} label="Windows" />
-                              <FormControlLabel value="Linux" control={<Radio />} label="Linux" />
-                              <FormControlLabel value="other" control={<Radio />} label="その他" />
-                            </>
-                          ) : (
-                            <>
-                              <FormControlLabel value="iPhone" control={<Radio />} label="iPhone" />
-                              <FormControlLabel value="Android" control={<Radio />} label="Android" />
-                              <FormControlLabel value="other" control={<Radio />} label="その他" />
-                            </>
-                          )}
-                        </RadioGroup>
-                      </FormControl>
-
-                      <TextField
-                        fullWidth
-                        label={errorDevice === "SP" ? "スマホのバージョン（必須）" : "OSのバージョン（任意）"}
-                        value={errorOSVersion}
-                        onChange={(e) => setErrorOSVersion(e.target.value)}
-                        required={errorDevice === "SP"}
-                        variant="outlined"
-                        placeholder={errorDevice === "PC" ? "例: macOS 14.0、Windows 11など" : "例: iOS 17.0、Android 14など"}
-                      />
-
-                      <FormControl component="fieldset">
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                          ブラウザ（必須）
-                        </Typography>
-                        <RadioGroup
-                          row
-                          value={errorBrowser}
-                          onChange={(e) => handleBrowserChange(e.target.value as BrowserType)}
-                        >
-                          <FormControlLabel value="Chrome" control={<Radio />} label="Chrome" />
-                          <FormControlLabel value="Firefox" control={<Radio />} label="Firefox" />
-                          <FormControlLabel value="Safari" control={<Radio />} label="Safari" />
-                          <FormControlLabel value="Arc" control={<Radio />} label="Arc" />
-                          <FormControlLabel value="Comet" control={<Radio />} label="Comet" />
-                          <FormControlLabel value="Dia" control={<Radio />} label="Dia" />
-                          <FormControlLabel value="other" control={<Radio />} label="その他" />
-                        </RadioGroup>
-                      </FormControl>
-                      </Box>
-
-                      <TextField
-                        fullWidth
-                        label="ブラウザのバージョン（必須）"
-                        value={errorBrowserVersion}
-                        required
-                        onChange={(e) => setErrorBrowserVersion(e.target.value)}
-                        variant="outlined"
-                        placeholder="例: Chrome 120.0.0.0、Safari 17.0など"
-                      />
-
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: "semibold" }}>
-                          再現画面のスクリーンショット（任意）
-                        </Typography>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                        <input
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          id="screenshot-upload-drawer"
-                          type="file"
-                          onChange={handleImageSelect}
-                        />
-                        <label htmlFor="screenshot-upload-drawer">
-                          <Button
-                            component="span"
-                            variant="outline"
-                            startIcon={<ImageIcon />}
-                            disabled={imageUploading}
-                            sx={{ mb: 1 }}
-                          >
-                            画像を選択
-                          </Button>
-                        </label>
-                        {errorScreenshotPreview && (
-                          <Box sx={{ mt: 1 }}>
-                            <img
-                              src={errorScreenshotPreview}
-                              alt="プレビュー"
-                              style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "4px" }}
-                            />
-                            {!errorScreenshotUrl && (
-                              <Button
-                                onClick={handleImageUpload}
-                                disabled={imageUploading}
-                                variant="default"
-                                startIcon={<CloudUpload />}
-                                sx={{ mt: 1 }}
-                                fullWidth
-                              >
-                                {imageUploading ? "アップロード中..." : "アップロード"}
-                              </Button>
-                            )}
-                            {imageUploading && (
-                              <Box sx={{ mt: 1 }}>
-                                <LinearProgress variant="determinate" value={progress} />
-                                <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
-                                  {progress}% アップロード中...
-                                </Typography>
-                              </Box>
-                            )}
-                            {errorScreenshotUrl && (
-                              <Alert severity="success" sx={{ mt: 1 }}>
-                                アップロード完了
-                              </Alert>
-                            )}
-                          </Box>
-                        )}
-                        {errorScreenshotUrl && !errorScreenshotPreview && (
-                          <Box sx={{ mt: 1 }}>
-                            <Alert severity="info">
-                              画像がアップロード済みです
-                              <MUILink href={errorScreenshotUrl} target="_blank" rel="noopener noreferrer" sx={{ ml: 1 }}>
-                                画像を表示
-                              </MUILink>
-                            </Alert>
-                          </Box>
-                        )}
-                        <TextField
-                          fullWidth
-                          label="またはURLを直接入力"
-                          value={errorScreenshotUrl}
-                          onChange={(e) => {
-                            setErrorScreenshotUrl(e.target.value);
-                            setErrorScreenshotFile(null);
-                            setErrorScreenshotPreview(null);
-                          }}
-                          variant="outlined"
-                          placeholder="画像のURLを入力してください（任意）"
-                          helperText="画像ファイルをアップロードするか、URLを直接入力してください"
-                          sx={{ mt: 1 }}
-                        />
-                      </Box>
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-                    <TextField
-                      fullWidth
-                      label="その他の情報"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      multiline
-                      rows={4}
-                      variant="outlined"
-                      placeholder="その他、補足情報があれば入力してください（任意）"
-                    />
-                  </>
-                ) : (
-                  <TextField
-                    fullWidth
-                    label="内容"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    required
-                    multiline
-                    rows={8}
-                    variant="outlined"
-                    placeholder="お問い合わせの内容を詳しく入力してください"
-                  />
-                )}
-
-                <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                  <Button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    variant="outline"
-                  >
-                    キャンセル
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submitContact.isPending}
-                    variant="default"
-                  >
-                    {submitContact.isPending ? "送信中..." : "送信"}
-                  </Button>
-                </Box>
-              </Box>
-            </form>
-          </Box>
-        </Drawer>
+          errorScreenshotFile={errorScreenshotFile}
+          errorScreenshotPreview={errorScreenshotPreview}
+          onImageSelect={handleImageSelect}
+          onImageUpload={handleImageUpload}
+          imageUploading={imageUploading}
+          progress={progress}
+          onSubmit={handleSubmit}
+          isSubmitting={submitContact.isPending}
+        />
       )}
     </Box>
   );
