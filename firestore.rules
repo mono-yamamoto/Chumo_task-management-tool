@@ -10,6 +10,12 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
     }
 
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;
@@ -44,6 +50,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId;
       allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
+    match /contacts/{contactId} {
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow read, list: if isSignedIn(); // 全員が閲覧可能
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }
