@@ -24,6 +24,7 @@ export function useDriveIntegration() {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
       const driveUrl = "https://createdrivefolder-zbk3yr5vta-uc.a.run.app";
+      console.log("Creating drive folder with:", { projectId, taskId, userId: user.id });
       const response = await fetch(
         `${driveUrl}/projects/${projectId}/tasks/${taskId}`,
         {
