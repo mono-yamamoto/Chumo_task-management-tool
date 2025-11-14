@@ -63,22 +63,30 @@ export const createDriveFolder = onRequest(
       }
 
       // ユーザーのリフレッシュトークンを取得
+      console.log("Fetching user document for userId:", userId);
       const userDoc = await db.collection("users").doc(userId).get();
       if (!userDoc.exists) {
+        console.error("User document not found for userId:", userId);
         res.status(404).json({ error: "User not found" });
         return;
       }
 
       const userData = userDoc.data();
+      console.log("User data fields:", userData ? Object.keys(userData) : "null");
+      console.log("googleRefreshToken exists:", !!userData?.googleRefreshToken);
       const refreshToken = userData?.googleRefreshToken;
 
       if (!refreshToken) {
+        console.error("Refresh token not found for userId:", userId);
+        console.error("Available fields:", userData ? Object.keys(userData).join(", ") : "none");
         res.status(400).json({ 
           error: "Google Drive認証が必要です。設定ページでGoogle Driveと連携してください。",
           requiresAuth: true 
         });
         return;
       }
+
+      console.log("Refresh token found, length:", refreshToken.length);
 
       // タスク情報取得
       const taskDoc = await db
@@ -187,46 +195,80 @@ export const createDriveFolder = onRequest(
 
         // チェックシートテンプレートを複製
         let checksheetError: Error | null = null;
+        let sheetId: string | null = null;
         try {
+          const checksheetName = `チェックシート_${task.title}`;
+          console.log("Creating checksheet with name:", checksheetName);
+          
           const copyResponse = await drive.files.copy({
             fileId: checksheetTemplateId,
             requestBody: {
-              name: "チェックリスト",
+              name: checksheetName,
               parents: [folderId],
             },
             supportsAllDrives: true,
           });
 
-          const sheetId = copyResponse.data.id!;
+          sheetId = copyResponse.data.id!;
+          console.log("Checksheet created successfully, ID:", sheetId);
+          
           const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-          // セル書き込み
-          await sheets.spreadsheets.values.update({
+          // シート名を取得
+          const spreadsheetInfo = await sheets.spreadsheets.get({
             spreadsheetId: sheetId,
-            range: "シート1!C4",
-            valueInputOption: "RAW",
-            requestBody: {
-              values: [[task.title]],
-            },
           });
+          const firstSheet = spreadsheetInfo.data.sheets?.[0];
+          const sheetName = firstSheet?.properties?.title || "シート1";
+          console.log("Sheet name:", sheetName);
 
-          await sheets.spreadsheets.values.update({
-            spreadsheetId: sheetId,
-            range: "シート1!C5",
-            valueInputOption: "RAW",
-            requestBody: {
-              values: [[task.external?.url || ""]],
-            },
-          });
+          // セル書き込み（個別にエラーハンドリング）
+          try {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: sheetId,
+              range: `${sheetName}!C4`,
+              valueInputOption: "RAW",
+              requestBody: {
+                values: [[task.title]],
+              },
+            });
+            console.log("Cell C4 updated successfully");
+          } catch (error) {
+            console.error("Failed to update cell C4:", error);
+            throw error;
+          }
 
-          await sheets.spreadsheets.values.update({
-            spreadsheetId: sheetId,
-            range: "シート1!C7",
-            valueInputOption: "RAW",
-            requestBody: {
-              values: [[folderUrl]],
-            },
-          });
+          try {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: sheetId,
+              range: `${sheetName}!C5`,
+              valueInputOption: "RAW",
+              requestBody: {
+                values: [[task.external?.url || ""]],
+              },
+            });
+            console.log("Cell C5 updated successfully");
+          } catch (error) {
+            console.error("Failed to update cell C5:", error);
+            throw error;
+          }
+
+          try {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: sheetId,
+              range: `${sheetName}!C7`,
+              valueInputOption: "RAW",
+              requestBody: {
+                values: [[folderUrl]],
+              },
+            });
+            console.log("Cell C7 updated successfully");
+          } catch (error) {
+            console.error("Failed to update cell C7:", error);
+            throw error;
+          }
+
+          console.log("All cells updated successfully");
         } catch (error) {
           // チェックシート作成でエラーが発生した場合、エラー情報を保存
           checksheetError = error instanceof Error ? error : new Error(String(error));
@@ -236,6 +278,7 @@ export const createDriveFolder = onRequest(
             checksheetTemplateId,
             folderId,
             taskTitle: task.title,
+            sheetId,
           });
           
           // Google APIエラーの場合は詳細情報を取得
