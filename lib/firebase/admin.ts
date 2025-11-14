@@ -22,16 +22,22 @@ if (typeof window === "undefined") {
             privateKey,
           }),
         });
+        console.log("Firebase Admin initialized with credentials");
       } else {
-        // 環境変数が設定されていない場合はデフォルトの認証情報を使用
-        // （ローカル環境では通常使用できないが、エラーメッセージを改善するため）
-        console.warn("FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are not set. Trying default credentials...");
-        app = initializeApp({
-          projectId,
-        });
+        // 環境変数が設定されていない場合はエラーを出す
+        console.error("FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are not set. Firebase Admin SDK requires these environment variables.");
+        console.error("Please set FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY in .env.local");
+        // エラーを出さずに、後でAPIルートで再初期化を試みる
+        // app = initializeApp({ projectId }); // コメントアウト
       }
     } else {
       app = getApps()[0];
+      // 既に初期化されている場合でも、認証情報が設定されているか確認
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+      if (!clientEmail || !privateKey) {
+        console.warn("Firebase Admin app is already initialized, but FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY is not set. This may cause permission errors.");
+      }
     }
     
     if (app) {
