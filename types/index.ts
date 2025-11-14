@@ -101,3 +101,39 @@ export interface TaskActivity {
   createdAt: Date;
 }
 
+export type ContactType = "error" | "feature" | "other";
+
+export type DeviceType = "PC" | "SP";
+export type PCOSType = "Mac" | "Windows" | "Linux" | "other";
+export type SPOSType = "iOS" | "Android" | "other";
+export type BrowserType = "Chrome" | "Firefox" | "Safari" | "Arc" | "Comet" | "Dia" | "other";
+export type SmartphoneType = "iPhone" | "Android" | "other";
+
+export interface ErrorReportDetails {
+  issue: string; // 事象
+  reproductionSteps: string; // 再現方法
+  environment: {
+    device: DeviceType; // PC/SP
+    os: PCOSType | SPOSType | SmartphoneType; // OS（PC選択時）またはスマホの種類（SP選択時）
+    browser: BrowserType; // ブラウザ
+    osVersion?: string; // OSのバージョン（PC選択時）またはスマホのバージョン（SP選択時必須）
+    browserVersion: string; // ブラウザのバージョン（必須）
+  };
+  screenshotUrl?: string; // 再現画面のスクリーンショットURL
+}
+
+export interface Contact {
+  id: string;
+  type: ContactType;
+  title: string;
+  content: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  errorReportDetails?: ErrorReportDetails; // エラー報告の場合の詳細情報
+  githubIssueUrl?: string;
+  status: "pending" | "resolved";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
