@@ -40,6 +40,11 @@ export default function DashboardLayout({
                     レポート
                   </MUILink>
                 </Link>
+                <Link href="/contact" style={{ textDecoration: "none" }}>
+                  <MUILink component="span" sx={{ color: "text.primary", "&:hover": { color: "text.secondary" } }}>
+                    お問い合わせ
+                  </MUILink>
+                </Link>
                 {user?.role === "admin" && (
                   <Link href="/settings" style={{ textDecoration: "none" }}>
                     <MUILink component="span" sx={{ color: "text.primary", "&:hover": { color: "text.secondary" } }}>
