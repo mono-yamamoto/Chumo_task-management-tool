@@ -1,20 +1,20 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection,
-  getDocs,
-  addDoc,
-  query,
-  where,
-} from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Label } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
-  Box, Typography, TextField, Card, CardContent, Grid, CircularProgress,
+  Box,
+  Typography,
+  TextField,
+  Card,
+  CardContent,
+  Grid,
+  CircularProgress,
 } from '@mui/material';
 import { useState } from 'react';
 
@@ -46,7 +46,7 @@ export default function LabelsPage() {
 
   const createLabel = useMutation({
     mutationFn: async (data: { name: string; color: string }) => {
-      if (!user || !projectId || !db) throw new Error('Not authenticated or Firestore not initialized');
+      if (!user || !projectId || !db) { throw new Error('Not authenticated or Firestore not initialized'); }
       const labelData = {
         name: data.name,
         color: data.color,
@@ -88,9 +88,13 @@ export default function LabelsPage() {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           ラベル管理
@@ -155,9 +159,7 @@ export default function LabelsPage() {
                       backgroundColor: label.color,
                     }}
                   />
-                  <Typography sx={{ fontWeight: 'medium' }}>
-                    {label.name}
-                  </Typography>
+                  <Typography sx={{ fontWeight: 'medium' }}>{label.name}</Typography>
                 </Box>
               </CardContent>
             </Card>

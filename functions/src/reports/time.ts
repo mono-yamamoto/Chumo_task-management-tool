@@ -76,7 +76,10 @@ export const getTimeReport = onRequest(
               .get();
           } catch (indexError: any) {
             // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (indexError?.code === 'failed-precondition' || indexError?.message?.includes('index')) {
+            if (
+              indexError?.code === 'failed-precondition' ||
+              indexError?.message?.includes('index')
+            ) {
               const allSessionsSnapshot = await db
                 .collection('projects')
                 .doc(projectId)
@@ -91,11 +94,12 @@ export const getTimeReport = onRequest(
                   const { startedAt } = session;
                   if (!startedAt) return false;
                   // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate = startedAt instanceof Timestamp
-                    ? startedAt.toDate()
-                    : (startedAt as any).toDate
-                      ? (startedAt as any).toDate()
-                      : new Date(startedAt);
+                  const startedAtDate =
+                    startedAt instanceof Timestamp
+                      ? startedAt.toDate()
+                      : (startedAt as any).toDate
+                        ? (startedAt as any).toDate()
+                        : new Date(startedAt);
                   return startedAtDate >= fromDate && startedAtDate <= toDate;
                 }),
               } as any;
@@ -135,7 +139,7 @@ export const getTimeReport = onRequest(
         details: errorMessage,
       });
     }
-  },
+  }
 );
 
 export const exportTimeReportCSV = onRequest(
@@ -209,7 +213,10 @@ export const exportTimeReportCSV = onRequest(
               .get();
           } catch (indexError: any) {
             // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (indexError?.code === 'failed-precondition' || indexError?.message?.includes('index')) {
+            if (
+              indexError?.code === 'failed-precondition' ||
+              indexError?.message?.includes('index')
+            ) {
               const allSessionsSnapshot = await db
                 .collection('projects')
                 .doc(projectId)
@@ -224,11 +231,12 @@ export const exportTimeReportCSV = onRequest(
                   const { startedAt } = session;
                   if (!startedAt) return false;
                   // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate = startedAt instanceof Timestamp
-                    ? startedAt.toDate()
-                    : (startedAt as any).toDate
-                      ? (startedAt as any).toDate()
-                      : new Date(startedAt);
+                  const startedAtDate =
+                    startedAt instanceof Timestamp
+                      ? startedAt.toDate()
+                      : (startedAt as any).toDate
+                        ? (startedAt as any).toDate()
+                        : new Date(startedAt);
                   return startedAtDate >= fromDate && startedAtDate <= toDate;
                 }),
               } as any;
@@ -271,7 +279,7 @@ export const exportTimeReportCSV = onRequest(
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="report_${type}_${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}.csv"`,
+        `attachment; filename="report_${type}_${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}.csv"`
       );
       res.status(200).send(csv);
     } catch (error) {
@@ -282,5 +290,5 @@ export const exportTimeReportCSV = onRequest(
         details: errorMessage,
       });
     }
-  },
+  }
 );

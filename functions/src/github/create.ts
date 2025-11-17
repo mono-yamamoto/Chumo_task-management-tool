@@ -43,7 +43,9 @@ export const createFireIssue = onRequest(
       const taskIdIndex = pathParts.indexOf('tasks');
 
       if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
-        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
+        res
+          .status(400)
+          .json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
         return;
       }
 
@@ -126,15 +128,10 @@ export const createFireIssue = onRequest(
       const issueUrl = issueResponse.data.html_url;
 
       // タスクにURLを保存
-      await db
-        .collection('projects')
-        .doc(projectId)
-        .collection('tasks')
-        .doc(taskId)
-        .update({
-          fireIssueUrl: issueUrl,
-          updatedAt: new Date(),
-        });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+        fireIssueUrl: issueUrl,
+        updatedAt: new Date(),
+      });
 
       res.status(200).json({
         success: true,
@@ -144,5 +141,5 @@ export const createFireIssue = onRequest(
       console.error('Create Fire issue error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );

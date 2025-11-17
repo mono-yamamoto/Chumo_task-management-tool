@@ -17,12 +17,15 @@ import {
   Drawer,
 } from '@mui/material';
 import {
-  Close, Delete, PlayArrow, Stop, FolderOpen, LocalFireDepartment,
+  Close,
+  Delete,
+  PlayArrow,
+  Stop,
+  FolderOpen,
+  LocalFireDepartment,
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
-import {
-  Task, FlowStatus, User, Label,
-} from '@/types';
+import { Task, FlowStatus, User, Label } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -71,7 +74,7 @@ interface TaskDetailDrawerProps {
     // eslint-disable-next-line no-unused-vars
     startedAt?: Date,
     // eslint-disable-next-line no-unused-vars
-    endedAt?: Date | null,
+    endedAt?: Date | null
   ) => string;
 }
 
@@ -108,17 +111,30 @@ export function TaskDetailDrawer({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: '100%', sm: 500 }, height: '100%', display: 'flex', flexDirection: 'column',
+          width: { xs: '100%', sm: 500 },
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
-      <Box sx={{
-        p: 3, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden',
-      }}
-      >
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexShrink: 0,
+      <Box
+        sx={{
+          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          overflow: 'hidden',
         }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 3,
+            flexShrink: 0,
+          }}
         >
           <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
             タスク詳細
@@ -141,9 +157,17 @@ export function TaskDetailDrawer({
           </Box>
         </Box>
 
-        <Box sx={{
-          display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minHeight: 0, overflowY: 'auto', pr: 1, pb: 2,
-        }}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            pr: 1,
+            pb: 2,
+          }}
         >
           <TextField
             fullWidth
@@ -210,10 +234,12 @@ export function TaskDetailDrawer({
             label="ITアップ日"
             type="date"
             value={taskFormData.itUpDate ? format(taskFormData.itUpDate, 'yyyy-MM-dd') : ''}
-            onChange={(e) => onTaskFormDataChange({
-              ...taskFormData,
-              itUpDate: e.target.value ? new Date(e.target.value) : null,
-            })}
+            onChange={(e) =>
+              onTaskFormDataChange({
+                ...taskFormData,
+                itUpDate: e.target.value ? new Date(e.target.value) : null,
+              })
+            }
             InputLabelProps={{ shrink: true }}
           />
 
@@ -222,10 +248,12 @@ export function TaskDetailDrawer({
             label="リリース日"
             type="date"
             value={taskFormData.releaseDate ? format(taskFormData.releaseDate, 'yyyy-MM-dd') : ''}
-            onChange={(e) => onTaskFormDataChange({
-              ...taskFormData,
-              releaseDate: e.target.value ? new Date(e.target.value) : null,
-            })}
+            onChange={(e) =>
+              onTaskFormDataChange({
+                ...taskFormData,
+                releaseDate: e.target.value ? new Date(e.target.value) : null,
+              })
+            }
             InputLabelProps={{ shrink: true }}
           />
 
@@ -235,7 +263,8 @@ export function TaskDetailDrawer({
               multiple
               value={taskFormData.assigneeIds || selectedTask.assigneeIds || []}
               onChange={(e) => {
-                const value = typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
+                const value =
+                  typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
                 onTaskFormDataChange({ ...taskFormData, assigneeIds: value });
               }}
               input={<OutlinedInput label="アサイン" />}
@@ -250,9 +279,9 @@ export function TaskDetailDrawer({
               {allUsers?.map((user) => (
                 <MenuItem key={user.id} value={user.id}>
                   <Checkbox
-                    checked={
-                      (taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(user.id)
-                    }
+                    checked={(taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(
+                      user.id
+                    )}
                   />
                   <ListItemText primary={user.displayName || user.email} />
                 </MenuItem>
@@ -260,9 +289,13 @@ export function TaskDetailDrawer({
             </Select>
           </FormControl>
 
-          <Box sx={{
-            display: 'flex', flexDirection: 'column', gap: 1, mt: 2,
-          }}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              mt: 2,
+            }}
           >
             <Box sx={{ display: 'flex', gap: 1 }}>
               {activeSession?.taskId === selectedTask.id ? (
@@ -376,13 +409,21 @@ export function TaskDetailDrawer({
           </Box>
 
           {/* セッション履歴 */}
-          <Box sx={{
-            mt: 3, pt: 3, borderTop: 1, borderColor: 'divider',
-          }}
-          >
-            <Box sx={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2,
+          <Box
+            sx={{
+              mt: 3,
+              pt: 3,
+              borderTop: 1,
+              borderColor: 'divider',
             }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 2,
+              }}
             >
               <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
                 セッション履歴
@@ -396,12 +437,21 @@ export function TaskDetailDrawer({
                     <Box
                       key={session.id}
                       sx={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', pb: 1,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        pb: 1,
                       }}
                     >
-                      <Box sx={{
-                        display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1,
-                      }}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 0.5,
+                          flex: 1,
+                        }}
                       >
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                           {sessionUser?.displayName || '不明なユーザー'}
@@ -414,9 +464,13 @@ export function TaskDetailDrawer({
                             : '実行中'}
                         </Typography>
                       </Box>
-                      <Typography sx={{
-                        fontWeight: 'medium', minWidth: '80px', textAlign: 'right', fontSize: '0.875rem',
-                      }}
+                      <Typography
+                        sx={{
+                          fontWeight: 'medium',
+                          minWidth: '80px',
+                          textAlign: 'right',
+                          fontSize: '0.875rem',
+                        }}
                       >
                         {session.endedAt
                           ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)

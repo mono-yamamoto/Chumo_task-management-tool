@@ -18,16 +18,13 @@ export function useTimer() {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
       const timerUrl = 'https://starttimer-zbk3yr5vta-uc.a.run.app';
-      const response = await fetch(
-        `${timerUrl}/projects/${projectId}/tasks/${taskId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
+      const response = await fetch(`${timerUrl}/projects/${projectId}/tasks/${taskId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({ userId }),
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -43,26 +40,17 @@ export function useTimer() {
   });
 
   const stopTimer = useMutation({
-    mutationFn: async ({
-      projectId,
-      sessionId,
-    }: {
-      projectId: string;
-      sessionId: string;
-    }) => {
+    mutationFn: async ({ projectId, sessionId }: { projectId: string; sessionId: string }) => {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
       const timerUrl = 'https://stoptimer-zbk3yr5vta-uc.a.run.app';
-      const response = await fetch(
-        `${timerUrl}/projects/${projectId}/tasks`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ sessionId }),
+      const response = await fetch(`${timerUrl}/projects/${projectId}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({ sessionId }),
+      });
 
       if (!response.ok) {
         const error = await response.json();

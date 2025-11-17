@@ -17,9 +17,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <Box sx={{
-        display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          minHeight: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         <CircularProgress />
       </Box>

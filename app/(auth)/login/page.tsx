@@ -2,9 +2,7 @@
 
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import {
-  Box, Typography, Alert, Container,
-} from '@mui/material';
+import { Box, Typography, Alert, Container } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 
@@ -41,9 +39,13 @@ function LoginContent() {
 
   if (loading) {
     return (
-      <Box sx={{
-        display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          minHeight: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         <Typography>読み込み中...</Typography>
       </Box>
@@ -51,14 +53,22 @@ function LoginContent() {
   }
 
   return (
-    <Box sx={{
-      display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
-    }}
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <Container maxWidth="sm">
-        <Box sx={{
-          display: 'flex', flexDirection: 'column', gap: 4, p: 4,
-        }}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            p: 4,
+          }}
         >
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -68,9 +78,7 @@ function LoginContent() {
               Googleアカウントでログイン
             </Typography>
           </Box>
-          {error && (
-            <Alert severity="error">{error}</Alert>
-          )}
+          {error && <Alert severity="error">{error}</Alert>}
           <Button onClick={handleLogin} fullWidth size="lg">
             Googleでログイン
           </Button>
@@ -82,14 +90,19 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={(
-      <Box sx={{
-        display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
-      }}
-      >
-        <Typography>読み込み中...</Typography>
-      </Box>
-    )}
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            display: 'flex',
+            minHeight: '100vh',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography>読み込み中...</Typography>
+        </Box>
+      }
     >
       <LoginContent />
     </Suspense>

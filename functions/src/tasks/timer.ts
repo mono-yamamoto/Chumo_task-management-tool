@@ -33,7 +33,9 @@ export const startTimer = onRequest(
       const taskIdIndex = pathParts.indexOf('tasks');
 
       if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
-        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
+        res
+          .status(400)
+          .json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
         return;
       }
 
@@ -87,7 +89,7 @@ export const startTimer = onRequest(
       console.error('Start timer error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );
 
 export const stopTimer = onRequest(
@@ -119,7 +121,9 @@ export const stopTimer = onRequest(
       const projectIdIndex = pathParts.indexOf('projects');
 
       if (projectIdIndex === -1) {
-        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks' });
+        res
+          .status(400)
+          .json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks' });
         return;
       }
 
@@ -171,5 +175,5 @@ export const stopTimer = onRequest(
       console.error('Stop timer error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );

@@ -1,16 +1,19 @@
 'use client';
 
-import {
-  useState, Suspense, useMemo, useEffect,
-} from 'react';
+import { useState, Suspense, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  collection, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy,
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc,
+  deleteDoc,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import {
-  Task, FlowStatus, User, Label, Project,
-} from '@/types';
+import { Task, FlowStatus, User, Label, Project } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
@@ -35,9 +38,7 @@ import {
   DialogActions,
   DialogContentText,
 } from '@mui/material';
-import {
-  PlayArrow, Stop,
-} from '@mui/icons-material';
+import { PlayArrow, Stop } from '@mui/icons-material';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { format, ja } from 'date-fns';
 
@@ -138,10 +139,7 @@ function DashboardPageContent() {
           } as Task & { projectId: string };
 
           // 自分のタスクかつ完了以外のもののみを追加
-          if (
-            taskData.assigneeIds.includes(user.id)
-            && taskData.flowStatus !== '完了'
-          ) {
+          if (taskData.assigneeIds.includes(user.id) && taskData.flowStatus !== '完了') {
             allTasks.push(taskData);
           }
         });
@@ -256,7 +254,7 @@ function DashboardPageContent() {
   // 選択されたタスクの詳細を取得
   const selectedTask = useMemo(
     () => sortedTasks?.find((t) => t.id === selectedTaskId) || null,
-    [sortedTasks, selectedTaskId],
+    [sortedTasks, selectedTaskId]
   );
 
   // 選択されたタスクが変更されたらフォームデータを初期化
@@ -291,16 +289,11 @@ function DashboardPageContent() {
     queryFn: async () => {
       if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
       try {
-        const sessionsRef = collection(
-          db,
-          'projects',
-          selectedTask.projectId,
-          'taskSessions',
-        );
+        const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
         const q = query(
           sessionsRef,
           where('taskId', '==', selectedTaskId),
-          orderBy('startedAt', 'desc'),
+          orderBy('startedAt', 'desc')
         );
         const snapshot = await getDocs(q);
         return snapshot.docs.map((docItem) => {
@@ -317,16 +310,8 @@ function DashboardPageContent() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(
-              db,
-              'projects',
-              selectedTask.projectId,
-              'taskSessions',
-            );
-            const q = query(
-              sessionsRef,
-              where('taskId', '==', selectedTaskId),
-            );
+            const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+            const q = query(sessionsRef, where('taskId', '==', selectedTaskId));
             const snapshot = await getDocs(q);
             const taskSessionsData = snapshot.docs.map((docItem) => {
               const data = docItem.data();
@@ -395,7 +380,7 @@ function DashboardPageContent() {
   const formatDuration = (
     seconds: number | undefined | null,
     startedAt?: Date,
-    endedAt?: Date | null,
+    endedAt?: Date | null
   ) => {
     let secs = 0;
     if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
@@ -413,7 +398,8 @@ function DashboardPageContent() {
     const remainingSecs = secs % 60;
     if (hours > 0) {
       return `${hours}時間${minutes}分${remainingSecs}秒`;
-    } if (minutes > 0) {
+    }
+    if (minutes > 0) {
       return `${minutes}分${remainingSecs}秒`;
     }
     return `${remainingSecs}秒`;
@@ -465,9 +451,13 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['task', taskId] });
 
       if (result.warning) {
-        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`);
+        alert(
+          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
+        );
       } else {
-        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`);
+        alert(
+          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
+        );
       }
     } catch (error: any) {
       console.error('Drive create error:', error);
@@ -540,10 +530,12 @@ function DashboardPageContent() {
 
   const getAssigneeNames = (assigneeIds: string[]) => {
     if (!allUsers || assigneeIds.length === 0) return '-';
-    return assigneeIds
-      .map((id) => allUsers.find((u) => u.id === id)?.displayName)
-      .filter(Boolean)
-      .join(', ') || '-';
+    return (
+      assigneeIds
+        .map((id) => allUsers.find((u) => u.id === id)?.displayName)
+        .filter(Boolean)
+        .join(', ') || '-'
+    );
   };
 
   const getLabelName = (labelId: string) => {
@@ -602,7 +594,10 @@ function DashboardPageContent() {
                       sx={{
                         cursor: 'pointer',
                         '&:hover': { bgcolor: 'action.hover' },
-                        ...(isActive && { bgcolor: 'rgba(76, 175, 80, 0.08)', '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' } }),
+                        ...(isActive && {
+                          bgcolor: 'rgba(76, 175, 80, 0.08)',
+                          '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
+                        }),
                       }}
                     >
                       <TableCell>
@@ -616,7 +611,9 @@ function DashboardPageContent() {
                         {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd', { locale: ja }) : '-'}
                       </TableCell>
                       <TableCell>
-                        {task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd', { locale: ja }) : '-'}
+                        {task.releaseDate
+                          ? format(task.releaseDate, 'yyyy-MM-dd', { locale: ja })
+                          : '-'}
                       </TableCell>
                       <TableCell>{flowStatusLabels[task.flowStatus]}</TableCell>
                       <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
@@ -635,7 +632,9 @@ function DashboardPageContent() {
                             }}
                             disabled={stopTimer.isPending}
                             sx={{
-                              animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                              animation: stopTimer.isPending
+                                ? 'none'
+                                : 'pulse 2s ease-in-out infinite',
                               '@keyframes pulse': {
                                 '0%, 100%': {
                                   opacity: 1,
@@ -661,8 +660,8 @@ function DashboardPageContent() {
                               handleStartTimer(task.projectId, task.id);
                             }}
                             disabled={
-                              (!!activeSession && activeSession.taskId !== task.id)
-                              || startTimer.isPending
+                              (!!activeSession && activeSession.taskId !== task.id) ||
+                              startTimer.isPending
                             }
                           >
                             {startTimer.isPending ? (
@@ -728,10 +727,11 @@ function DashboardPageContent() {
           />
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={() => {
-            setDeleteDialogOpen(false);
-            setDeleteConfirmTitle('');
-          }}
+          <CustomButton
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setDeleteConfirmTitle('');
+            }}
           >
             キャンセル
           </CustomButton>
@@ -751,11 +751,11 @@ function DashboardPageContent() {
 export default function DashboardPage() {
   return (
     <Suspense
-      fallback={(
+      fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
-      )}
+      }
     >
       <DashboardPageContent />
     </Suspense>

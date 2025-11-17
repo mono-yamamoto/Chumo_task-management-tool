@@ -3,12 +3,20 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, addDoc, Timestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import {
-  Task, FlowStatus, Label, User,
-} from '@/types';
+import { Task, FlowStatus, Label, User } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useParams } from 'next/navigation';
 import { useTimer } from '@/lib/hooks/useTimer';
@@ -34,7 +42,13 @@ import {
   DialogActions,
 } from '@mui/material';
 import {
-  PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete, Edit, Add,
+  PlayArrow,
+  Stop,
+  FolderOpen,
+  LocalFireDepartment,
+  Delete,
+  Edit,
+  Add,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 
@@ -183,17 +197,8 @@ export default function TaskDetailPage() {
     queryFn: async () => {
       if (!task?.projectId || !db) return [];
       try {
-        const sessionsRef = collection(
-          db,
-          'projects',
-          task.projectId,
-          'taskSessions',
-        );
-        const q = query(
-          sessionsRef,
-          where('taskId', '==', taskId),
-          orderBy('startedAt', 'desc'),
-        );
+        const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+        const q = query(sessionsRef, where('taskId', '==', taskId), orderBy('startedAt', 'desc'));
         const snapshot = await getDocs(q);
         return snapshot.docs.map((docItem) => {
           const data = docItem.data();
@@ -209,16 +214,8 @@ export default function TaskDetailPage() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(
-              db,
-              'projects',
-              task.projectId,
-              'taskSessions',
-            );
-            const q = query(
-              sessionsRef,
-              where('taskId', '==', taskId),
-            );
+            const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+            const q = query(sessionsRef, where('taskId', '==', taskId));
             const snapshot = await getDocs(q);
             const taskSessionsData = snapshot.docs.map((docItem) => {
               const data = docItem.data();
@@ -306,10 +303,14 @@ export default function TaskDetailPage() {
 
       if (result.warning) {
         // チェックシート作成エラーがある場合
-        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`);
+        alert(
+          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
+        );
       } else {
         // 完全に成功した場合
-        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`);
+        alert(
+          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
+        );
       }
     } catch (error: any) {
       console.error('Drive create error:', error);
@@ -384,18 +385,15 @@ export default function TaskDetailPage() {
       // durationSecを再計算
       let startedAt: Date | undefined;
       if (updates.startedAt) {
-        startedAt = updates.startedAt instanceof Date
-          ? updates.startedAt
-          : updates.startedAt.toDate();
+        startedAt =
+          updates.startedAt instanceof Date ? updates.startedAt : updates.startedAt.toDate();
       } else {
         startedAt = editingSession?.startedAt;
       }
 
       let endedAt: Date | null | undefined;
       if (updates.endedAt !== null && updates.endedAt !== undefined) {
-        endedAt = updates.endedAt instanceof Date
-          ? updates.endedAt
-          : updates.endedAt.toDate();
+        endedAt = updates.endedAt instanceof Date ? updates.endedAt : updates.endedAt.toDate();
       } else {
         endedAt = editingSession?.endedAt;
       }
@@ -434,7 +432,7 @@ export default function TaskDetailPage() {
       let durationSec = 0;
       if (sessionData.startedAt && sessionData.endedAt) {
         durationSec = Math.floor(
-          (sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000,
+          (sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000
         );
       }
 
@@ -497,9 +495,10 @@ export default function TaskDetailPage() {
     }
 
     const startedAt = new Date(`${sessionFormData.startedAt}T${sessionFormData.startedAtTime}`);
-    const endedAt = sessionFormData.endedAt && sessionFormData.endedAtTime
-      ? new Date(`${sessionFormData.endedAt}T${sessionFormData.endedAtTime}`)
-      : null;
+    const endedAt =
+      sessionFormData.endedAt && sessionFormData.endedAtTime
+        ? new Date(`${sessionFormData.endedAt}T${sessionFormData.endedAtTime}`)
+        : null;
 
     if (endedAt && endedAt <= startedAt) {
       alert('終了時刻は開始時刻より後である必要があります');
@@ -622,9 +621,11 @@ export default function TaskDetailPage() {
                   {editing ? (
                     <Select
                       value={task.flowStatus}
-                      onChange={(e) => updateTask.mutate({
-                        flowStatus: e.target.value as FlowStatus,
-                      })}
+                      onChange={(e) =>
+                        updateTask.mutate({
+                          flowStatus: e.target.value as FlowStatus,
+                        })
+                      }
                       label="ステータス"
                     >
                       {flowStatusOptions.map((status) => (
@@ -640,16 +641,12 @@ export default function TaskDetailPage() {
                 <TextField
                   label="ITアップ日"
                   type="date"
-                  value={
-                    task.itUpDate
-                      ? format(task.itUpDate, 'yyyy-MM-dd')
-                      : ''
+                  value={task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) =>
+                    updateTask.mutate({
+                      itUpDate: e.target.value ? new Date(e.target.value) : null,
+                    })
                   }
-                  onChange={(e) => updateTask.mutate({
-                    itUpDate: e.target.value
-                      ? new Date(e.target.value)
-                      : null,
-                  })}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -657,16 +654,12 @@ export default function TaskDetailPage() {
                 <TextField
                   label="リリース日"
                   type="date"
-                  value={
-                    task.releaseDate
-                      ? format(task.releaseDate, 'yyyy-MM-dd')
-                      : ''
+                  value={task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) =>
+                    updateTask.mutate({
+                      releaseDate: e.target.value ? new Date(e.target.value) : null,
+                    })
                   }
-                  onChange={(e) => updateTask.mutate({
-                    releaseDate: e.target.value
-                      ? new Date(e.target.value)
-                      : null,
-                  })}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -812,17 +805,18 @@ export default function TaskDetailPage() {
 
       <Card>
         <CardContent>
-          <Box sx={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2,
-          }}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}
           >
             <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
               セッション履歴
             </Typography>
-            <CustomButton
-              variant="outline"
-              onClick={handleAddSession}
-            >
+            <CustomButton variant="outline" onClick={handleAddSession}>
               <Add fontSize="small" sx={{ mr: 1 }} />
               追加
             </CustomButton>
@@ -835,14 +829,14 @@ export default function TaskDetailPage() {
                   // durationSecが0または無効な場合、開始時刻と終了時刻から計算
                   let secs = 0;
                   if (
-                    seconds === undefined
-                    || seconds === null
-                    || Number.isNaN(seconds)
-                    || seconds === 0
+                    seconds === undefined ||
+                    seconds === null ||
+                    Number.isNaN(seconds) ||
+                    seconds === 0
                   ) {
                     if (session.endedAt && session.startedAt) {
                       secs = Math.floor(
-                        (session.endedAt.getTime() - session.startedAt.getTime()) / 1000,
+                        (session.endedAt.getTime() - session.startedAt.getTime()) / 1000
                       );
                     } else {
                       return '0秒';
@@ -856,7 +850,8 @@ export default function TaskDetailPage() {
                   const remainingSecs = secs % 60;
                   if (hours > 0) {
                     return `${hours}時間${minutes}分${remainingSecs}秒`;
-                  } if (minutes > 0) {
+                  }
+                  if (minutes > 0) {
                     return `${minutes}分${remainingSecs}秒`;
                   }
                   return `${remainingSecs}秒`;
@@ -865,12 +860,21 @@ export default function TaskDetailPage() {
                   <Box
                     key={session.id}
                     sx={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', pb: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                      pb: 1,
                     }}
                   >
-                    <Box sx={{
-                      display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1,
-                    }}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.5,
+                        flex: 1,
+                      }}
                     >
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                         {sessionUser?.displayName || '不明なユーザー'}
@@ -884,7 +888,9 @@ export default function TaskDetailPage() {
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontWeight: 'medium', minWidth: '80px', textAlign: 'right' }}>
+                      <Typography
+                        sx={{ fontWeight: 'medium', minWidth: '80px', textAlign: 'right' }}
+                      >
                         {session.endedAt ? formatDuration(session.durationSec) : '-'}
                       </Typography>
                       {user?.id === session.userId && (
@@ -931,13 +937,15 @@ export default function TaskDetailPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
-          {editingSession ? 'セッション編集' : 'セッション追加'}
-        </DialogTitle>
+        <DialogTitle>{editingSession ? 'セッション編集' : 'セッション追加'}</DialogTitle>
         <DialogContent>
-          <Box sx={{
-            display: 'flex', flexDirection: 'column', gap: 2, pt: 2,
-          }}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              pt: 2,
+            }}
           >
             <FormControl fullWidth>
               <InputLabel>ユーザー</InputLabel>
@@ -1008,11 +1016,12 @@ export default function TaskDetailPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setSessionEditDialogOpen(false);
-            setSessionAddDialogOpen(false);
-            setEditingSession(null);
-          }}
+          <Button
+            onClick={() => {
+              setSessionEditDialogOpen(false);
+              setSessionAddDialogOpen(false);
+              setEditingSession(null);
+            }}
           >
             キャンセル
           </Button>

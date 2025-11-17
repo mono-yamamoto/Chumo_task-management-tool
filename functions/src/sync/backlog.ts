@@ -21,9 +21,7 @@ export const syncBacklog = onRequest(
       // const secret = await getSecret("MAKE_WEBHOOK_SECRET");
       // verifySignature(req, secret);
 
-      const {
-        issueKey, issueId, url, title, description, projectKey,
-      } = req.body;
+      const { issueKey, issueId, url, title, description, projectKey } = req.body;
 
       if (!issueKey || !issueId || !url || !title || !projectKey) {
         res.status(400).json({ error: 'Missing required fields' });
@@ -77,25 +75,16 @@ export const syncBacklog = onRequest(
 
       if (tasksSnapshot.empty) {
         // 新規作成
-        await db
-          .collection('projects')
-          .doc(projectId)
-          .collection('tasks')
-          .add(taskData);
+        await db.collection('projects').doc(projectId).collection('tasks').add(taskData);
       } else {
         // 更新（外部情報のみ）
         const taskId = tasksSnapshot.docs[0].id;
-        await db
-          .collection('projects')
-          .doc(projectId)
-          .collection('tasks')
-          .doc(taskId)
-          .update({
-            external: taskData.external,
-            title: taskData.title,
-            description: taskData.description,
-            updatedAt: new Date(),
-          });
+        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+          external: taskData.external,
+          title: taskData.title,
+          description: taskData.description,
+          updatedAt: new Date(),
+        });
       }
 
       res.status(200).json({ success: true });
@@ -103,5 +92,5 @@ export const syncBacklog = onRequest(
       console.error('Sync backlog error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );

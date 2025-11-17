@@ -21,9 +21,7 @@ import {
   Drawer,
 } from '@mui/material';
 import { Close, CloudUpload, Image as ImageIcon } from '@mui/icons-material';
-import {
-  ContactType, DeviceType, PCOSType, SPOSType, BrowserType, SmartphoneType,
-} from '@/types';
+import { ContactType, DeviceType, PCOSType, SPOSType, BrowserType, SmartphoneType } from '@/types';
 
 interface ContactFormDrawerProps {
   open: boolean;
@@ -139,9 +137,13 @@ export function ContactFormDrawer({
       }}
     >
       <Box sx={{ flex: 1, pb: 4 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-        }}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 3,
+          }}
         >
           <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
             新規お問い合わせ
@@ -152,11 +154,7 @@ export function ContactFormDrawer({
         </Box>
 
         {message && (
-          <Alert
-            severity={message.type}
-            onClose={onMessageClose}
-            sx={{ mb: 2 }}
-          >
+          <Alert severity={message.type} onClose={onMessageClose} sx={{ mb: 2 }}>
             {message.text}
           </Alert>
         )}
@@ -264,12 +262,18 @@ export function ContactFormDrawer({
 
                   <TextField
                     fullWidth
-                    label={errorDevice === 'SP' ? 'スマホのバージョン（必須）' : 'OSのバージョン（任意）'}
+                    label={
+                      errorDevice === 'SP' ? 'スマホのバージョン（必須）' : 'OSのバージョン（任意）'
+                    }
                     value={errorOSVersion}
                     onChange={(e) => onErrorOSVersionChange(e.target.value)}
                     required={errorDevice === 'SP'}
                     variant="outlined"
-                    placeholder={errorDevice === 'PC' ? '例: macOS 14.0、Windows 11など' : '例: iOS 17.0、Android 14など'}
+                    placeholder={
+                      errorDevice === 'PC'
+                        ? '例: macOS 14.0、Windows 11など'
+                        : '例: iOS 17.0、Android 14など'
+                    }
                   />
 
                   <FormControl component="fieldset">
@@ -334,23 +338,22 @@ export function ContactFormDrawer({
                           style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '4px' }}
                         />
                         {!errorScreenshotUrl && (
-                        <Button
-                          onClick={onImageUpload}
-                          disabled={imageUploading}
-                          variant="contained"
-                          startIcon={<CloudUpload />}
-                          sx={{ mt: 1 }}
-                          fullWidth
-                        >
-                          {imageUploading ? 'アップロード中...' : 'アップロード'}
-                        </Button>
+                          <Button
+                            onClick={onImageUpload}
+                            disabled={imageUploading}
+                            variant="contained"
+                            startIcon={<CloudUpload />}
+                            sx={{ mt: 1 }}
+                            fullWidth
+                          >
+                            {imageUploading ? 'アップロード中...' : 'アップロード'}
+                          </Button>
                         )}
                         {imageUploading && (
                           <Box sx={{ mt: 1 }}>
                             <LinearProgress variant="determinate" value={progress} />
                             <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-                              {progress}
-                              % アップロード中...
+                              {progress}% アップロード中...
                             </Typography>
                           </Box>
                         )}
@@ -365,7 +368,12 @@ export function ContactFormDrawer({
                       <Box sx={{ mt: 1 }}>
                         <Alert severity="info">
                           画像がアップロード済みです
-                          <MUILink href={errorScreenshotUrl} target="_blank" rel="noopener noreferrer" sx={{ ml: 1 }}>
+                          <MUILink
+                            href={errorScreenshotUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ ml: 1 }}
+                          >
                             画像を表示
                           </MUILink>
                         </Alert>
@@ -411,18 +419,10 @@ export function ContactFormDrawer({
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
-                type="button"
-                onClick={onClose}
-                variant="outlined"
-              >
+              <Button type="button" onClick={onClose} variant="outlined">
                 キャンセル
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                variant="contained"
-              >
+              <Button type="submit" disabled={isSubmitting} variant="contained">
                 {isSubmitting ? '送信中...' : '送信'}
               </Button>
             </Box>

@@ -50,7 +50,9 @@ export const createDriveFolder = onRequest(
       const taskIdIndex = pathParts.indexOf('tasks');
 
       if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
-        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
+        res
+          .status(400)
+          .json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
         return;
       }
 
@@ -123,7 +125,10 @@ export const createDriveFolder = onRequest(
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
-        res.status(500).json({ error: 'Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager.' });
+        res.status(500).json({
+          error:
+            'Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager.',
+        });
         return;
       }
 
@@ -132,7 +137,7 @@ export const createDriveFolder = onRequest(
         oauthClientId,
         oauthClientSecret,
         // リダイレクトURIは使用しないが、OAuth2Clientのコンストラクタに必要
-        'urn:ietf:wg:oauth:2.0:oob',
+        'urn:ietf:wg:oauth:2.0:oob'
       );
 
       oauth2Client.setCredentials({
@@ -293,15 +298,10 @@ export const createDriveFolder = onRequest(
         }
 
         // タスクにURLを保存
-        await db
-          .collection('projects')
-          .doc(projectId)
-          .collection('tasks')
-          .doc(taskId)
-          .update({
-            googleDriveUrl: folderUrl,
-            updatedAt: new Date(),
-          });
+        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+          googleDriveUrl: folderUrl,
+          updatedAt: new Date(),
+        });
 
         // チェックシート作成エラーがある場合は警告付きで返す
         if (checksheetError) {
@@ -321,15 +321,10 @@ export const createDriveFolder = onRequest(
       }
 
       // 既存フォルダの場合もURLを保存
-      await db
-        .collection('projects')
-        .doc(projectId)
-        .collection('tasks')
-        .doc(taskId)
-        .update({
-          googleDriveUrl: folderUrl,
-          updatedAt: new Date(),
-        });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+        googleDriveUrl: folderUrl,
+        updatedAt: new Date(),
+      });
 
       res.status(200).json({
         success: true,
@@ -339,5 +334,5 @@ export const createDriveFolder = onRequest(
       console.error('Create Drive folder error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );

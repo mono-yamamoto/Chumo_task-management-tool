@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection, getDocs, doc, updateDoc, query, orderBy,
-} from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import {
   Contact,
@@ -30,9 +28,7 @@ import {
   Chip,
   Link as MUILink,
 } from '@mui/material';
-import {
-  CheckCircle,
-} from '@mui/icons-material';
+import { CheckCircle } from '@mui/icons-material';
 import { ContactFormDrawer } from '@/components/Drawer/ContactFormDrawer';
 
 function getContactTypeLabel(type: ContactType): string {
@@ -65,7 +61,10 @@ export default function ContactPage() {
   const { user, firebaseUser } = useAuth();
   const queryClient = useQueryClient();
   const {
-    uploadImage, uploading: imageUploading, error: imageUploadError, progress,
+    uploadImage,
+    uploading: imageUploading,
+    error: imageUploadError,
+    progress,
   } = useImageUpload();
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'pending' | 'resolved'>('pending');
@@ -125,7 +124,13 @@ export default function ContactPage() {
   });
 
   const updateContactStatus = useMutation({
-    mutationFn: async ({ contactId, status }: { contactId: string; status: 'pending' | 'resolved' }) => {
+    mutationFn: async ({
+      contactId,
+      status,
+    }: {
+      contactId: string;
+      status: 'pending' | 'resolved';
+    }) => {
       if (!db) throw new Error('Firestore not initialized');
       await updateDoc(doc(db, 'contacts', contactId), {
         status,
@@ -286,7 +291,11 @@ export default function ContactPage() {
         return;
       }
       if (!errorOS) {
-        setMessage({ type: 'error', text: errorDevice === 'SP' ? 'スマホの種類を選択してください。' : 'OSを選択してください。' });
+        setMessage({
+          type: 'error',
+          text:
+            errorDevice === 'SP' ? 'スマホの種類を選択してください。' : 'OSを選択してください。',
+        });
         return;
       }
       if (!errorBrowser) {
@@ -320,9 +329,7 @@ export default function ContactPage() {
       };
 
       // テンプレートに基づいて内容を生成
-      const environmentLines = [
-        `- デバイス: ${errorDevice}`,
-      ];
+      const environmentLines = [`- デバイス: ${errorDevice}`];
 
       if (errorDevice === 'PC') {
         environmentLines.push(`- OS: ${errorOS}`);
@@ -405,9 +412,13 @@ export default function ContactPage() {
     <Box sx={{ display: 'flex', gap: 2 }}>
       {/* 左側: お問い合わせ一覧（管理者のみ）または新規作成フォーム（一般ユーザー） */}
       <Box sx={{ flex: 1 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-        }}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 3,
+          }}
         >
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             お問い合わせ
@@ -446,103 +457,117 @@ export default function ContactPage() {
             )}
             {!isLoadingPending && pendingContacts && pendingContacts.length > 0 && (
               <List>
-                  {pendingContacts?.map((contact) => (
-                    <Card
-                      key={contact.id}
-                      sx={{ mb: 2 }}
-                    >
-                      <CardContent>
-                        <Box sx={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2,
+                {pendingContacts?.map((contact) => (
+                  <Card key={contact.id} sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          mb: 2,
                         }}
-                        >
-                          <Box sx={{ flex: 1 }}>
-                            <Box sx={{
-                              display: 'flex', gap: 1, alignItems: 'center', mb: 1,
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              alignItems: 'center',
+                              mb: 1,
                             }}
-                            >
-                              <Chip
-                                label={getContactTypeLabel(contact.type)}
-                                color={getContactTypeColor(contact.type)}
-                                size="small"
-                              />
-                              <Chip
-                                label="対応中"
-                                color="warning"
-                                size="small"
-                              />
-                            </Box>
-                            <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                              {contact.title}
-                            </Typography>
-                            {contact.type === 'error' && contact.errorReportDetails ? (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  事象
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                  {contact.errorReportDetails.issue}
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  再現方法
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                  {contact.errorReportDetails.reproductionSteps}
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  環境
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - デバイス:
-                                  {' '}
-                                  {contact.errorReportDetails.environment.device}
-                                </Typography>
-                                {contact.errorReportDetails.environment.device === 'PC' ? (
-                                  <>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - OS:
-                                      {' '}
-                                      {contact.errorReportDetails.environment.os}
-                                    </Typography>
-                                    {contact.errorReportDetails.environment.osVersion && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - OSのバージョン:
-                                      {' '}
+                          >
+                            <Chip
+                              label={getContactTypeLabel(contact.type)}
+                              color={getContactTypeColor(contact.type)}
+                              size="small"
+                            />
+                            <Chip label="対応中" color="warning" size="small" />
+                          </Box>
+                          <Typography
+                            variant="h6"
+                            component="h2"
+                            sx={{ fontWeight: 'semibold', mb: 1 }}
+                          >
+                            {contact.title}
+                          </Typography>
+                          {contact.type === 'error' && contact.errorReportDetails ? (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                事象
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {contact.errorReportDetails.issue}
+                              </Typography>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                再現方法
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {contact.errorReportDetails.reproductionSteps}
+                              </Typography>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                環境
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                - デバイス: {contact.errorReportDetails.environment.device}
+                              </Typography>
+                              {contact.errorReportDetails.environment.device === 'PC' ? (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    - OS: {contact.errorReportDetails.environment.os}
+                                  </Typography>
+                                  {contact.errorReportDetails.environment.osVersion && (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ mb: 1 }}
+                                    >
+                                      - OSのバージョン:{' '}
                                       {contact.errorReportDetails.environment.osVersion}
                                     </Typography>
-                                    )}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - スマホの種類:
-                                      {' '}
-                                      {contact.errorReportDetails.environment.os}
-                                    </Typography>
-                                    {contact.errorReportDetails.environment.osVersion && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - スマホのバージョン:
-                                      {' '}
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    - スマホの種類: {contact.errorReportDetails.environment.os}
+                                  </Typography>
+                                  {contact.errorReportDetails.environment.osVersion && (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ mb: 1 }}
+                                    >
+                                      - スマホのバージョン:{' '}
                                       {contact.errorReportDetails.environment.osVersion}
                                     </Typography>
-                                    )}
-                                  </>
-                                )}
+                                  )}
+                                </>
+                              )}
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                - ブラウザ: {contact.errorReportDetails.environment.browser}
+                              </Typography>
+                              {contact.errorReportDetails.environment.browserVersion && (
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - ブラウザ:
-                                  {' '}
-                                  {contact.errorReportDetails.environment.browser}
-                                </Typography>
-                                {contact.errorReportDetails.environment.browserVersion && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - ブラウザのバージョン:
-                                  {' '}
+                                  - ブラウザのバージョン:{' '}
                                   {contact.errorReportDetails.environment.browserVersion}
                                 </Typography>
-                                )}
-                                {contact.errorReportDetails.screenshotUrl && (
+                              )}
+                              {contact.errorReportDetails.screenshotUrl && (
                                 <Box sx={{ mt: 1 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'semibold', mb: 1 }}
+                                  >
                                     スクリーンショット
                                   </Typography>
                                   <Box
@@ -557,7 +582,12 @@ export default function ContactPage() {
                                       borderColor: 'divider',
                                       cursor: 'pointer',
                                     }}
-                                    onClick={() => window.open(contact.errorReportDetails.screenshotUrl, '_blank')}
+                                    onClick={() =>
+                                      window.open(
+                                        contact.errorReportDetails.screenshotUrl,
+                                        '_blank'
+                                      )
+                                    }
                                   />
                                   <MUILink
                                     href={contact.errorReportDetails.screenshotUrl}
@@ -568,67 +598,76 @@ export default function ContactPage() {
                                     画像を別ウィンドウで開く
                                   </MUILink>
                                 </Box>
-                                )}
-                                {contact.content && (
+                              )}
+                              {contact.content && (
                                 <>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1, mt: 2 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'semibold', mb: 1, mt: 2 }}
+                                  >
                                     その他の情報
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                     {contact.content}
                                   </Typography>
                                 </>
-                                )}
-                              </Box>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>
-                                {contact.content}
-                              </Typography>
-                            )}
-                            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                送信者:
-                                {' '}
-                                {contact.userName}
-                                {' '}
-                                (
-                                {contact.userEmail}
-                                )
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                送信日時:
-                                {' '}
-                                {new Date(contact.createdAt).toLocaleString('ja-JP')}
-                              </Typography>
+                              )}
                             </Box>
-                            {contact.githubIssueUrl && (
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 1, whiteSpace: 'pre-wrap' }}
+                            >
+                              {contact.content}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              送信者: {contact.userName} ({contact.userEmail})
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              送信日時: {new Date(contact.createdAt).toLocaleString('ja-JP')}
+                            </Typography>
+                          </Box>
+                          {contact.githubIssueUrl && (
                             <Box sx={{ mt: 1 }}>
-                              <MUILink href={contact.githubIssueUrl} target="_blank" rel="noopener noreferrer">
+                              <MUILink
+                                href={contact.githubIssueUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 GitHub Issueを開く
                               </MUILink>
                             </Box>
-                            )}
-                          </Box>
-                          <Box sx={{
-                            display: 'flex', flexDirection: 'column', gap: 1, ml: 2,
+                          )}
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                            ml: 2,
                           }}
-                          >
-                            <Button
-                              onClick={() => updateContactStatus.mutate({
+                        >
+                          <Button
+                            onClick={() =>
+                              updateContactStatus.mutate({
                                 contactId: contact.id,
                                 status: contact.status === 'pending' ? 'resolved' : 'pending',
-                              })}
-                              disabled={updateContactStatus.isPending}
-                              variant="outline"
-                              size="sm"
-                            >
-                              解決済みにする
-                            </Button>
-                          </Box>
+                              })
+                            }
+                            disabled={updateContactStatus.isPending}
+                            variant="outline"
+                            size="sm"
+                          >
+                            解決済みにする
+                          </Button>
                         </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
               </List>
             )}
           </Box>
@@ -650,118 +689,135 @@ export default function ContactPage() {
             )}
             {!isLoadingResolved && resolvedContacts && resolvedContacts.length > 0 && (
               <List>
-                  {resolvedContacts?.map((contact) => (
-                    <Card
-                      key={contact.id}
-                      sx={{
-                        mb: 2,
-                        opacity: 0.6,
-                        backgroundColor: 'action.hover',
-                      }}
-                    >
-                      <CardContent>
-                        <Box sx={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2,
+                {resolvedContacts?.map((contact) => (
+                  <Card
+                    key={contact.id}
+                    sx={{
+                      mb: 2,
+                      opacity: 0.6,
+                      backgroundColor: 'action.hover',
+                    }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          mb: 2,
                         }}
-                        >
-                          <Box sx={{ flex: 1 }}>
-                            <Box sx={{
-                              display: 'flex', gap: 1, alignItems: 'center', mb: 1,
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              alignItems: 'center',
+                              mb: 1,
                             }}
-                            >
-                              <Chip
-                                label={getContactTypeLabel(contact.type)}
-                                color={getContactTypeColor(contact.type)}
-                                size="small"
-                              />
-                              <Chip
-                                icon={<CheckCircle sx={{ fontSize: 16 }} />}
-                                label="解決済み"
-                                color="success"
-                                size="small"
-                                sx={{ opacity: 0.8 }}
-                              />
-                            </Box>
-                            <Typography
-                              variant="h6"
-                              component="h2"
-                              sx={{
-                                fontWeight: 'semibold',
-                                mb: 1,
-                                color: 'text.disabled',
-                                textDecoration: 'line-through',
-                              }}
-                            >
-                              {contact.title}
-                            </Typography>
-                            {contact.type === 'error' && contact.errorReportDetails ? (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  事象
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                  {contact.errorReportDetails.issue}
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  再現方法
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                  {contact.errorReportDetails.reproductionSteps}
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-                                  環境
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - デバイス:
-                                  {' '}
-                                  {contact.errorReportDetails.environment.device}
-                                </Typography>
-                                {contact.errorReportDetails.environment.device === 'PC' ? (
-                                  <>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - OS:
-                                      {' '}
-                                      {contact.errorReportDetails.environment.os}
-                                    </Typography>
-                                    {contact.errorReportDetails.environment.osVersion && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - OSのバージョン:
-                                      {' '}
+                          >
+                            <Chip
+                              label={getContactTypeLabel(contact.type)}
+                              color={getContactTypeColor(contact.type)}
+                              size="small"
+                            />
+                            <Chip
+                              icon={<CheckCircle sx={{ fontSize: 16 }} />}
+                              label="解決済み"
+                              color="success"
+                              size="small"
+                              sx={{ opacity: 0.8 }}
+                            />
+                          </Box>
+                          <Typography
+                            variant="h6"
+                            component="h2"
+                            sx={{
+                              fontWeight: 'semibold',
+                              mb: 1,
+                              color: 'text.disabled',
+                              textDecoration: 'line-through',
+                            }}
+                          >
+                            {contact.title}
+                          </Typography>
+                          {contact.type === 'error' && contact.errorReportDetails ? (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                事象
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {contact.errorReportDetails.issue}
+                              </Typography>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                再現方法
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {contact.errorReportDetails.reproductionSteps}
+                              </Typography>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 'semibold', mb: 1 }}
+                              >
+                                環境
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                - デバイス: {contact.errorReportDetails.environment.device}
+                              </Typography>
+                              {contact.errorReportDetails.environment.device === 'PC' ? (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    - OS: {contact.errorReportDetails.environment.os}
+                                  </Typography>
+                                  {contact.errorReportDetails.environment.osVersion && (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ mb: 1 }}
+                                    >
+                                      - OSのバージョン:{' '}
                                       {contact.errorReportDetails.environment.osVersion}
                                     </Typography>
-                                    )}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - スマホの種類:
-                                      {' '}
-                                      {contact.errorReportDetails.environment.os}
-                                    </Typography>
-                                    {contact.errorReportDetails.environment.osVersion && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                      - スマホのバージョン:
-                                      {' '}
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    - スマホの種類: {contact.errorReportDetails.environment.os}
+                                  </Typography>
+                                  {contact.errorReportDetails.environment.osVersion && (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ mb: 1 }}
+                                    >
+                                      - スマホのバージョン:{' '}
                                       {contact.errorReportDetails.environment.osVersion}
                                     </Typography>
-                                    )}
-                                  </>
-                                )}
+                                  )}
+                                </>
+                              )}
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                - ブラウザ: {contact.errorReportDetails.environment.browser}
+                              </Typography>
+                              {contact.errorReportDetails.environment.browserVersion && (
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - ブラウザ:
-                                  {' '}
-                                  {contact.errorReportDetails.environment.browser}
-                                </Typography>
-                                {contact.errorReportDetails.environment.browserVersion && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  - ブラウザのバージョン:
-                                  {' '}
+                                  - ブラウザのバージョン:{' '}
                                   {contact.errorReportDetails.environment.browserVersion}
                                 </Typography>
-                                )}
-                                {contact.errorReportDetails.screenshotUrl && (
+                              )}
+                              {contact.errorReportDetails.screenshotUrl && (
                                 <Box sx={{ mt: 1 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'semibold', mb: 1 }}
+                                  >
                                     スクリーンショット
                                   </Typography>
                                   <Box
@@ -776,7 +832,12 @@ export default function ContactPage() {
                                       borderColor: 'divider',
                                       cursor: 'pointer',
                                     }}
-                                    onClick={() => window.open(contact.errorReportDetails.screenshotUrl, '_blank')}
+                                    onClick={() =>
+                                      window.open(
+                                        contact.errorReportDetails.screenshotUrl,
+                                        '_blank'
+                                      )
+                                    }
                                   />
                                   <MUILink
                                     href={contact.errorReportDetails.screenshotUrl}
@@ -787,67 +848,76 @@ export default function ContactPage() {
                                     画像を別ウィンドウで開く
                                   </MUILink>
                                 </Box>
-                                )}
-                                {contact.content && (
+                              )}
+                              {contact.content && (
                                 <>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1, mt: 2 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'semibold', mb: 1, mt: 2 }}
+                                  >
                                     その他の情報
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                     {contact.content}
                                   </Typography>
                                 </>
-                                )}
-                              </Box>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>
-                                {contact.content}
-                              </Typography>
-                            )}
-                            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                送信者:
-                                {' '}
-                                {contact.userName}
-                                {' '}
-                                (
-                                {contact.userEmail}
-                                )
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                送信日時:
-                                {' '}
-                                {new Date(contact.createdAt).toLocaleString('ja-JP')}
-                              </Typography>
+                              )}
                             </Box>
-                            {contact.githubIssueUrl && (
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 1, whiteSpace: 'pre-wrap' }}
+                            >
+                              {contact.content}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              送信者: {contact.userName} ({contact.userEmail})
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              送信日時: {new Date(contact.createdAt).toLocaleString('ja-JP')}
+                            </Typography>
+                          </Box>
+                          {contact.githubIssueUrl && (
                             <Box sx={{ mt: 1 }}>
-                              <MUILink href={contact.githubIssueUrl} target="_blank" rel="noopener noreferrer">
+                              <MUILink
+                                href={contact.githubIssueUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 GitHub Issueを開く
                               </MUILink>
                             </Box>
-                            )}
-                          </Box>
-                          <Box sx={{
-                            display: 'flex', flexDirection: 'column', gap: 1, ml: 2,
+                          )}
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                            ml: 2,
                           }}
-                          >
-                            <Button
-                              onClick={() => updateContactStatus.mutate({
+                        >
+                          <Button
+                            onClick={() =>
+                              updateContactStatus.mutate({
                                 contactId: contact.id,
                                 status: 'pending',
-                              })}
-                              disabled={updateContactStatus.isPending}
-                              variant="outline"
-                              size="sm"
-                            >
-                              対応中に戻す
-                            </Button>
-                          </Box>
+                              })
+                            }
+                            disabled={updateContactStatus.isPending}
+                            variant="outline"
+                            size="sm"
+                          >
+                            対応中に戻す
+                          </Button>
                         </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
               </List>
             )}
           </Box>

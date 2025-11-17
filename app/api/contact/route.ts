@@ -4,7 +4,13 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { Timestamp } from 'firebase-admin/firestore';
 import {
-  ContactType, ErrorReportDetails, DeviceType, PCOSType, SPOSType, SmartphoneType, BrowserType,
+  ContactType,
+  ErrorReportDetails,
+  DeviceType,
+  PCOSType,
+  SPOSType,
+  SmartphoneType,
+  BrowserType,
 } from '@/types';
 
 export async function POST(request: NextRequest) {
@@ -20,7 +26,10 @@ export async function POST(request: NextRequest) {
     // Firebase Admin SDKでトークンを検証
     // Firebase Admin Appを初期化（まだ初期化されていない場合）
     if (getApps().length === 0) {
-      const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'chumo-3506a';
+      const projectId =
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+        'chumo-3506a';
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
       const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
@@ -55,102 +64,83 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch (e) {
       console.error('Failed to parse request body:', e);
-      return NextResponse.json(
-        { error: 'リクエストボディの解析に失敗しました' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'リクエストボディの解析に失敗しました' }, { status: 400 });
     }
-    const {
-      type, title, content, errorReportDetails,
-    } = body;
+    const { type, title, content, errorReportDetails } = body;
 
     // デバッグ用ログ（開発環境のみ）
     if (process.env.NODE_ENV === 'development') {
-      console.debug('Received contact data:', JSON.stringify({
-        type, title, content: content?.substring(0, 100), errorReportDetails,
-      }, null, 2));
+      console.debug(
+        'Received contact data:',
+        JSON.stringify(
+          {
+            type,
+            title,
+            content: content?.substring(0, 100),
+            errorReportDetails,
+          },
+          null,
+          2
+        )
+      );
     }
 
     // バリデーション
     if (!type || !title) {
-      return NextResponse.json(
-        { error: 'type、titleは必須です' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'type、titleは必須です' }, { status: 400 });
     }
 
     // エラー報告以外の場合、contentは必須
     if (type !== 'error' && !content) {
-      return NextResponse.json(
-        { error: 'contentは必須です' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'contentは必須です' }, { status: 400 });
     }
 
     // エラー報告の場合、errorReportDetailsは必須
     if (type === 'error' && !errorReportDetails) {
-      return NextResponse.json(
-        { error: 'エラー報告の場合、詳細情報は必須です' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'エラー報告の場合、詳細情報は必須です' }, { status: 400 });
     }
 
     // エラー報告の場合、バリデーション
     if (type === 'error' && errorReportDetails) {
       if (!errorReportDetails.environment) {
-        return NextResponse.json(
-          { error: '環境情報は必須です' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: '環境情報は必須です' }, { status: 400 });
       }
 
       const env = errorReportDetails.environment;
 
       if (!env.device) {
-        return NextResponse.json(
-          { error: 'デバイス（PC/SP）は必須です' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'デバイス（PC/SP）は必須です' }, { status: 400 });
       }
 
       if (!env.os) {
         return NextResponse.json(
           { error: env.device === 'SP' ? 'スマホの種類は必須です' : 'OSは必須です' },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
       if (!env.browser) {
-        return NextResponse.json(
-          { error: 'ブラウザは必須です' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'ブラウザは必須です' }, { status: 400 });
       }
 
       if (!env.browserVersion || !env.browserVersion.trim()) {
-        return NextResponse.json(
-          { error: 'ブラウザのバージョンは必須です' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'ブラウザのバージョンは必須です' }, { status: 400 });
       }
 
       if (env.device === 'SP' && (!env.osVersion || !env.osVersion.trim())) {
-        return NextResponse.json(
-          { error: 'スマホのバージョンは必須です' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'スマホのバージョンは必須です' }, { status: 400 });
       }
     }
 
     if (!['error', 'feature', 'other'].includes(type)) {
-      return NextResponse.json(
-        { error: '無効なtypeです' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: '無効なtypeです' }, { status: 400 });
     }
 
     // adminDbの初期化確認とログ
-    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'chumo-3506a';
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      'chumo-3506a';
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
@@ -227,8 +217,11 @@ export async function POST(request: NextRequest) {
         } else {
           console.error('FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are not set.');
           return NextResponse.json(
-            { error: 'Firebase Admin SDKの初期化に失敗しました。環境変数FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが設定されているか確認してください。' },
-            { status: 500 },
+            {
+              error:
+                'Firebase Admin SDKの初期化に失敗しました。環境変数FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが設定されているか確認してください。',
+            },
+            { status: 500 }
           );
         }
       }
@@ -238,14 +231,13 @@ export async function POST(request: NextRequest) {
 
       if (!db) {
         console.error('Failed to initialize Firestore');
-        return NextResponse.json(
-          { error: 'データベースに接続できません' },
-          { status: 500 },
-        );
+        return NextResponse.json({ error: 'データベースに接続できません' }, { status: 500 });
       }
     } else if (!clientEmail || !privateKey) {
       // adminDbが既に初期化されている場合でも、認証情報が設定されているか確認
-      console.warn('adminDb is initialized but FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY is not set. This may cause permission errors.');
+      console.warn(
+        'adminDb is initialized but FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY is not set. This may cause permission errors.'
+      );
     }
 
     // dbを使用するように変更
@@ -295,15 +287,15 @@ export async function POST(request: NextRequest) {
     // エラー報告の場合、詳細情報を追加
     if (type === 'error' && errorReportDetails) {
       try {
-        console.debug('Processing errorReportDetails:', JSON.stringify(errorReportDetails, null, 2));
+        console.debug(
+          'Processing errorReportDetails:',
+          JSON.stringify(errorReportDetails, null, 2)
+        );
 
         // errorReportDetailsを検証して、正しい形式に変換
         if (!errorReportDetails.environment) {
           console.error('errorReportDetails.environment is missing');
-          return NextResponse.json(
-            { error: '環境情報が不足しています' },
-            { status: 400 },
-          );
+          return NextResponse.json({ error: '環境情報が不足しています' }, { status: 400 });
         }
 
         const validatedErrorDetails: ErrorReportDetails = {
@@ -311,14 +303,20 @@ export async function POST(request: NextRequest) {
           reproductionSteps: String(errorReportDetails.reproductionSteps || ''),
           environment: {
             device: String(errorReportDetails.environment.device || '') as DeviceType,
-            os: String(errorReportDetails.environment.os || '') as PCOSType | SPOSType | SmartphoneType,
+            os: String(errorReportDetails.environment.os || '') as
+              | PCOSType
+              | SPOSType
+              | SmartphoneType,
             browser: String(errorReportDetails.environment.browser || '') as BrowserType,
             browserVersion: String(errorReportDetails.environment.browserVersion || ''),
           },
         };
 
         // osVersionが存在する場合のみ追加
-        if (errorReportDetails.environment.osVersion && typeof errorReportDetails.environment.osVersion === 'string') {
+        if (
+          errorReportDetails.environment.osVersion &&
+          typeof errorReportDetails.environment.osVersion === 'string'
+        ) {
           const trimmedVersion = errorReportDetails.environment.osVersion.trim();
           if (trimmedVersion) {
             validatedErrorDetails.environment.osVersion = trimmedVersion;
@@ -326,22 +324,35 @@ export async function POST(request: NextRequest) {
         }
 
         // screenshotUrlが存在する場合のみ追加
-        if (errorReportDetails.screenshotUrl && typeof errorReportDetails.screenshotUrl === 'string') {
+        if (
+          errorReportDetails.screenshotUrl &&
+          typeof errorReportDetails.screenshotUrl === 'string'
+        ) {
           const trimmedUrl = errorReportDetails.screenshotUrl.trim();
           if (trimmedUrl) {
             validatedErrorDetails.screenshotUrl = trimmedUrl;
           }
         }
 
-        console.debug('Validated errorReportDetails:', JSON.stringify(validatedErrorDetails, null, 2));
+        console.debug(
+          'Validated errorReportDetails:',
+          JSON.stringify(validatedErrorDetails, null, 2)
+        );
         contactData.errorReportDetails = validatedErrorDetails;
       } catch (validationError) {
         console.error('Error validating errorReportDetails:', validationError);
         console.error('errorReportDetails:', JSON.stringify(errorReportDetails, null, 2));
-        console.error('validationError stack:', validationError instanceof Error ? validationError.stack : 'No stack trace');
+        console.error(
+          'validationError stack:',
+          validationError instanceof Error ? validationError.stack : 'No stack trace'
+        );
         return NextResponse.json(
-          { error: 'エラー報告の詳細情報の検証に失敗しました', details: validationError instanceof Error ? validationError.message : String(validationError) },
-          { status: 400 },
+          {
+            error: 'エラー報告の詳細情報の検証に失敗しました',
+            details:
+              validationError instanceof Error ? validationError.message : String(validationError),
+          },
+          { status: 400 }
         );
       }
     }
@@ -352,10 +363,7 @@ export async function POST(request: NextRequest) {
       // firestoreDbの確認
       if (!firestoreDb) {
         console.error('firestoreDb is undefined');
-        return NextResponse.json(
-          { error: 'データベースに接続できません' },
-          { status: 500 },
-        );
+        return NextResponse.json({ error: 'データベースに接続できません' }, { status: 500 });
       }
 
       // デバッグ用ログ（Timestampを除外して表示）
@@ -369,15 +377,24 @@ export async function POST(request: NextRequest) {
       // contactDataの構造を確認
       console.debug('contactData type:', typeof contactData);
       console.debug('contactData.createdAt type:', typeof contactData.createdAt);
-      console.debug('contactData.createdAt instanceof Timestamp:', contactData.createdAt instanceof Timestamp);
+      console.debug(
+        'contactData.createdAt instanceof Timestamp:',
+        contactData.createdAt instanceof Timestamp
+      );
 
       const contactRef = await firestoreDb.collection('contacts').add(contactData);
       contactId = contactRef.id;
       console.info('Contact saved successfully with ID:', contactId);
     } catch (firestoreError) {
       console.error('Firestore save error:', firestoreError);
-      console.error('Firestore error details:', firestoreError instanceof Error ? firestoreError.message : String(firestoreError));
-      console.error('Firestore error stack:', firestoreError instanceof Error ? firestoreError.stack : 'No stack trace');
+      console.error(
+        'Firestore error details:',
+        firestoreError instanceof Error ? firestoreError.message : String(firestoreError)
+      );
+      console.error(
+        'Firestore error stack:',
+        firestoreError instanceof Error ? firestoreError.stack : 'No stack trace'
+      );
       console.error('contactData structure:', {
         type: typeof contactData,
         keys: Object.keys(contactData),
@@ -393,15 +410,22 @@ export async function POST(request: NextRequest) {
       const createIssueUrl = `${functionsUrl}/createContactIssue`;
 
       console.debug('Calling GitHub issue creation function:', createIssueUrl);
-      console.debug('Request body:', JSON.stringify({
-        contactId,
-        type,
-        title,
-        content: content.substring(0, 100),
-        userName: contactData.userName,
-        userEmail: contactData.userEmail,
-        hasErrorReportDetails: !!contactData.errorReportDetails,
-      }, null, 2));
+      console.debug(
+        'Request body:',
+        JSON.stringify(
+          {
+            contactId,
+            type,
+            title,
+            content: content.substring(0, 100),
+            userName: contactData.userName,
+            userEmail: contactData.userEmail,
+            hasErrorReportDetails: !!contactData.errorReportDetails,
+          },
+          null,
+          2
+        )
+      );
 
       const issueResponse = await fetch(createIssueUrl, {
         method: 'POST',
@@ -465,7 +489,7 @@ export async function POST(request: NextRequest) {
           stack: error instanceof Error ? error.stack : undefined,
         }),
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

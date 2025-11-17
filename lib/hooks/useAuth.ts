@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import {
-  User as FirebaseUser, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut,
+  User as FirebaseUser,
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { checkUserAllowed, getUser } from '@/lib/firebase/auth';

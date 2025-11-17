@@ -1,9 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection, getDocs, doc, updateDoc, getDoc,
-} from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { User } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -30,7 +28,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [githubUsername, setGithubUsername] = useState(user?.githubUsername || '');
-  const [oauthStatus, setOauthStatus] = useState<'connected' | 'disconnected' | 'loading'>('loading');
+  const [oauthStatus, setOauthStatus] = useState<'connected' | 'disconnected' | 'loading'>(
+    'loading'
+  );
   const [message, setMessage] = useState<string | null>(null);
 
   // OAuth認証状態を確認
@@ -229,13 +229,13 @@ export default function SettingsPage() {
               <ListItem
                 key={u.id}
                 sx={{
-                  borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between',
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  display: 'flex',
+                  justifyContent: 'space-between',
                 }}
               >
-                <ListItemText
-                  primary={u.displayName}
-                  secondary={u.email}
-                />
+                <ListItemText primary={u.displayName} secondary={u.email} />
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Chip
                     label={u.isAllowed ? '許可' : '拒否'}
@@ -243,10 +243,12 @@ export default function SettingsPage() {
                     size="small"
                   />
                   <Button
-                    onClick={() => toggleUserAllowed.mutate({
-                      userId: u.id,
-                      isAllowed: !u.isAllowed,
-                    })}
+                    onClick={() =>
+                      toggleUserAllowed.mutate({
+                        userId: u.id,
+                        isAllowed: !u.isAllowed,
+                      })
+                    }
                     variant="outline"
                     size="sm"
                   >

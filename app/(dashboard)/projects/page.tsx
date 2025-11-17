@@ -1,15 +1,19 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection, getDocs, addDoc, doc, deleteDoc, query, where,
-} from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Project } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
-  Box, Typography, TextField, Grid, Card, CardContent, CircularProgress,
+  Box,
+  Typography,
+  TextField,
+  Grid,
+  Card,
+  CardContent,
+  CircularProgress,
 } from '@mui/material';
 import { useState } from 'react';
 
@@ -91,16 +95,18 @@ export default function ProjectsPage() {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           プロジェクト
         </Typography>
-        {isAdmin && (
-          <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
-        )}
+        {isAdmin && <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>}
       </Box>
 
       {showCreateForm && (
@@ -144,15 +150,11 @@ export default function ProjectsPage() {
                   {project.name}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                  メンバー数:
-                  {' '}
-                  {project.memberIds.length}
+                  メンバー数: {project.memberIds.length}
                 </Typography>
                 {project.backlogProjectKey && (
                   <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                    Backlog:
-                    {' '}
-                    {project.backlogProjectKey}
+                    Backlog: {project.backlogProjectKey}
                   </Typography>
                 )}
                 {isAdmin && (

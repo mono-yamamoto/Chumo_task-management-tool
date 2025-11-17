@@ -23,11 +23,15 @@ import {
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'normal' | 'brg'>('normal');
   const [fromDate, setFromDate] = useState(
-    format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+    format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
   );
   const [toDate, setToDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const { data: reportData, isLoading, error } = useQuery({
+  const {
+    data: reportData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['reports', activeTab, fromDate, toDate],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -40,8 +44,12 @@ export default function ReportsPage() {
       const reportUrl = 'https://gettimereport-zbk3yr5vta-uc.a.run.app';
       const response = await fetch(`${reportUrl}?${params}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error', details: `HTTP ${response.status}: ${response.statusText}` }));
-        const errorMessage = errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`;
+        const errorData = await response.json().catch(() => ({
+          error: 'Unknown error',
+          details: `HTTP ${response.status}: ${response.statusText}`,
+        }));
+        const errorMessage =
+          errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`;
         const errorDetails = errorData.details ? `\n詳細: ${errorData.details}` : '';
         throw new Error(`${errorMessage}${errorDetails}`);
       }
@@ -79,9 +87,13 @@ export default function ReportsPage() {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           レポート
@@ -89,9 +101,13 @@ export default function ReportsPage() {
         <Button onClick={handleExportCSV}>CSVエクスポート</Button>
       </Box>
 
-      <Box sx={{
-        mb: 3, display: 'flex', flexDirection: 'column', gap: 2,
-      }}
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}
       >
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
@@ -137,7 +153,10 @@ export default function ReportsPage() {
             {error instanceof Error ? error.message : '不明なエラーが発生しました'}
           </Typography>
           {error instanceof Error && error.message.includes('details') && (
-            <Typography variant="body2" sx={{ color: 'error.dark', fontFamily: 'monospace', fontSize: '0.875rem' }}>
+            <Typography
+              variant="body2"
+              sx={{ color: 'error.dark', fontFamily: 'monospace', fontSize: '0.875rem' }}
+            >
               {JSON.stringify(error, null, 2)}
             </Typography>
           )}
@@ -165,16 +184,16 @@ export default function ReportsPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          <Box sx={{
-            borderTop: 1, borderColor: 'divider', pt: 2, textAlign: 'right',
-          }}
+          <Box
+            sx={{
+              borderTop: 1,
+              borderColor: 'divider',
+              pt: 2,
+              textAlign: 'right',
+            }}
           >
             <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
-              合計時間:
-              {' '}
-              {totalDurationMin}
-              分 (
-              {Math.floor(totalDurationMin / 60)}
+              合計時間: {totalDurationMin}分 ({Math.floor(totalDurationMin / 60)}
               時間
               {totalDurationMin % 60}
               分)

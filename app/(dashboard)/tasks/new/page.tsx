@@ -2,13 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection, getDocs, addDoc, query, where, doc, getDoc,
-} from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import {
-  FlowStatus, Label, Priority, User, Project,
-} from '@/types';
+import { FlowStatus, Label, Priority, User, Project } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -151,10 +147,7 @@ export default function NewTaskPage() {
         updatedAt: new Date(),
       };
 
-      const docRef = await addDoc(
-        collection(db, 'projects', projectId, 'tasks'),
-        taskData,
-      );
+      const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), taskData);
       return docRef.id;
     },
     onSuccess: () => {
@@ -195,9 +188,13 @@ export default function NewTaskPage() {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-      }}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           新規タスク作成
@@ -305,7 +302,10 @@ export default function NewTaskPage() {
                         このプロジェクトにはラベルがありません。先にラベルを作成してください。
                       </FormHelperText>
                       <Box sx={{ mt: 1 }}>
-                        <Link href={`/projects/${projectId}/labels`} style={{ textDecoration: 'none' }}>
+                        <Link
+                          href={`/projects/${projectId}/labels`}
+                          style={{ textDecoration: 'none' }}
+                        >
                           <Button variant="outline" size="sm">
                             ラベルを作成
                           </Button>
@@ -323,16 +323,21 @@ export default function NewTaskPage() {
                     multiple
                     value={assigneeIds}
                     onChange={(e) => {
-                      const value = typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value;
+                      const value =
+                        typeof e.target.value === 'string'
+                          ? e.target.value.split(',')
+                          : e.target.value;
                       setAssigneeIds(value);
                     }}
                     input={<OutlinedInput label="アサイン（担当者）" />}
                     renderValue={(selected) => {
                       if (selected.length === 0) return '';
-                      return projectMembers
-                        ?.filter((member) => selected.includes(member.id))
-                        .map((member) => member.displayName)
-                        .join(', ') || '';
+                      return (
+                        projectMembers
+                          ?.filter((member) => selected.includes(member.id))
+                          .map((member) => member.displayName)
+                          .join(', ') || ''
+                      );
                     }}
                   >
                     {projectMembers?.map((member) => (

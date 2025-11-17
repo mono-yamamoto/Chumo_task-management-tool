@@ -4,7 +4,8 @@ import { google } from 'googleapis';
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_OAUTH_CLIENT_ID,
   process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-  process.env.GOOGLE_OAUTH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_FUNCTIONS_URL?.replace('/functions', '') || 'http://localhost:3000'}/api/auth/google/callback`,
+  process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    `${process.env.NEXT_PUBLIC_FUNCTIONS_URL?.replace('/functions', '') || 'http://localhost:3000'}/api/auth/google/callback`
 );
 
 export async function GET(request: NextRequest) {

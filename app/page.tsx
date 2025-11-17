@@ -7,11 +7,20 @@ export default function Home() {
     <Box
       component="main"
       sx={{
-        display: 'flex', minHeight: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 6,
+        display: 'flex',
+        minHeight: '100vh',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 6,
       }}
     >
       <Container maxWidth="md">
-        <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
+        <Typography
+          variant="h2"
+          component="h1"
+          sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}
+        >
           タスク管理ツール
         </Typography>
         <Typography variant="h6" sx={{ mb: 4, textAlign: 'center' }}>

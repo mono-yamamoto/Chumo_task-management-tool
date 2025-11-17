@@ -17,7 +17,7 @@ export function useImageUpload() {
       maxHeight?: number;
       quality?: number;
       maxSizeKB?: number;
-    },
+    }
   ): Promise<string | null> => {
     if (!storage) {
       setError('Storage is not initialized');
@@ -39,7 +39,7 @@ export function useImageUpload() {
           options?.maxWidth,
           options?.maxHeight,
           options?.quality,
-          options?.maxSizeKB,
+          options?.maxSizeKB
         );
         setProgress(30);
       }
@@ -64,6 +64,9 @@ export function useImageUpload() {
   };
 
   return {
-    uploadImage, uploading, error, progress,
+    uploadImage,
+    uploading,
+    error,
+    progress,
   };
 }

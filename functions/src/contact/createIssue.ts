@@ -63,9 +63,7 @@ export const createContactIssue = onRequest(
     }
 
     try {
-      const {
-        contactId, type, title, content, userName, userEmail, errorReportDetails,
-      } = req.body;
+      const { contactId, type, title, content, userName, userEmail, errorReportDetails } = req.body;
 
       if (!contactId || !type || !title) {
         res.status(400).json({ error: 'Missing required fields' });
@@ -93,9 +91,7 @@ export const createContactIssue = onRequest(
       let issueBody = '';
       if (type === 'error' && errorReportDetails) {
         // エラー報告の場合、詳細情報を含める
-        const envLines = [
-          `- デバイス: ${errorReportDetails.environment.device}`,
-        ];
+        const envLines = [`- デバイス: ${errorReportDetails.environment.device}`];
 
         if (errorReportDetails.environment.device === 'PC') {
           envLines.push(`- OS: ${errorReportDetails.environment.os}`);
@@ -179,5 +175,5 @@ export const createContactIssue = onRequest(
       console.error('Create contact issue error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  },
+  }
 );

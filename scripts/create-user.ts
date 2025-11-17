@@ -11,7 +11,9 @@ const displayNameIndex = args.indexOf('--displayName');
 const roleIndex = args.indexOf('--role');
 
 if (uidIndex === -1 || emailIndex === -1 || displayNameIndex === -1) {
-  console.error('Usage: npx ts-node scripts/create-user.ts --uid <UID> --email <EMAIL> --displayName <DISPLAY_NAME> [--role admin|member]');
+  console.error(
+    'Usage: npx ts-node scripts/create-user.ts --uid <UID> --email <EMAIL> --displayName <DISPLAY_NAME> [--role admin|member]'
+  );
   process.exit(1);
 }
 

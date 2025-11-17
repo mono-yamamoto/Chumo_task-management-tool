@@ -1,16 +1,19 @@
 'use client';
 
-import {
-  useState, Suspense, useMemo, useEffect,
-} from 'react';
+import { useState, Suspense, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  collection, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy,
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc,
+  deleteDoc,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import {
-  Task, FlowStatus, User, Label, Project,
-} from '@/types';
+import { Task, FlowStatus, User, Label, Project } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
@@ -40,9 +43,7 @@ import {
   DialogContentText,
   Grid,
 } from '@mui/material';
-import {
-  PlayArrow, Stop,
-} from '@mui/icons-material';
+import { PlayArrow, Stop } from '@mui/icons-material';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
@@ -285,7 +286,7 @@ function TasksPageContent() {
   // 選択されたタスクの詳細を取得
   const selectedTask = useMemo(
     () => filteredTasks?.find((t) => t.id === selectedTaskId) || null,
-    [filteredTasks, selectedTaskId],
+    [filteredTasks, selectedTaskId]
   );
 
   // 選択されたタスクが変更されたらフォームデータを初期化
@@ -321,16 +322,11 @@ function TasksPageContent() {
     queryFn: async () => {
       if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
       try {
-        const sessionsRef = collection(
-          db,
-          'projects',
-          selectedTask.projectId,
-          'taskSessions',
-        );
+        const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
         const q = query(
           sessionsRef,
           where('taskId', '==', selectedTaskId),
-          orderBy('startedAt', 'desc'),
+          orderBy('startedAt', 'desc')
         );
         const snapshot = await getDocs(q);
         return snapshot.docs.map((docItem) => {
@@ -347,16 +343,8 @@ function TasksPageContent() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(
-              db,
-              'projects',
-              selectedTask.projectId,
-              'taskSessions',
-            );
-            const q = query(
-              sessionsRef,
-              where('taskId', '==', selectedTaskId),
-            );
+            const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+            const q = query(sessionsRef, where('taskId', '==', selectedTaskId));
             const snapshot = await getDocs(q);
             const sessions = snapshot.docs.map((docItem) => {
               const data = docItem.data();
@@ -472,7 +460,7 @@ function TasksPageContent() {
   const formatDuration = (
     seconds: number | undefined | null,
     startedAt?: Date,
-    endedAt?: Date | null,
+    endedAt?: Date | null
   ) => {
     let secs = 0;
     if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
@@ -490,7 +478,8 @@ function TasksPageContent() {
     const remainingSecs = secs % 60;
     if (hours > 0) {
       return `${hours}時間${minutes}分${remainingSecs}秒`;
-    } if (minutes > 0) {
+    }
+    if (minutes > 0) {
       return `${minutes}分${remainingSecs}秒`;
     }
     return `${remainingSecs}秒`;
@@ -555,10 +544,14 @@ function TasksPageContent() {
 
       if (result.warning) {
         // チェックシート作成エラーがある場合
-        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`);
+        alert(
+          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
+        );
       } else {
         // 完全に成功した場合
-        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`);
+        alert(
+          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
+        );
       }
     } catch (error: any) {
       console.error('Drive create error:', error);
@@ -633,10 +626,12 @@ function TasksPageContent() {
   // アサインの表示名を取得
   const getAssigneeNames = (assigneeIds: string[]) => {
     if (!allUsers || assigneeIds.length === 0) return '-';
-    return assigneeIds
-      .map((id) => allUsers.find((u) => u.id === id)?.displayName)
-      .filter(Boolean)
-      .join(', ') || '-';
+    return (
+      assigneeIds
+        .map((id) => allUsers.find((u) => u.id === id)?.displayName)
+        .filter(Boolean)
+        .join(', ') || '-'
+    );
   };
 
   // 区分の表示名を取得
@@ -656,9 +651,13 @@ function TasksPageContent() {
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
-        }}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 3,
+          }}
         >
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             タスク一覧
@@ -843,8 +842,7 @@ function TasksPageContent() {
                               mt: 0.5,
                             }}
                           >
-                            {projects?.find((p) => p.id === task.projectId)?.name
-                              || ''}
+                            {projects?.find((p) => p.id === task.projectId)?.name || ''}
                           </Typography>
                         )}
                       </TableCell>
@@ -872,7 +870,9 @@ function TasksPageContent() {
                             }}
                             disabled={stopTimer.isPending}
                             sx={{
-                              animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                              animation: stopTimer.isPending
+                                ? 'none'
+                                : 'pulse 2s ease-in-out infinite',
                               '@keyframes pulse': {
                                 '0%, 100%': {
                                   opacity: 1,
@@ -898,8 +898,8 @@ function TasksPageContent() {
                               handleStartTimer(task.projectId, task.id);
                             }}
                             disabled={
-                              (!!activeSession && activeSession.taskId !== task.id)
-                              || startTimer.isPending
+                              (!!activeSession && activeSession.taskId !== task.id) ||
+                              startTimer.isPending
                             }
                           >
                             {startTimer.isPending ? (
@@ -965,10 +965,11 @@ function TasksPageContent() {
           />
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={() => {
-            setDeleteDialogOpen(false);
-            setDeleteConfirmTitle('');
-          }}
+          <CustomButton
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setDeleteConfirmTitle('');
+            }}
           >
             キャンセル
           </CustomButton>
@@ -988,11 +989,11 @@ function TasksPageContent() {
 export default function TasksPage() {
   return (
     <Suspense
-      fallback={(
+      fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
-      )}
+      }
     >
       <TasksPageContent />
     </Suspense>
