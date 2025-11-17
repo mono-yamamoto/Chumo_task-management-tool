@@ -35,7 +35,7 @@ export const projectSchema = z.object({
 export const labelSchema = z.object({
   name: z.string().min(1),
   color: z.string(),
-  projectId: z.string(),
+  projectId: z.string().nullable(), // nullの場合は全プロジェクト共通の区分ラベル
 });
 
 export const taskExternalSchema = z.object({

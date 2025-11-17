@@ -1,11 +1,10 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Label } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useParams } from 'next/navigation';
+import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -20,37 +19,21 @@ import { useState } from 'react';
 
 export default function LabelsPage() {
   const { user } = useAuth();
-  const params = useParams();
-  const projectId = params?.projectId as string;
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [labelName, setLabelName] = useState('');
   const [labelColor, setLabelColor] = useState('#3b82f6');
 
-  const { data: labels, isLoading } = useQuery({
-    queryKey: ['labels', projectId],
-    queryFn: async () => {
-      if (!projectId || !db) return [];
-      const labelsRef = collection(db, 'labels');
-      const q = query(labelsRef, where('projectId', '==', projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as Label[];
-    },
-    enabled: !!projectId,
-  });
+  // 区分ラベルは全プロジェクト共通
+  const { data: labels, isLoading } = useKubunLabels();
 
   const createLabel = useMutation({
     mutationFn: async (data: { name: string; color: string }) => {
-      if (!user || !projectId || !db) { throw new Error('Not authenticated or Firestore not initialized'); }
+      if (!user || !db) { throw new Error('Not authenticated or Firestore not initialized'); }
       const labelData = {
         name: data.name,
         color: data.color,
-        projectId,
+        projectId: null, // 区分ラベルは全プロジェクト共通
         ownerId: user.id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -60,8 +43,8 @@ export default function LabelsPage() {
     },
     onSuccess: () => {
       // クエリを無効化して即座に再取得
-      queryClient.invalidateQueries({ queryKey: ['labels', projectId] });
-      queryClient.refetchQueries({ queryKey: ['labels', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['kubunLabels'] });
+      queryClient.refetchQueries({ queryKey: ['kubunLabels'] });
       setShowCreateForm(false);
       setLabelName('');
       setLabelColor('#3b82f6');
@@ -97,7 +80,7 @@ export default function LabelsPage() {
         }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-          ラベル管理
+          区分ラベル管理
         </Typography>
         <Button onClick={() => setShowCreateForm(true)}>新規作成</Button>
       </Box>
@@ -106,7 +89,7 @@ export default function LabelsPage() {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
-              新規ラベル作成
+              新規区分ラベル作成
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField

@@ -16,8 +16,9 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, Label, User } from '@/types';
+import { Task, FlowStatus, User } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useParams } from 'next/navigation';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
@@ -123,20 +124,8 @@ export default function TaskDetailPage() {
     enabled: !!taskId,
   });
 
-  const { data: labels } = useQuery({
-    queryKey: ['labels', task?.projectId],
-    queryFn: async () => {
-      if (!task?.projectId || !db) return [];
-      const labelsRef = collection(db, 'labels');
-      const q = query(labelsRef, where('projectId', '==', task.projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as Label[];
-    },
-    enabled: !!task?.projectId,
-  });
+  // 区分ラベルは全プロジェクト共通
+  const { data: labels } = useKubunLabels();
 
   // すべてのユーザーを取得（セッション履歴のユーザー表示用）
   const { data: allUsers } = useQuery({

@@ -44,7 +44,7 @@ export interface Label {
   id: string;
   name: string;
   color: string;
-  projectId: string;
+  projectId: string | null; // nullの場合は全プロジェクト共通の区分ラベル
   ownerId: string;
   createdAt: Date;
   updatedAt: Date;

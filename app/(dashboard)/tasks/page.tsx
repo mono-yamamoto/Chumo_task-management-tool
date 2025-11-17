@@ -13,7 +13,8 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User, Label, Project } from '@/types';
+import { Task, FlowStatus, User, Project } from '@/types';
+import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
@@ -185,32 +186,8 @@ function TasksPageContent() {
     enabled: !!db,
   });
 
-  // すべてのラベルを取得（区分表示用）
-  const { data: allLabels } = useQuery({
-    queryKey: ['allLabels'],
-    queryFn: async () => {
-      if (!db || !projects) return [];
-      const projectIds = projects.map((p: any) => p.id);
-      const labelsRef = collection(db, 'labels');
-      const labels: Label[] = [];
-
-      for (const projectId of projectIds) {
-        const q = query(labelsRef, where('projectId', '==', projectId));
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((docItem) => {
-          labels.push({
-            id: docItem.id,
-            ...docItem.data(),
-            createdAt: docItem.data().createdAt?.toDate(),
-            updatedAt: docItem.data().updatedAt?.toDate(),
-          } as Label);
-        });
-      }
-
-      return labels;
-    },
-    enabled: !!db && !!projects && projects.length > 0,
-  });
+  // 区分ラベルは全プロジェクト共通
+  const { data: allLabels } = useKubunLabels();
 
   // フィルタリングされたタスクを取得
   const filteredTasks = useMemo(() => {
@@ -310,11 +287,8 @@ function TasksPageContent() {
     }
   }, [selectedTask?.id, selectedTaskId]); // selectedTaskのidとselectedTaskIdを依存配列に含める
 
-  // 選択されたタスクのプロジェクトのラベルを取得
-  const taskLabels = useMemo(() => {
-    if (!selectedTask || !allLabels) return [];
-    return allLabels.filter((l) => l.projectId === selectedTask.projectId);
-  }, [selectedTask, allLabels]);
+  // 区分ラベルは全プロジェクト共通なので、そのまま使用
+  const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
   const { data: taskSessions } = useQuery({

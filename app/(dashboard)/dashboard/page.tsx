@@ -13,7 +13,8 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User, Label, Project } from '@/types';
+import { Task, FlowStatus, User, Project } from '@/types';
+import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
@@ -165,32 +166,8 @@ function DashboardPageContent() {
     enabled: !!db,
   });
 
-  // すべてのラベルを取得（区分表示用）
-  const { data: allLabels } = useQuery({
-    queryKey: ['allLabels'],
-    queryFn: async () => {
-      if (!db || !projects) return [];
-      const projectIds = projects.map((p: any) => p.id);
-      const labelsRef = collection(db, 'labels');
-      const labels: Label[] = [];
-
-      for (const projectId of projectIds) {
-        const q = query(labelsRef, where('projectId', '==', projectId));
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((docItem) => {
-          labels.push({
-            id: docItem.id,
-            ...docItem.data(),
-            createdAt: docItem.data().createdAt?.toDate(),
-            updatedAt: docItem.data().updatedAt?.toDate(),
-          } as Label);
-        });
-      }
-
-      return labels;
-    },
-    enabled: !!db && !!projects && projects.length > 0,
-  });
+  // 区分ラベルは全プロジェクト共通
+  const { data: allLabels } = useKubunLabels();
 
   // アクティブなセッションを取得（すべてのプロジェクトから）
   // const { data: sessions } = useQuery({
@@ -277,11 +254,8 @@ function DashboardPageContent() {
     }
   }, [selectedTask?.id, selectedTaskId]);
 
-  // 選択されたタスクのプロジェクトのラベルを取得
-  const taskLabels = useMemo(() => {
-    if (!selectedTask || !allLabels) return [];
-    return allLabels.filter((l) => l.projectId === selectedTask.projectId);
-  }, [selectedTask, allLabels]);
+  // 区分ラベルは全プロジェクト共通なので、そのまま使用
+  const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
   const { data: taskSessions } = useQuery({
@@ -418,8 +392,10 @@ function DashboardPageContent() {
     } catch (error: any) {
       console.error('Timer start error:', error);
       if (error.message?.includes('稼働中')) {
+        // eslint-disable-next-line no-alert
         alert('他のタイマーが稼働中です。停止してから開始してください。');
       } else {
+        // eslint-disable-next-line no-alert
         alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
       }
     }
@@ -437,6 +413,7 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['sessions', user?.id] });
     } catch (error: any) {
       console.error('Timer stop error:', error);
+      // eslint-disable-next-line no-alert
       alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
@@ -451,10 +428,12 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['task', taskId] });
 
       if (result.warning) {
+        // eslint-disable-next-line no-alert
         alert(
           `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
         );
       } else {
+        // eslint-disable-next-line no-alert
         alert(
           `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
         );
@@ -462,6 +441,7 @@ function DashboardPageContent() {
     } catch (error: any) {
       console.error('Drive create error:', error);
       const errorMessage = error?.message || '不明なエラー';
+      // eslint-disable-next-line no-alert
       alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
     }
   };
@@ -469,12 +449,14 @@ function DashboardPageContent() {
   const handleFireCreate = async (projectId: string, taskId: string) => {
     try {
       await createFireIssue.mutateAsync({ projectId, taskId });
+      // eslint-disable-next-line no-alert
       alert('GitHub Issueを作成しました');
       queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
     } catch (error: any) {
       console.error('Fire create error:', error);
+      // eslint-disable-next-line no-alert
       alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
@@ -491,12 +473,14 @@ function DashboardPageContent() {
 
     const taskToDelete = sortedTasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
+      // eslint-disable-next-line no-alert
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
       return;
     }
 
     if (deleteConfirmTitle !== taskToDelete.title) {
+      // eslint-disable-next-line no-alert
       alert('タイトルが一致しません。削除をキャンセルしました。');
       setDeleteDialogOpen(false);
       setDeleteConfirmTitle('');
@@ -516,9 +500,11 @@ function DashboardPageContent() {
         setTaskFormData(null);
       }
 
+      // eslint-disable-next-line no-alert
       alert('タスクを削除しました');
     } catch (error: any) {
       console.error('Delete task error:', error);
+      // eslint-disable-next-line no-alert
       alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
     } finally {
       setDeleteDialogOpen(false);

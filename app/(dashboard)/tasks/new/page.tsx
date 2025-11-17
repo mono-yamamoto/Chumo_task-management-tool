@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, getDocs, addDoc, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { FlowStatus, Label, Priority, User, Project } from '@/types';
+import { FlowStatus, Priority, User, Project } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -89,20 +89,8 @@ export default function NewTaskPage() {
     enabled: !!projectId && !!db,
   });
 
-  const { data: labels, isLoading: labelsLoading } = useQuery({
-    queryKey: ['labels', projectId],
-    queryFn: async () => {
-      if (!projectId || !db) return [];
-      const labelsRef = collection(db, 'labels');
-      const q = query(labelsRef, where('projectId', '==', projectId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as Label[];
-    },
-    enabled: !!projectId && !!db,
-  });
+  // 区分ラベルは全プロジェクト共通
+  const { data: labels, isLoading: labelsLoading } = useKubunLabels();
 
   const { data: projectMembers } = useQuery({
     queryKey: ['projectMembers', projectId],
@@ -170,6 +158,7 @@ export default function NewTaskPage() {
         error: error.message,
         stack: error.stack,
       });
+      // eslint-disable-next-line no-alert
       alert(`タスクの作成に失敗しました: ${error.message}`);
     },
   });
@@ -213,7 +202,6 @@ export default function NewTaskPage() {
                 value={projectId}
                 onChange={(e) => {
                   setProjectId(e.target.value);
-                  setKubunLabelId(''); // プロジェクト変更時にラベルをリセット
                   setAssigneeIds([]); // プロジェクト変更時にアサインをリセット
                 }}
                 label="プロジェクト"
@@ -275,7 +263,7 @@ export default function NewTaskPage() {
                     value={kubunLabelId}
                     onChange={(e) => setKubunLabelId(e.target.value)}
                     label="区分"
-                    disabled={!projectId || labelsLoading}
+                    disabled={labelsLoading}
                   >
                     <MenuItem value="">
                       <em>選択してください</em>
@@ -296,21 +284,11 @@ export default function NewTaskPage() {
                       </MenuItem>
                     ))}
                   </Select>
-                  {projectId && labels?.length === 0 && !labelsLoading && (
+                  {labels?.length === 0 && !labelsLoading && (
                     <Box sx={{ mt: 1 }}>
                       <FormHelperText error>
-                        このプロジェクトにはラベルがありません。先にラベルを作成してください。
+                        区分ラベルが設定されていません。管理者に連絡してください。
                       </FormHelperText>
-                      <Box sx={{ mt: 1 }}>
-                        <Link
-                          href={`/projects/${projectId}/labels`}
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <Button variant="outline" size="sm">
-                            ラベルを作成
-                          </Button>
-                        </Link>
-                      </Box>
                     </Box>
                   )}
                 </FormControl>
@@ -413,7 +391,13 @@ export default function NewTaskPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={createTask.isPending || !projectId || !title.trim() || !kubunLabelId}
+                disabled={
+                  createTask.isPending ||
+                  !projectId ||
+                  !title.trim() ||
+                  !kubunLabelId ||
+                  labelsLoading
+                }
               >
                 {createTask.isPending ? '作成中...' : '作成'}
               </Button>
