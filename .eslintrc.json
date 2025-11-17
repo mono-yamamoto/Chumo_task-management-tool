@@ -24,7 +24,16 @@
     "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
     "no-await-in-loop": "off",
     "import/prefer-default-export": "off",
-    "no-console": ["error", { "allow": ["error", "warn", "debug", "info"] }]
+    "no-console": ["error", { "allow": ["error", "warn", "debug", "info"] }],
+    "object-curly-newline": "off",
+    "react/jsx-one-expression-per-line": "off",
+    "react/jsx-wrap-multilines": "off",
+    "implicit-arrow-linebreak": "off",
+    "comma-dangle": ["error", { "arrays": "always-multiline", "objects": "always-multiline", "imports": "always-multiline", "exports": "always-multiline", "functions": "never" }],
+    "react/jsx-curly-newline": "off",
+    "operator-linebreak": "off",
+    "nonblock-statement-body-position": "off",
+    "curly": ["error", "multi-line", "consistent"]
   },
   "settings": {
     "import/resolver": {
