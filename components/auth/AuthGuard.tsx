@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { Box, CircularProgress } from '@mui/material';
@@ -8,6 +8,11 @@ import { Box, CircularProgress } from '@mui/material';
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -15,7 +20,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  // クライアントサイドでのみレンダリングするまで、ローディング状態を表示
+  if (!mounted || loading) {
     return (
       <Box
         sx={{
@@ -34,5 +40,5 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return children;
+  return <>{children}</>;
 }
