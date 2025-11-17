@@ -39,7 +39,7 @@ import {
   DialogContentText,
 } from '@mui/material';
 import { PlayArrow, Stop } from '@mui/icons-material';
-import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
+import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
 import { format, ja } from 'date-fns';
 
 // const flowStatusOptions: FlowStatus[] = [

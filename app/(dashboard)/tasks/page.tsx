@@ -46,7 +46,7 @@ import {
 import { PlayArrow, Stop } from '@mui/icons-material';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
+import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
 
 const flowStatusOptions: FlowStatus[] = [
   '未着手',
