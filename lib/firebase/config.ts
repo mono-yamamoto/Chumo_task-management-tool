@@ -1,7 +1,7 @@
-import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, Storage } from "firebase/storage";
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, Storage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,31 +13,33 @@ const firebaseConfig = {
 };
 
 // 環境変数の検証
-if (typeof window !== "undefined") {
+if (typeof window !== 'undefined') {
   const missingVars = Object.entries(firebaseConfig)
-    .filter(([_, value]) => !value)
+    .filter(([, value]) => !value)
     .map(([key]) => key);
 
   if (missingVars.length > 0) {
-    console.error("Missing Firebase environment variables:", missingVars);
+    console.error('Missing Firebase environment variables:', missingVars);
   }
 }
 
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
-let storage: Storage | undefined;
+let appVar: FirebaseApp | undefined;
+let authVar: Auth | undefined;
+let dbVar: Firestore | undefined;
+let storageVar: Storage | undefined;
 
-if (typeof window !== "undefined") {
+if (typeof window !== 'undefined') {
   try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
+    appVar = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    authVar = getAuth(appVar);
+    dbVar = getFirestore(appVar);
+    storageVar = getStorage(appVar);
   } catch (error) {
-    console.error("Firebase initialization error:", error);
+    console.error('Firebase initialization error:', error);
   }
 }
 
-export { app, auth, db, storage };
-
+export const app = appVar;
+export const auth = authVar;
+export const db = dbVar;
+export const storage = storageVar;

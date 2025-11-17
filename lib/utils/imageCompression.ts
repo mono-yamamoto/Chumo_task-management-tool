@@ -12,7 +12,7 @@ export async function compressImage(
   maxWidth: number = 1920,
   maxHeight: number = 1920,
   quality: number = 0.8,
-  maxSizeKB: number = 500
+  maxSizeKB: number = 500,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -20,24 +20,24 @@ export async function compressImage(
       const img = new Image();
       img.onload = () => {
         // 画像のサイズを計算
-        let width = img.width;
-        let height = img.height;
+        let { width } = img;
+        let { height } = img;
 
         // 最大サイズを超えている場合はリサイズ
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = width * ratio;
-          height = height * ratio;
+          width *= ratio;
+          height *= ratio;
         }
 
         // Canvasを作成して画像を描画
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          reject(new Error("Canvas context not available"));
+          reject(new Error('Canvas context not available'));
           return;
         }
 
@@ -50,7 +50,7 @@ export async function compressImage(
           canvas.toBlob(
             (blob) => {
               if (!blob) {
-                reject(new Error("Failed to compress image"));
+                reject(new Error('Failed to compress image'));
                 return;
               }
 
@@ -64,18 +64,17 @@ export async function compressImage(
                 resolve(blob);
               }
             },
-            "image/jpeg",
-            currentQuality
+            'image/jpeg',
+            currentQuality,
           );
         };
 
         tryCompress();
       };
-      img.onerror = () => reject(new Error("Failed to load image"));
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = e.target?.result as string;
     };
-    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
 }
-

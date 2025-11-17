@@ -1,24 +1,41 @@
-"use client";
+'use client';
 
-import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, IconButton, Button, OutlinedInput, Checkbox, ListItemText, CircularProgress, Link as MUILink } from "@mui/material";
-import { Close, Delete, PlayArrow, Stop, FolderOpen, LocalFireDepartment } from "@mui/icons-material";
-import { Drawer } from "@mui/material";
-import { Button as CustomButton } from "@/components/ui/button";
-import { Task, FlowStatus, User, Label } from "@/types";
-import Link from "next/link";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
+import {
+  Box,
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Button,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
+  CircularProgress,
+  Drawer,
+} from '@mui/material';
+import {
+  Close, Delete, PlayArrow, Stop, FolderOpen, LocalFireDepartment,
+} from '@mui/icons-material';
+import { Button as CustomButton } from '@/components/ui/button';
+import {
+  Task, FlowStatus, User, Label,
+} from '@/types';
+import Link from 'next/link';
+import { format } from 'date-fns';
 
 const flowStatusOptions: FlowStatus[] = [
-  "未着手",
-  "ディレクション",
-  "コーディング",
-  "デザイン",
-  "待ち",
-  "対応中",
-  "週次報告",
-  "月次報告",
-  "完了",
+  '未着手',
+  'ディレクション',
+  'コーディング',
+  'デザイン',
+  '待ち',
+  '対応中',
+  '週次報告',
+  '月次報告',
+  '完了',
 ];
 
 interface TaskDetailDrawerProps {
@@ -26,23 +43,36 @@ interface TaskDetailDrawerProps {
   onClose: () => void;
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
+  // eslint-disable-next-line no-unused-vars
   onTaskFormDataChange: (data: Partial<Task>) => void;
   onSave: () => void;
+  // eslint-disable-next-line no-unused-vars
   onDelete: (taskId: string, projectId: string) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
   activeSession: { projectId: string; taskId: string; sessionId: string } | null;
+  // eslint-disable-next-line no-unused-vars
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
   isStartingTimer: boolean;
   isStoppingTimer: boolean;
+  // eslint-disable-next-line no-unused-vars
   onDriveCreate: (projectId: string, taskId: string) => void;
   isCreatingDrive: boolean;
+  // eslint-disable-next-line no-unused-vars
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
   taskSessions: any[];
-  formatDuration: (durationSec: number | undefined | null, startedAt?: Date, endedAt?: Date | null) => string;
+  // eslint-disable-next-line no-unused-vars, max-len
+  formatDuration: (
+    // eslint-disable-next-line no-unused-vars
+    durationSec: number | undefined | null,
+    // eslint-disable-next-line no-unused-vars
+    startedAt?: Date,
+    // eslint-disable-next-line no-unused-vars
+    endedAt?: Date | null,
+  ) => string;
 }
 
 export function TaskDetailDrawer({
@@ -66,7 +96,8 @@ export function TaskDetailDrawer({
   onFireCreate,
   isCreatingFire,
   taskSessions,
-  formatDuration,
+  // eslint-disable-next-line no-unused-vars
+  formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
   if (!selectedTask || !taskFormData) return null;
 
@@ -76,17 +107,25 @@ export function TaskDetailDrawer({
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { width: { xs: "100%", sm: 500 }, height: "100%", display: "flex", flexDirection: "column" },
+        sx: {
+          width: { xs: '100%', sm: 500 }, height: '100%', display: 'flex', flexDirection: 'column',
+        },
       }}
     >
-      <Box sx={{ p: 3, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3, flexShrink: 0 }}>
-          <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+      <Box sx={{
+        p: 3, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden',
+      }}
+      >
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexShrink: 0,
+        }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
             タスク詳細
           </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <CustomButton onClick={onSave} size="sm" disabled={isSaving}>
-              {isSaving ? "保存中..." : "保存"}
+              {isSaving ? '保存中...' : '保存'}
             </CustomButton>
             <CustomButton
               variant="destructive"
@@ -102,18 +141,21 @@ export function TaskDetailDrawer({
           </Box>
         </Box>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minHeight: 0, overflowY: "auto", pr: 1, pb: 2 }}>
+        <Box sx={{
+          display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minHeight: 0, overflowY: 'auto', pr: 1, pb: 2,
+        }}
+        >
           <TextField
             fullWidth
             label="タイトル"
-            value={taskFormData.title || ""}
+            value={taskFormData.title || ''}
             onChange={(e) => onTaskFormDataChange({ ...taskFormData, title: e.target.value })}
           />
 
           <TextField
             fullWidth
             label="説明"
-            value={taskFormData.description || ""}
+            value={taskFormData.description || ''}
             onChange={(e) => onTaskFormDataChange({ ...taskFormData, description: e.target.value })}
             multiline
             rows={4}
@@ -122,8 +164,10 @@ export function TaskDetailDrawer({
           <FormControl fullWidth>
             <InputLabel>ステータス</InputLabel>
             <Select
-              value={taskFormData.flowStatus || "未着手"}
-              onChange={(e) => onTaskFormDataChange({ ...taskFormData, flowStatus: e.target.value as FlowStatus })}
+              value={taskFormData.flowStatus || '未着手'}
+              onChange={(e) => {
+                onTaskFormDataChange({ ...taskFormData, flowStatus: e.target.value as FlowStatus });
+              }}
               label="ステータス"
             >
               {flowStatusOptions.map((status) => (
@@ -137,18 +181,20 @@ export function TaskDetailDrawer({
           <FormControl fullWidth>
             <InputLabel>区分</InputLabel>
             <Select
-              value={taskFormData.kubunLabelId || ""}
-              onChange={(e) => onTaskFormDataChange({ ...taskFormData, kubunLabelId: e.target.value })}
+              value={taskFormData.kubunLabelId || ''}
+              onChange={(e) => {
+                onTaskFormDataChange({ ...taskFormData, kubunLabelId: e.target.value });
+              }}
               label="区分"
             >
               {taskLabels.map((label) => (
                 <MenuItem key={label.id} value={label.id}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box
                       sx={{
                         width: 16,
                         height: 16,
-                        borderRadius: "50%",
+                        borderRadius: '50%',
                         backgroundColor: label.color,
                       }}
                     />
@@ -163,13 +209,11 @@ export function TaskDetailDrawer({
             fullWidth
             label="ITアップ日"
             type="date"
-            value={taskFormData.itUpDate ? format(taskFormData.itUpDate, "yyyy-MM-dd") : ""}
-            onChange={(e) =>
-              onTaskFormDataChange({
-                ...taskFormData,
-                itUpDate: e.target.value ? new Date(e.target.value) : null,
-              })
-            }
+            value={taskFormData.itUpDate ? format(taskFormData.itUpDate, 'yyyy-MM-dd') : ''}
+            onChange={(e) => onTaskFormDataChange({
+              ...taskFormData,
+              itUpDate: e.target.value ? new Date(e.target.value) : null,
+            })}
             InputLabelProps={{ shrink: true }}
           />
 
@@ -177,13 +221,11 @@ export function TaskDetailDrawer({
             fullWidth
             label="リリース日"
             type="date"
-            value={taskFormData.releaseDate ? format(taskFormData.releaseDate, "yyyy-MM-dd") : ""}
-            onChange={(e) =>
-              onTaskFormDataChange({
-                ...taskFormData,
-                releaseDate: e.target.value ? new Date(e.target.value) : null,
-              })
-            }
+            value={taskFormData.releaseDate ? format(taskFormData.releaseDate, 'yyyy-MM-dd') : ''}
+            onChange={(e) => onTaskFormDataChange({
+              ...taskFormData,
+              releaseDate: e.target.value ? new Date(e.target.value) : null,
+            })}
             InputLabelProps={{ shrink: true }}
           />
 
@@ -198,24 +240,31 @@ export function TaskDetailDrawer({
               }}
               input={<OutlinedInput label="アサイン" />}
               renderValue={(selected) => {
-                if (!selected || selected.length === 0) return "-";
+                if (!selected || selected.length === 0) return '-';
                 return selected
                   .map((id) => allUsers?.find((u) => u.id === id)?.displayName)
                   .filter(Boolean)
-                  .join(", ");
+                  .join(', ');
               }}
             >
               {allUsers?.map((user) => (
                 <MenuItem key={user.id} value={user.id}>
-                  <Checkbox checked={(taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(user.id)} />
+                  <Checkbox
+                    checked={
+                      (taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(user.id)
+                    }
+                  />
                   <ListItemText primary={user.displayName || user.email} />
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-            <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{
+            display: 'flex', flexDirection: 'column', gap: 1, mt: 2,
+          }}
+          >
+            <Box sx={{ display: 'flex', gap: 1 }}>
               {activeSession?.taskId === selectedTask.id ? (
                 <Button
                   fullWidth
@@ -224,12 +273,12 @@ export function TaskDetailDrawer({
                   onClick={onStopTimer}
                   disabled={isStoppingTimer}
                   sx={{
-                    animation: isStoppingTimer ? "none" : "pulse 2s ease-in-out infinite",
-                    "@keyframes pulse": {
-                      "0%, 100%": {
+                    animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': {
                         opacity: 1,
                       },
-                      "50%": {
+                      '50%': {
                         opacity: 0.8,
                       },
                     },
@@ -237,7 +286,7 @@ export function TaskDetailDrawer({
                 >
                   {isStoppingTimer ? (
                     <>
-                      <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
                       停止中...
                     </>
                   ) : (
@@ -256,7 +305,7 @@ export function TaskDetailDrawer({
                 >
                   {isStartingTimer ? (
                     <>
-                      <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
+                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
                       開始中...
                     </>
                   ) : (
@@ -268,13 +317,13 @@ export function TaskDetailDrawer({
                 </CustomButton>
               )}
             </Box>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               {selectedTask.googleDriveUrl ? (
                 <Button
                   fullWidth
                   variant="contained"
                   color="primary"
-                  onClick={() => window.open(selectedTask.googleDriveUrl!, "_blank")}
+                  onClick={() => window.open(selectedTask.googleDriveUrl!, '_blank')}
                   sx={{ flex: 1 }}
                 >
                   <FolderOpen fontSize="small" sx={{ mr: 1 }} />
@@ -297,7 +346,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="contained"
                   color="primary"
-                  onClick={() => window.open(selectedTask.fireIssueUrl!, "_blank")}
+                  onClick={() => window.open(selectedTask.fireIssueUrl!, '_blank')}
                   sx={{ flex: 1 }}
                 >
                   <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
@@ -319,7 +368,7 @@ export function TaskDetailDrawer({
           </Box>
 
           <Box sx={{ mt: 2 }}>
-            <Link href={`/tasks/${selectedTask.id}`} style={{ textDecoration: "none" }}>
+            <Link href={`/tasks/${selectedTask.id}`} style={{ textDecoration: 'none' }}>
               <CustomButton fullWidth variant="outline">
                 詳細ページを開く
               </CustomButton>
@@ -327,45 +376,57 @@ export function TaskDetailDrawer({
           </Box>
 
           {/* セッション履歴 */}
-          <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: "divider" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: "semibold" }}>
+          <Box sx={{
+            mt: 3, pt: 3, borderTop: 1, borderColor: 'divider',
+          }}
+          >
+            <Box sx={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2,
+            }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
                 セッション履歴
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {taskSessions && taskSessions.length > 0 ? (
                 taskSessions.map((session: any) => {
                   const sessionUser = allUsers?.find((u) => u.id === session.userId);
                   return (
                     <Box
                       key={session.id}
-                      sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
+                      sx={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', pb: 1,
+                      }}
                     >
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1 }}>
-                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                          {sessionUser?.displayName || "不明なユーザー"}
+                      <Box sx={{
+                        display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1,
+                      }}
+                      >
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                          {sessionUser?.displayName || '不明なユーザー'}
                         </Typography>
                         <Typography variant="body2">
-                          {format(session.startedAt, "yyyy-MM-dd HH:mm:ss", {
-                            locale: ja,
-                          })}
-                          {" - "}
+                          {format(session.startedAt, 'yyyy-MM-dd HH:mm:ss')}
+                          {' - '}
                           {session.endedAt
-                            ? format(session.endedAt, "yyyy-MM-dd HH:mm:ss", {
-                                locale: ja,
-                              })
-                            : "実行中"}
+                            ? format(session.endedAt, 'yyyy-MM-dd HH:mm:ss')
+                            : '実行中'}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontWeight: "medium", minWidth: "80px", textAlign: "right", fontSize: "0.875rem" }}>
-                        {session.endedAt ? formatDuration(session.durationSec, session.startedAt, session.endedAt) : "-"}
+                      <Typography sx={{
+                        fontWeight: 'medium', minWidth: '80px', textAlign: 'right', fontSize: '0.875rem',
+                      }}
+                      >
+                        {session.endedAt
+                          ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)
+                          : '-'}
                       </Typography>
                     </Box>
                   );
                 })
               ) : (
-                <Typography sx={{ color: "text.secondary", py: 2, fontSize: "0.875rem" }}>
+                <Typography sx={{ color: 'text.secondary', py: 2, fontSize: '0.875rem' }}>
                   セッション履歴がありません
                 </Typography>
               )}
@@ -376,4 +437,3 @@ export function TaskDetailDrawer({
     </Drawer>
   );
 }
-

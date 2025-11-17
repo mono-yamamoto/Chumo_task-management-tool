@@ -1,5 +1,5 @@
-import { Timestamp } from "firebase/firestore";
-import { TaskSession } from "@/types";
+// import { Timestamp } from 'firebase/firestore';
+import { TaskSession } from '@/types';
 
 export function calculateTotalDuration(sessions: TaskSession[]): number {
   return sessions.reduce((total, session) => {
@@ -26,4 +26,3 @@ export function formatDuration(seconds: number): string {
 export function hasActiveSession(sessions: TaskSession[]): boolean {
   return sessions.some((session) => session.endedAt === null);
 }
-

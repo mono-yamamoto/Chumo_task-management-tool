@@ -1,5 +1,6 @@
-"use client";
+'use client';
 
+import React from 'react';
 import {
   Box,
   Typography,
@@ -17,44 +18,70 @@ import {
   RadioGroup,
   Link as MUILink,
   LinearProgress,
-} from "@mui/material";
-import { Drawer } from "@mui/material";
-import { Close, CloudUpload, Image as ImageIcon } from "@mui/icons-material";
-import { ContactType, DeviceType, PCOSType, SPOSType, BrowserType, SmartphoneType } from "@/types";
+  Drawer,
+} from '@mui/material';
+import { Close, CloudUpload, Image as ImageIcon } from '@mui/icons-material';
+import {
+  ContactType, DeviceType, PCOSType, SPOSType, BrowserType, SmartphoneType,
+} from '@/types';
 
 interface ContactFormDrawerProps {
   open: boolean;
   onClose: () => void;
+  // eslint-disable-next-line no-unused-vars
   type: ContactType;
+  // eslint-disable-next-line no-unused-vars
   onTypeChange: (type: ContactType) => void;
+  // eslint-disable-next-line no-unused-vars
   title: string;
+  // eslint-disable-next-line no-unused-vars
   onTitleChange: (title: string) => void;
+  // eslint-disable-next-line no-unused-vars
   content: string;
+  // eslint-disable-next-line no-unused-vars
   onContentChange: (content: string) => void;
-  message: { type: "success" | "error"; text: string } | null;
+  message: { type: 'success' | 'error'; text: string } | null;
   onMessageClose: () => void;
+  // eslint-disable-next-line no-unused-vars
   errorIssue: string;
+  // eslint-disable-next-line no-unused-vars
   onErrorIssueChange: (issue: string) => void;
+  // eslint-disable-next-line no-unused-vars
   errorReproductionSteps: string;
+  // eslint-disable-next-line no-unused-vars
   onErrorReproductionStepsChange: (steps: string) => void;
-  errorDevice: DeviceType | "";
+  // eslint-disable-next-line no-unused-vars
+  errorDevice: DeviceType | '';
+  // eslint-disable-next-line no-unused-vars
   onErrorDeviceChange: (device: DeviceType) => void;
-  errorOS: PCOSType | SPOSType | SmartphoneType | "";
+  // eslint-disable-next-line no-unused-vars
+  errorOS: PCOSType | SPOSType | SmartphoneType | '';
+  // eslint-disable-next-line no-unused-vars
   onErrorOSChange: (os: PCOSType | SPOSType | SmartphoneType) => void;
+  // eslint-disable-next-line no-unused-vars
   errorOSVersion: string;
+  // eslint-disable-next-line no-unused-vars
   onErrorOSVersionChange: (version: string) => void;
-  errorBrowser: BrowserType | "";
+  // eslint-disable-next-line no-unused-vars
+  errorBrowser: BrowserType | '';
+  // eslint-disable-next-line no-unused-vars
   onErrorBrowserChange: (browser: BrowserType) => void;
+  // eslint-disable-next-line no-unused-vars
   errorBrowserVersion: string;
+  // eslint-disable-next-line no-unused-vars
   onErrorBrowserVersionChange: (version: string) => void;
+  // eslint-disable-next-line no-unused-vars
   errorScreenshotUrl: string;
+  // eslint-disable-next-line no-unused-vars
   onErrorScreenshotUrlChange: (url: string) => void;
   errorScreenshotFile: File | null;
   errorScreenshotPreview: string | null;
+  // eslint-disable-next-line no-unused-vars
   onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onImageUpload: () => void;
   imageUploading: boolean;
   progress: number;
+  // eslint-disable-next-line no-unused-vars
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting: boolean;
 }
@@ -86,7 +113,8 @@ export function ContactFormDrawer({
   onErrorBrowserVersionChange,
   errorScreenshotUrl,
   onErrorScreenshotUrlChange,
-  errorScreenshotFile,
+  // eslint-disable-next-line no-unused-vars
+  errorScreenshotFile: _errorScreenshotFile,
   errorScreenshotPreview,
   onImageSelect,
   onImageUpload,
@@ -102,17 +130,20 @@ export function ContactFormDrawer({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: "100%", sm: 600 },
+          width: { xs: '100%', sm: 600 },
           p: 3,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
       <Box sx={{ flex: 1, pb: 4 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
+        }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
             新規お問い合わせ
           </Typography>
           <IconButton onClick={onClose} size="small">
@@ -131,7 +162,7 @@ export function ContactFormDrawer({
         )}
 
         <form onSubmit={onSubmit}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <FormControl fullWidth>
               <InputLabel id="contact-type-label">お問い合わせの種類</InputLabel>
               <Select
@@ -157,10 +188,10 @@ export function ContactFormDrawer({
               placeholder="お問い合わせのタイトルを入力してください"
             />
 
-            {type === "error" ? (
+            {type === 'error' ? (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="h6" sx={{ fontWeight: "semibold", mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'semibold', mb: 2 }}>
                   エラー報告の詳細情報
                 </Typography>
 
@@ -188,7 +219,7 @@ export function ContactFormDrawer({
                   placeholder="問題を再現する手順を詳しく入力してください"
                 />
 
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <FormControl component="fieldset">
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
                       デバイス（必須）
@@ -205,14 +236,16 @@ export function ContactFormDrawer({
 
                   <FormControl component="fieldset">
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      {errorDevice === "SP" ? "スマホの種類（必須）" : "OS（必須）"}
+                      {errorDevice === 'SP' ? 'スマホの種類（必須）' : 'OS（必須）'}
                     </Typography>
                     <RadioGroup
                       row
                       value={errorOS}
-                      onChange={(e) => onErrorOSChange(e.target.value as PCOSType | SPOSType | SmartphoneType)}
+                      onChange={(e) => {
+                        onErrorOSChange(e.target.value as PCOSType | SPOSType | SmartphoneType);
+                      }}
                     >
-                      {errorDevice === "PC" ? (
+                      {errorDevice === 'PC' ? (
                         <>
                           <FormControlLabel value="Mac" control={<Radio />} label="Mac" />
                           <FormControlLabel value="Windows" control={<Radio />} label="Windows" />
@@ -231,12 +264,12 @@ export function ContactFormDrawer({
 
                   <TextField
                     fullWidth
-                    label={errorDevice === "SP" ? "スマホのバージョン（必須）" : "OSのバージョン（任意）"}
+                    label={errorDevice === 'SP' ? 'スマホのバージョン（必須）' : 'OSのバージョン（任意）'}
                     value={errorOSVersion}
                     onChange={(e) => onErrorOSVersionChange(e.target.value)}
-                    required={errorDevice === "SP"}
+                    required={errorDevice === 'SP'}
                     variant="outlined"
-                    placeholder={errorDevice === "PC" ? "例: macOS 14.0、Windows 11など" : "例: iOS 17.0、Android 14など"}
+                    placeholder={errorDevice === 'PC' ? '例: macOS 14.0、Windows 11など' : '例: iOS 17.0、Android 14など'}
                   />
 
                   <FormControl component="fieldset">
@@ -269,53 +302,55 @@ export function ContactFormDrawer({
                   placeholder="例: Chrome 120.0.0.0、Safari 17.0など"
                 />
 
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: "semibold" }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'semibold' }}>
                     再現画面のスクリーンショット（任意）
                   </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <input
                       accept="image/*"
-                      style={{ display: "none" }}
+                      style={{ display: 'none' }}
                       id="screenshot-upload-drawer"
                       type="file"
                       onChange={onImageSelect}
                     />
+                    {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                     <label htmlFor="screenshot-upload-drawer">
-                          <Button
-                            component="span"
-                            variant="outlined"
-                            startIcon={<ImageIcon />}
-                            disabled={imageUploading}
-                            sx={{ mb: 1 }}
-                          >
-                            画像を選択
-                          </Button>
+                      <Button
+                        component="span"
+                        variant="outlined"
+                        startIcon={<ImageIcon />}
+                        disabled={imageUploading}
+                        sx={{ mb: 1 }}
+                      >
+                        画像を選択
+                      </Button>
                     </label>
                     {errorScreenshotPreview && (
                       <Box sx={{ mt: 1 }}>
                         <img
                           src={errorScreenshotPreview}
                           alt="プレビュー"
-                          style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "4px" }}
+                          style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '4px' }}
                         />
                         {!errorScreenshotUrl && (
-                              <Button
-                                onClick={onImageUpload}
-                                disabled={imageUploading}
-                                variant="contained"
-                                startIcon={<CloudUpload />}
-                                sx={{ mt: 1 }}
-                                fullWidth
-                              >
-                                {imageUploading ? "アップロード中..." : "アップロード"}
-                              </Button>
+                        <Button
+                          onClick={onImageUpload}
+                          disabled={imageUploading}
+                          variant="contained"
+                          startIcon={<CloudUpload />}
+                          sx={{ mt: 1 }}
+                          fullWidth
+                        >
+                          {imageUploading ? 'アップロード中...' : 'アップロード'}
+                        </Button>
                         )}
                         {imageUploading && (
                           <Box sx={{ mt: 1 }}>
                             <LinearProgress variant="determinate" value={progress} />
-                            <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
-                              {progress}% アップロード中...
+                            <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                              {progress}
+                              % アップロード中...
                             </Typography>
                           </Box>
                         )}
@@ -375,7 +410,7 @@ export function ContactFormDrawer({
               />
             )}
 
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Button
                 type="button"
                 onClick={onClose}
@@ -388,7 +423,7 @@ export function ContactFormDrawer({
                 disabled={isSubmitting}
                 variant="contained"
               >
-                {isSubmitting ? "送信中..." : "送信"}
+                {isSubmitting ? '送信中...' : '送信'}
               </Button>
             </Box>
           </Box>
@@ -397,4 +432,3 @@ export function ContactFormDrawer({
     </Drawer>
   );
 }
-

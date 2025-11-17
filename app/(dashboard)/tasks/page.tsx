@@ -1,16 +1,22 @@
-"use client";
+'use client';
 
-import { useState, Suspense, useMemo, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
-import { Task, FlowStatus, User, Label, Project } from "@/types";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useTimer } from "@/lib/hooks/useTimer";
-import { useDriveIntegration, useFireIntegration } from "@/lib/hooks/useIntegrations";
-import { Button as CustomButton } from "@/components/ui/button";
-import { Button } from "@mui/material";
 import {
+  useState, Suspense, useMemo, useEffect,
+} from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  collection, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import {
+  Task, FlowStatus, User, Label, Project,
+} from '@/types';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useTimer } from '@/lib/hooks/useTimer';
+import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
+import { Button as CustomButton } from '@/components/ui/button';
+import {
+  Button,
   Box,
   Typography,
   FormControl,
@@ -27,117 +33,115 @@ import {
   CircularProgress,
   Chip,
   TextField,
-  Card,
-  CardContent,
-  Grid,
-  IconButton,
-  Link as MUILink,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   DialogContentText,
-  OutlinedInput,
-  Checkbox,
-  ListItemText,
-} from "@mui/material";
-import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Close, Delete } from "@mui/icons-material";
-import Link from "next/link";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
-import { TaskDetailDrawer } from "@/components/Drawer/TaskDetailDrawer";
+  Grid,
+} from '@mui/material';
+import {
+  PlayArrow, Stop,
+} from '@mui/icons-material';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 
 const flowStatusOptions: FlowStatus[] = [
-  "未着手",
-  "ディレクション",
-  "コーディング",
-  "デザイン",
-  "待ち",
-  "対応中",
-  "週次報告",
-  "月次報告",
-  "完了",
+  '未着手',
+  'ディレクション',
+  'コーディング',
+  'デザイン',
+  '待ち',
+  '対応中',
+  '週次報告',
+  '月次報告',
+  '完了',
 ];
 
 const flowStatusLabels: Record<FlowStatus, string> = {
-  未着手: "未着手",
-  ディレクション: "ディレクション",
-  コーディング: "コーディング",
-  デザイン: "デザイン",
-  待ち: "待ち",
-  対応中: "対応中",
-  週次報告: "週次報告",
-  月次報告: "月次報告",
-  完了: "完了",
+  未着手: '未着手',
+  ディレクション: 'ディレクション',
+  コーディング: 'コーディング',
+  デザイン: 'デザイン',
+  待ち: '待ち',
+  対応中: '対応中',
+  週次報告: '週次報告',
+  月次報告: '月次報告',
+  完了: '完了',
 };
 
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskFormData, setTaskFormData] = useState<Partial<Task> | null>(null);
   const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
-  const [activeSession, setActiveSession] = useState<{ projectId: string; taskId: string; sessionId: string } | null>(null);
+  const [activeSession, setActiveSession] = useState<{
+    projectId: string;
+    taskId: string;
+    sessionId: string;
+  } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
-  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   // フィルタリング用のstate
-  const [filterStatus, setFilterStatus] = useState<FlowStatus | "all">("all");
-  const [filterAssignee, setFilterAssignee] = useState<string>("all");
-  const [filterLabel, setFilterLabel] = useState<string>("all");
-  const [filterTimerActive, setFilterTimerActive] = useState<string>("all");
-  const [filterItUpDateMonth, setFilterItUpDateMonth] = useState<string>("");
-  const [filterReleaseDateMonth, setFilterReleaseDateMonth] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<FlowStatus | 'all'>('all');
+  const [filterAssignee, setFilterAssignee] = useState<string>('all');
+  const [filterLabel, setFilterLabel] = useState<string>('all');
+  const [filterTimerActive, setFilterTimerActive] = useState<string>('all');
+  const [filterItUpDateMonth, setFilterItUpDateMonth] = useState<string>('');
+  const [filterReleaseDateMonth, setFilterReleaseDateMonth] = useState<string>('');
 
-      const { data: projects } = useQuery<Project[]>({
-        queryKey: ["projects"],
-        queryFn: async () => {
-          if (!user || !db) return [];
-          const projectsRef = collection(db, "projects");
-          const q = query(projectsRef, where("memberIds", "array-contains", user.id));
-          const snapshot = await getDocs(q);
-          return snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate(),
-          })) as Project[];
-        },
-        enabled: !!user && !!db,
-      });
+  const { data: projects } = useQuery<Project[]>({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      if (!user || !db) return [];
+      const projectsRef = collection(db, 'projects');
+      const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
+        createdAt: docItem.data().createdAt?.toDate(),
+        updatedAt: docItem.data().updatedAt?.toDate(),
+      })) as Project[];
+    },
+    enabled: !!user && !!db,
+  });
 
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ["tasks", selectedProject],
+    queryKey: ['tasks', selectedProject],
     queryFn: async () => {
       if (!db || !user) return [];
 
-      if (selectedProject === "all") {
-        const projectsRef = collection(db, "projects");
-        const q = query(projectsRef, where("memberIds", "array-contains", user.id));
+      if (selectedProject === 'all') {
+        const projectsRef = collection(db, 'projects');
+        const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
         const projectsSnapshot = await getDocs(q);
 
         const allTasks: (Task & { projectId: string })[] = [];
 
         for (const projectDoc of projectsSnapshot.docs) {
           const projectId = projectDoc.id;
-          const tasksRef = collection(db, "projects", projectId, "tasks");
+          const tasksRef = collection(db, 'projects', projectId, 'tasks');
           const tasksSnapshot = await getDocs(tasksRef);
 
-          tasksSnapshot.docs.forEach((doc) => {
+          tasksSnapshot.docs.forEach((docItem) => {
             allTasks.push({
-              id: doc.id,
+              id: docItem.id,
               projectId,
-              ...doc.data(),
-              createdAt: doc.data().createdAt?.toDate(),
-              updatedAt: doc.data().updatedAt?.toDate(),
-              itUpDate: doc.data().itUpDate?.toDate() || null,
-              releaseDate: doc.data().releaseDate?.toDate() || null,
-              dueDate: doc.data().dueDate?.toDate() || null,
-              completedAt: doc.data().completedAt?.toDate() || null,
+              ...docItem.data(),
+              createdAt: docItem.data().createdAt?.toDate(),
+              updatedAt: docItem.data().updatedAt?.toDate(),
+              itUpDate: docItem.data().itUpDate?.toDate() || null,
+              releaseDate: docItem.data().releaseDate?.toDate() || null,
+              dueDate: docItem.data().dueDate?.toDate() || null,
+              completedAt: docItem.data().completedAt?.toDate() || null,
             } as Task & { projectId: string });
           });
         }
@@ -147,35 +151,34 @@ function TasksPageContent() {
           const bTime = b.createdAt?.getTime() || 0;
           return bTime - aTime;
         });
-      } else {
-        const tasksRef = collection(db, "projects", selectedProject, "tasks");
-        const snapshot = await getDocs(tasksRef);
-        return snapshot.docs.map((doc) => ({
-          id: doc.id,
-          projectId: selectedProject,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-          itUpDate: doc.data().itUpDate?.toDate() || null,
-          releaseDate: doc.data().releaseDate?.toDate() || null,
-          dueDate: doc.data().dueDate?.toDate() || null,
-          completedAt: doc.data().completedAt?.toDate() || null,
-        })) as (Task & { projectId: string })[];
       }
+      const tasksRef = collection(db, 'projects', selectedProject, 'tasks');
+      const snapshot = await getDocs(tasksRef);
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        projectId: selectedProject,
+        ...docItem.data(),
+        createdAt: docItem.data().createdAt?.toDate(),
+        updatedAt: docItem.data().updatedAt?.toDate(),
+        itUpDate: docItem.data().itUpDate?.toDate() || null,
+        releaseDate: docItem.data().releaseDate?.toDate() || null,
+        dueDate: docItem.data().dueDate?.toDate() || null,
+        completedAt: docItem.data().completedAt?.toDate() || null,
+      })) as (Task & { projectId: string })[];
     },
     enabled: !!user && !!db,
   });
 
   // すべてのユーザーを取得（アサイン表示用）
   const { data: allUsers } = useQuery({
-    queryKey: ["allUsers"],
+    queryKey: ['allUsers'],
     queryFn: async () => {
       if (!db) return [];
-      const usersRef = collection(db, "users");
+      const usersRef = collection(db, 'users');
       const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
       })) as User[];
     },
     enabled: !!db,
@@ -183,26 +186,26 @@ function TasksPageContent() {
 
   // すべてのラベルを取得（区分表示用）
   const { data: allLabels } = useQuery({
-    queryKey: ["allLabels"],
+    queryKey: ['allLabels'],
     queryFn: async () => {
       if (!db || !projects) return [];
       const projectIds = projects.map((p: any) => p.id);
-      const labelsRef = collection(db, "labels");
+      const labelsRef = collection(db, 'labels');
       const labels: Label[] = [];
-      
+
       for (const projectId of projectIds) {
-        const q = query(labelsRef, where("projectId", "==", projectId));
+        const q = query(labelsRef, where('projectId', '==', projectId));
         const snapshot = await getDocs(q);
-        snapshot.docs.forEach((doc) => {
+        snapshot.docs.forEach((docItem) => {
           labels.push({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate(),
+            id: docItem.id,
+            ...docItem.data(),
+            createdAt: docItem.data().createdAt?.toDate(),
+            updatedAt: docItem.data().updatedAt?.toDate(),
           } as Label);
         });
       }
-      
+
       return labels;
     },
     enabled: !!db && !!projects && projects.length > 0,
@@ -211,38 +214,38 @@ function TasksPageContent() {
   // フィルタリングされたタスクを取得
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
-    
+
     return tasks.filter((task) => {
       // ステータスフィルタ
-      if (filterStatus !== "all" && task.flowStatus !== filterStatus) {
+      if (filterStatus !== 'all' && task.flowStatus !== filterStatus) {
         return false;
       }
-      
+
       // アサインフィルタ
-      if (filterAssignee !== "all" && !task.assigneeIds.includes(filterAssignee)) {
+      if (filterAssignee !== 'all' && !task.assigneeIds.includes(filterAssignee)) {
         return false;
       }
-      
+
       // 区分フィルタ
-      if (filterLabel !== "all" && task.kubunLabelId !== filterLabel) {
+      if (filterLabel !== 'all' && task.kubunLabelId !== filterLabel) {
         return false;
       }
-      
+
       // タイマー稼働中フィルタ
-      if (filterTimerActive === "active" && activeSession?.taskId !== task.id) {
+      if (filterTimerActive === 'active' && activeSession?.taskId !== task.id) {
         return false;
       }
-      if (filterTimerActive === "inactive" && activeSession?.taskId === task.id) {
+      if (filterTimerActive === 'inactive' && activeSession?.taskId === task.id) {
         return false;
       }
-      
+
       // ITアップ日フィルタ（月指定）
       if (filterItUpDateMonth && task.itUpDate) {
-        const [year, month] = filterItUpDateMonth.split("-");
+        const [year, month] = filterItUpDateMonth.split('-');
         const taskDate = new Date(task.itUpDate);
         const taskYear = taskDate.getFullYear();
         const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
-        if (taskYear !== parseInt(year) || taskMonth !== parseInt(month)) {
+        if (taskYear !== parseInt(year, 10) || taskMonth !== parseInt(month, 10)) {
           return false;
         }
       }
@@ -250,14 +253,14 @@ function TasksPageContent() {
       if (filterItUpDateMonth && !task.itUpDate) {
         return false;
       }
-      
+
       // リリース日フィルタ（月指定）
       if (filterReleaseDateMonth && task.releaseDate) {
-        const [year, month] = filterReleaseDateMonth.split("-");
+        const [year, month] = filterReleaseDateMonth.split('-');
         const taskDate = new Date(task.releaseDate);
         const taskYear = taskDate.getFullYear();
         const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
-        if (taskYear !== parseInt(year) || taskMonth !== parseInt(month)) {
+        if (taskYear !== parseInt(year, 10) || taskMonth !== parseInt(month, 10)) {
           return false;
         }
       }
@@ -265,15 +268,25 @@ function TasksPageContent() {
       if (filterReleaseDateMonth && !task.releaseDate) {
         return false;
       }
-      
+
       return true;
     });
-  }, [tasks, filterStatus, filterAssignee, filterLabel, filterTimerActive, filterItUpDateMonth, filterReleaseDateMonth, activeSession]);
+  }, [
+    tasks,
+    filterStatus,
+    filterAssignee,
+    filterLabel,
+    filterTimerActive,
+    filterItUpDateMonth,
+    filterReleaseDateMonth,
+    activeSession,
+  ]);
 
   // 選択されたタスクの詳細を取得
-  const selectedTask = useMemo(() => {
-    return filteredTasks?.find((t) => t.id === selectedTaskId) || null;
-  }, [filteredTasks, selectedTaskId]);
+  const selectedTask = useMemo(
+    () => filteredTasks?.find((t) => t.id === selectedTaskId) || null,
+    [filteredTasks, selectedTaskId],
+  );
 
   // 選択されたタスクが変更されたらフォームデータを初期化
   useEffect(() => {
@@ -282,7 +295,7 @@ function TasksPageContent() {
       if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
         setTaskFormData({
           title: selectedTask.title,
-          description: selectedTask.description || "",
+          description: selectedTask.description || '',
           flowStatus: selectedTask.flowStatus,
           kubunLabelId: selectedTask.kubunLabelId,
           itUpDate: selectedTask.itUpDate,
@@ -304,26 +317,26 @@ function TasksPageContent() {
 
   // 選択されたタスクのセッション履歴を取得
   const { data: taskSessions } = useQuery({
-    queryKey: ["taskSessions", selectedTaskId],
+    queryKey: ['taskSessions', selectedTaskId],
     queryFn: async () => {
       if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
       try {
         const sessionsRef = collection(
           db,
-          "projects",
+          'projects',
           selectedTask.projectId,
-          "taskSessions"
+          'taskSessions',
         );
         const q = query(
           sessionsRef,
-          where("taskId", "==", selectedTaskId),
-          orderBy("startedAt", "desc")
+          where('taskId', '==', selectedTaskId),
+          orderBy('startedAt', 'desc'),
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => {
-          const data = doc.data();
+        return snapshot.docs.map((docItem) => {
+          const data = docItem.data();
           return {
-            id: doc.id,
+            id: docItem.id,
             ...data,
             startedAt: data.startedAt?.toDate(),
             endedAt: data.endedAt?.toDate() || null,
@@ -332,23 +345,23 @@ function TasksPageContent() {
         });
       } catch (error: any) {
         // インデックスエラーの場合、orderByなしで再試行
-        if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
             const sessionsRef = collection(
               db,
-              "projects",
+              'projects',
               selectedTask.projectId,
-              "taskSessions"
+              'taskSessions',
             );
             const q = query(
               sessionsRef,
-              where("taskId", "==", selectedTaskId)
+              where('taskId', '==', selectedTaskId),
             );
             const snapshot = await getDocs(q);
-            const sessions = snapshot.docs.map((doc) => {
-              const data = doc.data();
+            const sessions = snapshot.docs.map((docItem) => {
+              const data = docItem.data();
               return {
-                id: doc.id,
+                id: docItem.id,
                 ...data,
                 startedAt: data.startedAt?.toDate(),
                 endedAt: data.endedAt?.toDate() || null,
@@ -362,11 +375,11 @@ function TasksPageContent() {
               return bTime - aTime;
             });
           } catch (retryError) {
-            console.error("Error fetching sessions:", retryError);
+            console.error('Error fetching sessions:', retryError);
             return [];
           }
         }
-        console.error("Error fetching sessions:", error);
+        console.error('Error fetching sessions:', error);
         return [];
       }
     },
@@ -374,53 +387,62 @@ function TasksPageContent() {
   });
 
   // アクティブなセッションを取得（すべてのプロジェクトから）
-  const { data: sessions } = useQuery({
-    queryKey: ["sessions", user?.id],
-    queryFn: async () => {
-      if (!user || !db || !projects) return [];
-      const allSessions: any[] = [];
-      
-      for (const project of projects) {
-        const sessionsRef = collection(db, "projects", project.id, "taskSessions");
-        const q = query(sessionsRef, where("userId", "==", user.id), where("endedAt", "==", null));
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((doc) => {
-          allSessions.push({
-            id: doc.id,
-            projectId: project.id,
-            ...doc.data(),
-          });
-        });
-      }
-      
-      if (allSessions.length > 0) {
-        const session = allSessions[0];
-        setActiveSession({
-          projectId: session.projectId,
-          taskId: session.taskId,
-          sessionId: session.id,
-        });
-      } else {
-        setActiveSession(null);
-      }
-      
-      return allSessions;
-    },
-    enabled: !!user && !!projects && projects.length > 0,
-  });
+  // const { data: sessions } = useQuery({
+  //     //   queryKey: ['sessions', user?.id],
+  //   queryFn: async () => {
+  //     if (!user || !db || !projects) return [];
+  //     const allSessions: any[] = [];
+
+  //     for (const project of projects) {
+  //       const sessionsRef = collection(
+  //         db,
+  //         'projects',
+  //         project.id,
+  //         'taskSessions',
+  //       );
+  //       const q = query(
+  //         sessionsRef,
+  //         where('userId', '==', user.id),
+  //         where('endedAt', '==', null),
+  //       );
+  //       const snapshot = await getDocs(q);
+  //       snapshot.docs.forEach((docItem) => {
+  //         allSessions.push({
+  //           id: docItem.id,
+  //           projectId: project.id,
+  //           ...docItem.data(),
+  //         });
+  //       });
+  //     }
+
+  //     if (allSessions.length > 0) {
+  //       const session = allSessions[0];
+  //       setActiveSession({
+  //         projectId: session.projectId,
+  //         taskId: session.taskId,
+  //         sessionId: session.id,
+  //       });
+  //     } else {
+  //       setActiveSession(null);
+  //     }
+
+  //     return allSessions;
+  //   },
+  //   enabled: !!user && !!projects && projects.length > 0,
+  // });
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
-      if (!selectedTask || !db) throw new Error("Task not found");
-      const taskRef = doc(db, "projects", selectedTask.projectId, "tasks", selectedTask.id);
+      if (!selectedTask || !db) throw new Error('Task not found');
+      const taskRef = doc(db, 'projects', selectedTask.projectId, 'tasks', selectedTask.id);
       await updateDoc(taskRef, {
         ...updates,
         updatedAt: new Date(),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.refetchQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
       // フォームデータはuseEffectで自動更新されるため、ここでは何もしない
     },
   });
@@ -432,7 +454,7 @@ function TasksPageContent() {
     if (task) {
       setTaskFormData({
         title: task.title,
-        description: task.description || "",
+        description: task.description || '',
         flowStatus: task.flowStatus,
         kubunLabelId: task.kubunLabelId,
         assigneeIds: task.assigneeIds,
@@ -447,38 +469,41 @@ function TasksPageContent() {
     updateTask.mutate(taskFormData);
   };
 
-  const formatDuration = (seconds: number | undefined | null, startedAt?: Date, endedAt?: Date | null) => {
+  const formatDuration = (
+    seconds: number | undefined | null,
+    startedAt?: Date,
+    endedAt?: Date | null,
+  ) => {
     let secs = 0;
-    if (seconds === undefined || seconds === null || isNaN(seconds) || seconds === 0) {
+    if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
       if (endedAt && startedAt) {
         secs = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
       } else {
-        return "0秒";
+        return '0秒';
       }
     } else {
       secs = Math.floor(Number(seconds));
     }
-    
+
     const hours = Math.floor(secs / 3600);
     const minutes = Math.floor((secs % 3600) / 60);
     const remainingSecs = secs % 60;
     if (hours > 0) {
       return `${hours}時間${minutes}分${remainingSecs}秒`;
-    } else if (minutes > 0) {
+    } if (minutes > 0) {
       return `${minutes}分${remainingSecs}秒`;
-    } else {
-      return `${remainingSecs}秒`;
     }
+    return `${remainingSecs}秒`;
   };
 
   const handleResetFilters = () => {
-    setSelectedProject("all");
-    setFilterStatus("all");
-    setFilterAssignee("all");
-    setFilterLabel("all");
-    setFilterTimerActive("all");
-    setFilterItUpDateMonth("");
-    setFilterReleaseDateMonth("");
+    setSelectedProject('all');
+    setFilterStatus('all');
+    setFilterAssignee('all');
+    setFilterLabel('all');
+    setFilterTimerActive('all');
+    setFilterItUpDateMonth('');
+    setFilterReleaseDateMonth('');
   };
 
   const handleStartTimer = async (projectId: string, taskId: string) => {
@@ -490,14 +515,14 @@ function TasksPageContent() {
         userId: user.id,
       });
       // セッション一覧を再取得
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.refetchQueries({ queryKey: ["sessions", user.id] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.refetchQueries({ queryKey: ['sessions', user.id] });
     } catch (error: any) {
-      console.error("Timer start error:", error);
-      if (error.message?.includes("稼働中")) {
-        alert("他のタイマーが稼働中です。停止してから開始してください。");
+      console.error('Timer start error:', error);
+      if (error.message?.includes('稼働中')) {
+        alert('他のタイマーが稼働中です。停止してから開始してください。');
       } else {
-        alert("タイマーの開始に失敗しました: " + (error.message || "不明なエラー"));
+        alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
       }
     }
   };
@@ -511,11 +536,11 @@ function TasksPageContent() {
       });
       setActiveSession(null);
       // セッション一覧を再取得
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.refetchQueries({ queryKey: ["sessions", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.refetchQueries({ queryKey: ['sessions', user?.id] });
     } catch (error: any) {
-      console.error("Timer stop error:", error);
-      alert("タイマーの停止に失敗しました: " + (error.message || "不明なエラー"));
+      console.error('Timer stop error:', error);
+      alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
@@ -523,21 +548,21 @@ function TasksPageContent() {
     try {
       const result = await createDriveFolder.mutateAsync({ projectId, taskId });
       // タスク一覧と詳細を更新（URLが反映されるように）
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.refetchQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
-      queryClient.refetchQueries({ queryKey: ["task", taskId] });
-      
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+
       if (result.warning) {
         // チェックシート作成エラーがある場合
-        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}\n\nエラー: ${result.error || "不明なエラー"}`);
+        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`);
       } else {
         // 完全に成功した場合
-        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}`);
+        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`);
       }
     } catch (error: any) {
-      console.error("Drive create error:", error);
-      const errorMessage = error?.message || "不明なエラー";
+      console.error('Drive create error:', error);
+      const errorMessage = error?.message || '不明なエラー';
       alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
     }
   };
@@ -545,12 +570,12 @@ function TasksPageContent() {
   const handleFireCreate = async (projectId: string, taskId: string) => {
     try {
       await createFireIssue.mutateAsync({ projectId, taskId });
-      alert("GitHub Issueを作成しました");
-      queryClient.invalidateQueries({ queryKey: ["tasks"] }); // タスク一覧を更新
-      queryClient.refetchQueries({ queryKey: ["tasks"] });
+      alert('GitHub Issueを作成しました');
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // タスク一覧を更新
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
     } catch (error: any) {
-      console.error("Fire create error:", error);
-      alert("GitHub Issueの作成に失敗しました: " + (error.message || "不明なエラー"));
+      console.error('Fire create error:', error);
+      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
@@ -558,88 +583,91 @@ function TasksPageContent() {
     setDeleteTaskId(taskId);
     setDeleteProjectId(projectId);
     setDeleteDialogOpen(true);
-    setDeleteConfirmTitle("");
+    setDeleteConfirmTitle('');
   };
 
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectId || !db) return;
-    
+
     const taskToDelete = tasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
-      alert("タスクが見つかりません");
+      alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
       return;
     }
 
     // タイトルが一致しない場合は削除しない
     if (deleteConfirmTitle !== taskToDelete.title) {
-      alert("タイトルが一致しません。削除をキャンセルしました。");
+      alert('タイトルが一致しません。削除をキャンセルしました。');
       setDeleteDialogOpen(false);
-      setDeleteConfirmTitle("");
+      setDeleteConfirmTitle('');
       return;
     }
 
     try {
-      const taskRef = doc(db, "projects", deleteProjectId, "tasks", deleteTaskId);
+      const taskRef = doc(db, 'projects', deleteProjectId, 'tasks', deleteTaskId);
       await deleteDoc(taskRef);
-      
+
       // タスク一覧を更新
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.refetchQueries({ queryKey: ["tasks"] });
-      
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
+
       // 削除したタスクが選択されていた場合はサイドバーを閉じる
       if (selectedTaskId === deleteTaskId) {
         setSelectedTaskId(null);
         setTaskFormData(null);
       }
-      
-      alert("タスクを削除しました");
+
+      alert('タスクを削除しました');
     } catch (error: any) {
-      console.error("Delete task error:", error);
-      alert("タスクの削除に失敗しました: " + (error.message || "不明なエラー"));
+      console.error('Delete task error:', error);
+      alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
     } finally {
       setDeleteDialogOpen(false);
       setDeleteTaskId(null);
       setDeleteProjectId(null);
-      setDeleteConfirmTitle("");
+      setDeleteConfirmTitle('');
     }
   };
 
   // アサインの表示名を取得
   const getAssigneeNames = (assigneeIds: string[]) => {
-    if (!allUsers || assigneeIds.length === 0) return "-";
+    if (!allUsers || assigneeIds.length === 0) return '-';
     return assigneeIds
       .map((id) => allUsers.find((u) => u.id === id)?.displayName)
       .filter(Boolean)
-      .join(", ") || "-";
+      .join(', ') || '-';
   };
 
   // 区分の表示名を取得
   const getLabelName = (labelId: string) => {
-    if (!allLabels || !labelId) return "-";
+    if (!allLabels || !labelId) return '-';
     return allLabels.find((l) => l.id === labelId)?.name || labelId;
   };
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: "flex", gap: 2 }}>
+    <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3,
+        }}
+        >
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             タスク一覧
           </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <CustomButton variant="outline" onClick={handleResetFilters}>
               フィルタリセット
             </CustomButton>
-            <Link href="/tasks/new" style={{ textDecoration: "none" }}>
+            <Link href="/tasks/new" style={{ textDecoration: 'none' }}>
               <CustomButton>新規作成</CustomButton>
             </Link>
           </Box>
@@ -669,7 +697,7 @@ function TasksPageContent() {
                 <InputLabel>ステータス</InputLabel>
                 <Select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | "all")}
+                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | 'all')}
                   label="ステータス"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -690,9 +718,9 @@ function TasksPageContent() {
                   label="アサイン"
                 >
                   <MenuItem value="all">すべて</MenuItem>
-                  {allUsers?.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {user.displayName || user.email}
+                  {allUsers?.map((userItem) => (
+                    <MenuItem key={userItem.id} value={userItem.id}>
+                      {userItem.displayName || userItem.email}
                     </MenuItem>
                   ))}
                 </Select>
@@ -709,12 +737,12 @@ function TasksPageContent() {
                   <MenuItem value="all">すべて</MenuItem>
                   {allLabels?.map((label) => (
                     <MenuItem key={label.id} value={label.id}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box
                           sx={{
                             width: 16,
                             height: 16,
-                            borderRadius: "50%",
+                            borderRadius: '50%',
                             backgroundColor: label.color,
                           }}
                         />
@@ -767,7 +795,7 @@ function TasksPageContent() {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: "grey.50" }}>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
                 <TableCell>タイトル</TableCell>
                 <TableCell>アサイン</TableCell>
                 <TableCell>ITアップ</TableCell>
@@ -781,13 +809,17 @@ function TasksPageContent() {
             <TableBody>
               {filteredTasks && filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} sx={{ textAlign: "center", py: 4 }}>
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      {tasks && tasks.length === 0
-                        ? selectedProject === "all"
-                          ? "タスクがありません"
-                          : "このプロジェクトにタスクがありません"
-                        : "フィルタ条件に一致するタスクがありません"}
+                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {(() => {
+                        if (tasks && tasks.length === 0) {
+                          if (selectedProject === 'all') {
+                            return 'タスクがありません';
+                          }
+                          return 'このプロジェクトにタスクがありません';
+                        }
+                        return 'フィルタ条件に一致するタスクがありません';
+                      })()}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -798,22 +830,30 @@ function TasksPageContent() {
                     <TableRow
                       key={task.id}
                       onClick={() => handleTaskSelect(task.id)}
-                      sx={{ cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                     >
                       <TableCell>
-                        <Typography sx={{ fontWeight: "medium" }}>{task.title}</Typography>
-                        {selectedProject === "all" && (
-                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
-                            {projects?.find((p) => p.id === task.projectId)?.name || ""}
+                        <Typography sx={{ fontWeight: 'medium' }}>{task.title}</Typography>
+                        {selectedProject === 'all' && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              color: 'text.secondary',
+                              mt: 0.5,
+                            }}
+                          >
+                            {projects?.find((p) => p.id === task.projectId)?.name
+                              || ''}
                           </Typography>
                         )}
                       </TableCell>
                       <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
                       <TableCell>
-                        {task.itUpDate ? format(task.itUpDate, "yyyy-MM-dd", { locale: ja }) : "-"}
+                        {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
                       </TableCell>
                       <TableCell>
-                        {task.releaseDate ? format(task.releaseDate, "yyyy-MM-dd", { locale: ja }) : "-"}
+                        {task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : '-'}
                       </TableCell>
                       <TableCell>{flowStatusLabels[task.flowStatus]}</TableCell>
                       <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
@@ -832,19 +872,19 @@ function TasksPageContent() {
                             }}
                             disabled={stopTimer.isPending}
                             sx={{
-                              animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
-                              "@keyframes pulse": {
-                                "0%, 100%": {
+                              animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                              '@keyframes pulse': {
+                                '0%, 100%': {
                                   opacity: 1,
                                 },
-                                "50%": {
+                                '50%': {
                                   opacity: 0.8,
                                 },
                               },
                             }}
                           >
                             {stopTimer.isPending ? (
-                              <CircularProgress size={16} sx={{ color: "inherit" }} />
+                              <CircularProgress size={16} sx={{ color: 'inherit' }} />
                             ) : (
                               <Stop fontSize="small" />
                             )}
@@ -857,10 +897,13 @@ function TasksPageContent() {
                               e.stopPropagation();
                               handleStartTimer(task.projectId, task.id);
                             }}
-                            disabled={(!!activeSession && activeSession.taskId !== task.id) || startTimer.isPending}
+                            disabled={
+                              (!!activeSession && activeSession.taskId !== task.id)
+                              || startTimer.isPending
+                            }
                           >
                             {startTimer.isPending ? (
-                              <CircularProgress size={14} sx={{ color: "inherit" }} />
+                              <CircularProgress size={14} sx={{ color: 'inherit' }} />
                             ) : (
                               <PlayArrow fontSize="small" />
                             )}
@@ -904,51 +947,52 @@ function TasksPageContent() {
         formatDuration={formatDuration}
       />
 
-          {/* 削除確認ダイアログ */}
-          <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <DialogTitle>タスクを削除</DialogTitle>
-            <DialogContent>
-              <DialogContentText sx={{ mb: 2 }}>
-                この操作は取り消せません。タスクを削除するには、タイトルを正確に入力してください。
-              </DialogContentText>
-              <TextField
-                autoFocus
-                fullWidth
-                label="タイトルを入力"
-                value={deleteConfirmTitle}
-                onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-                placeholder={tasks?.find((t) => t.id === deleteTaskId)?.title || ""}
-                variant="outlined"
-              />
-            </DialogContent>
-            <DialogActions>
-              <CustomButton onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeleteConfirmTitle("");
-              }}>
-                キャンセル
-              </CustomButton>
-              <CustomButton
-                variant="destructive"
-                onClick={handleDeleteTask}
-                disabled={deleteConfirmTitle !== tasks?.find((t) => t.id === deleteTaskId)?.title}
-              >
-                削除
-              </CustomButton>
-            </DialogActions>
-          </Dialog>
-        </Box>
-      );
-    }
+      {/* 削除確認ダイアログ */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>タスクを削除</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            この操作は取り消せません。タスクを削除するには、タイトルを正確に入力してください。
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            label="タイトルを入力"
+            value={deleteConfirmTitle}
+            onChange={(e) => setDeleteConfirmTitle(e.target.value)}
+            placeholder={tasks?.find((t) => t.id === deleteTaskId)?.title || ''}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={() => {
+            setDeleteDialogOpen(false);
+            setDeleteConfirmTitle('');
+          }}
+          >
+            キャンセル
+          </CustomButton>
+          <CustomButton
+            variant="destructive"
+            onClick={handleDeleteTask}
+            disabled={deleteConfirmTitle !== tasks?.find((t) => t.id === deleteTaskId)?.title}
+          >
+            削除
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
 
 export default function TasksPage() {
   return (
     <Suspense
-      fallback={
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+      fallback={(
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
-      }
+      )}
     >
       <TasksPageContent />
     </Suspense>

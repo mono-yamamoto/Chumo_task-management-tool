@@ -1,20 +1,20 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const flowStatusSchema = z.enum([
-  "未着手",
-  "ディレクション",
-  "コーディング",
-  "デザイン",
-  "待ち",
-  "対応中",
-  "週次報告",
-  "月次報告",
-  "完了",
+  '未着手',
+  'ディレクション',
+  'コーディング',
+  'デザイン',
+  '待ち',
+  '対応中',
+  '週次報告',
+  '月次報告',
+  '完了',
 ]);
 
-export const prioritySchema = z.enum(["low", "medium", "high", "urgent"]);
+export const prioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
-export const userRoleSchema = z.enum(["admin", "member"]);
+export const userRoleSchema = z.enum(['admin', 'member']);
 
 export const userSchema = z.object({
   email: z.string().email(),
@@ -39,12 +39,12 @@ export const labelSchema = z.object({
 });
 
 export const taskExternalSchema = z.object({
-  source: z.literal("backlog"),
+  source: z.literal('backlog'),
   issueId: z.string(),
   issueKey: z.string(),
   url: z.string().url(),
   lastSyncedAt: z.date(),
-  syncStatus: z.enum(["ok", "failed"]),
+  syncStatus: z.enum(['ok', 'failed']),
 });
 
 export const taskSchema = z.object({
@@ -94,6 +94,5 @@ export const reportFilterSchema = z.object({
   projectId: z.string().optional(),
   userId: z.string().optional(),
   taskId: z.string().optional(),
-  type: z.enum(["normal", "brg"]).optional(),
+  type: z.enum(['normal', 'brg']).optional(),
 });
-

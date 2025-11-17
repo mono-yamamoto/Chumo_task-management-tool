@@ -1,31 +1,53 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
-import { Task, FlowStatus, Label, User } from "@/types";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useParams } from "next/navigation";
-import { useTimer } from "@/lib/hooks/useTimer";
-import { useDriveIntegration, useFireIntegration } from "@/lib/hooks/useIntegrations";
-import { Button as CustomButton } from "@/components/ui/button";
-import { Button } from "@mui/material";
-import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Link as MUILink, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from "@mui/material";
-import { PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete, Edit, Add } from "@mui/icons-material";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, addDoc, Timestamp,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import {
+  Task, FlowStatus, Label, User,
+} from '@/types';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useParams } from 'next/navigation';
+import { useTimer } from '@/lib/hooks/useTimer';
+import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
+import { Button as CustomButton } from '@/components/ui/button';
+import {
+  Button,
+  Box,
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Card,
+  CardContent,
+  Grid,
+  Link as MUILink,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material';
+import {
+  PlayArrow, Stop, FolderOpen, LocalFireDepartment, Delete, Edit, Add,
+} from '@mui/icons-material';
+import { format } from 'date-fns';
 
 const flowStatusOptions: FlowStatus[] = [
-  "未着手",
-  "ディレクション",
-  "コーディング",
-  "デザイン",
-  "待ち",
-  "対応中",
-  "週次報告",
-  "月次報告",
-  "完了",
+  '未着手',
+  'ディレクション',
+  'コーディング',
+  'デザイン',
+  '待ち',
+  '対応中',
+  '週次報告',
+  '月次報告',
+  '完了',
 ];
 
 export default function TaskDetailPage() {
@@ -37,32 +59,36 @@ export default function TaskDetailPage() {
   const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
-  const [activeSession, setActiveSession] = useState<{ projectId: string; taskId: string; sessionId: string } | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
+  const [activeSession, setActiveSession] = useState<{
+    projectId: string;
+    taskId: string;
+    sessionId: string;
+  } | null>(null);
+  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
   const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any | null>(null);
   const [sessionFormData, setSessionFormData] = useState({
-    startedAt: "",
-    startedAtTime: "",
-    endedAt: "",
-    endedAtTime: "",
-    userId: "",
-    note: "",
+    startedAt: '',
+    startedAtTime: '',
+    endedAt: '',
+    endedAtTime: '',
+    userId: '',
+    note: '',
   });
 
   const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ["task", taskId],
+    queryKey: ['task', taskId],
     queryFn: async () => {
       if (!db) return null;
       // まずプロジェクトIDを取得する必要がある
       // 簡略化のため、全プロジェクトから検索
-      const projectsRef = collection(db, "projects");
+      const projectsRef = collection(db, 'projects');
       const projectsSnapshot = await getDocs(projectsRef);
-      
+
       for (const projectDoc of projectsSnapshot.docs) {
-        const taskRef = doc(db, "projects", projectDoc.id, "tasks", taskId);
+        const taskRef = doc(db, 'projects', projectDoc.id, 'tasks', taskId);
         const taskDoc = await getDoc(taskRef);
         if (taskDoc.exists()) {
           return {
@@ -84,15 +110,15 @@ export default function TaskDetailPage() {
   });
 
   const { data: labels } = useQuery({
-    queryKey: ["labels", task?.projectId],
+    queryKey: ['labels', task?.projectId],
     queryFn: async () => {
       if (!task?.projectId || !db) return [];
-      const labelsRef = collection(db, "labels");
-      const q = query(labelsRef, where("projectId", "==", task.projectId));
+      const labelsRef = collection(db, 'labels');
+      const q = query(labelsRef, where('projectId', '==', task.projectId));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
       })) as Label[];
     },
     enabled: !!task?.projectId,
@@ -100,80 +126,79 @@ export default function TaskDetailPage() {
 
   // すべてのユーザーを取得（セッション履歴のユーザー表示用）
   const { data: allUsers } = useQuery({
-    queryKey: ["allUsers"],
+    queryKey: ['allUsers'],
     queryFn: async () => {
       if (!db) return [];
-      const usersRef = collection(db, "users");
+      const usersRef = collection(db, 'users');
       const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
       })) as User[];
     },
     enabled: !!db,
   });
 
   // アクティブなセッション（未終了）を取得
-  const { data: activeSessionData } = useQuery({
-    queryKey: ["activeSession", taskId, user?.id],
-    queryFn: async () => {
-      if (!task?.projectId || !db || !user) return null;
-      const sessionsRef = collection(
-        db,
-        "projects",
-        task.projectId,
-        "taskSessions"
-      );
-      const q = query(
-        sessionsRef,
-        where("taskId", "==", taskId),
-        where("userId", "==", user.id),
-        where("endedAt", "==", null)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const session = snapshot.docs[0];
-        setActiveSession({
-          projectId: task.projectId,
-          taskId: taskId,
-          sessionId: session.id,
-        });
-        return {
-          id: session.id,
-          ...session.data(),
-          startedAt: session.data().startedAt?.toDate(),
-          endedAt: null,
-        };
-      } else {
-        setActiveSession(null);
-        return null;
-      }
-    },
-    enabled: !!task?.projectId && !!taskId && !!user,
-  });
+  // const { data: activeSessionData } = useQuery({
+  //   queryKey: ['activeSession', taskId, user?.id],
+  //   queryFn: async () => {
+  //     if (!task?.projectId || !db || !user) return null;
+  //     const sessionsRef = collection(
+  //       db,
+  //       'projects',
+  //       task.projectId,
+  //       'taskSessions',
+  //     );
+  //     const q = query(
+  //       sessionsRef,
+  //       where('taskId', '==', taskId),
+  //       where('userId', '==', user.id),
+  //       where('endedAt', '==', null),
+  //     );
+  //     const snapshot = await getDocs(q);
+  //     if (!snapshot.empty) {
+  //       const session = snapshot.docs[0];
+  //       setActiveSession({
+  //         projectId: task.projectId,
+  //         taskId,
+  //         sessionId: session.id,
+  //       });
+  //       return {
+  //         id: session.id,
+  //         ...session.data(),
+  //         startedAt: session.data().startedAt?.toDate(),
+  //         endedAt: null,
+  //       };
+  //     }
+  //     setActiveSession(null);
+  //     return null;
+  //   },
+  //   enabled: !!task?.projectId && !!taskId && !!user,
+  // });
 
   // セッション履歴（すべてのユーザーの終了したセッションを含む）を取得
   const { data: sessions } = useQuery({
-    queryKey: ["sessionHistory", taskId],
+    queryKey: ['sessionHistory', taskId],
     queryFn: async () => {
       if (!task?.projectId || !db) return [];
       try {
         const sessionsRef = collection(
           db,
-          "projects",
+          'projects',
           task.projectId,
-          "taskSessions"
+          'taskSessions',
         );
         const q = query(
           sessionsRef,
-          where("taskId", "==", taskId),
-          orderBy("startedAt", "desc")
+          where('taskId', '==', taskId),
+          orderBy('startedAt', 'desc'),
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => {
-          const data = doc.data();
+        return snapshot.docs.map((docItem) => {
+          const data = docItem.data();
           return {
-            id: doc.id,
+            id: docItem.id,
             ...data,
             startedAt: data.startedAt?.toDate(),
             endedAt: data.endedAt?.toDate() || null,
@@ -182,23 +207,23 @@ export default function TaskDetailPage() {
         });
       } catch (error: any) {
         // インデックスエラーの場合、orderByなしで再試行
-        if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
             const sessionsRef = collection(
               db,
-              "projects",
+              'projects',
               task.projectId,
-              "taskSessions"
+              'taskSessions',
             );
             const q = query(
               sessionsRef,
-              where("taskId", "==", taskId)
+              where('taskId', '==', taskId),
             );
             const snapshot = await getDocs(q);
-            const sessions = snapshot.docs.map((doc) => {
-              const data = doc.data();
+            const taskSessionsData = snapshot.docs.map((docItem) => {
+              const data = docItem.data();
               return {
-                id: doc.id,
+                id: docItem.id,
                 ...data,
                 startedAt: data.startedAt?.toDate(),
                 endedAt: data.endedAt?.toDate() || null,
@@ -206,17 +231,17 @@ export default function TaskDetailPage() {
               };
             });
             // クライアント側でソート
-            return sessions.sort((a, b) => {
+            return taskSessionsData.sort((a, b) => {
               if (!a.startedAt || !b.startedAt) return 0;
               return b.startedAt.getTime() - a.startedAt.getTime();
             });
           } catch (retryError) {
-            console.error("Failed to fetch sessions after retry:", retryError);
+            console.error('Failed to fetch sessions after retry:', retryError);
             return [];
           }
         }
         // エラーが発生した場合でも空配列を返してUIを壊さない
-        console.error("Failed to fetch sessions:", error);
+        console.error('Failed to fetch sessions:', error);
         return [];
       }
     },
@@ -232,17 +257,17 @@ export default function TaskDetailPage() {
         taskId: task.id,
         userId: user.id,
       });
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["activeSession", taskId] });
-      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
-      queryClient.refetchQueries({ queryKey: ["activeSession", taskId, user.id] });
-      queryClient.refetchQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user.id] });
+      queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
     } catch (error: any) {
-      console.error("Timer start error:", error);
-      if (error.message?.includes("稼働中")) {
-        alert("他のタイマーが稼働中です。停止してから開始してください。");
+      console.error('Timer start error:', error);
+      if (error.message?.includes('稼働中')) {
+        alert('他のタイマーが稼働中です。停止してから開始してください。');
       } else {
-        alert("タイマーの開始に失敗しました: " + (error.message || "不明なエラー"));
+        alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
       }
     }
   };
@@ -255,89 +280,92 @@ export default function TaskDetailPage() {
         sessionId: activeSession.sessionId,
       });
       setActiveSession(null);
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["activeSession", taskId] });
-      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
-      queryClient.refetchQueries({ queryKey: ["activeSession", taskId, user?.id] });
-      queryClient.refetchQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user?.id] });
+      queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
     } catch (error: any) {
-      console.error("Timer stop error:", error);
-      alert("タイマーの停止に失敗しました: " + (error.message || "不明なエラー"));
+      console.error('Timer stop error:', error);
+      alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
-      const handleDriveCreate = async () => {
-        if (!task) return;
-        try {
-          const result = await createDriveFolder.mutateAsync({ projectId: task.projectId, taskId: task.id });
-          // タスク詳細を更新（URLが反映されるように）
-          queryClient.invalidateQueries({ queryKey: ["task", taskId] });
-          queryClient.refetchQueries({ queryKey: ["task", taskId] });
-          // タスク一覧も更新
-          queryClient.invalidateQueries({ queryKey: ["tasks"] });
-          
-          if (result.warning) {
-            // チェックシート作成エラーがある場合
-            alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}\n\nエラー: ${result.error || "不明なエラー"}`);
-          } else {
-            // 完全に成功した場合
-            alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || "取得できませんでした"}`);
-          }
-        } catch (error: any) {
-          console.error("Drive create error:", error);
-          const errorMessage = error?.message || "不明なエラー";
-          alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
-        }
-      };
+  const handleDriveCreate = async () => {
+    if (!task) return;
+    try {
+      const result = await createDriveFolder.mutateAsync({
+        projectId: task.projectId,
+        taskId: task.id,
+      });
+      // タスク詳細を更新（URLが反映されるように）
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      // タスク一覧も更新
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
+      if (result.warning) {
+        // チェックシート作成エラーがある場合
+        alert(`Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`);
+      } else {
+        // 完全に成功した場合
+        alert(`Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`);
+      }
+    } catch (error: any) {
+      console.error('Drive create error:', error);
+      const errorMessage = error?.message || '不明なエラー';
+      alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
+    }
+  };
 
   const handleFireCreate = async () => {
     if (!task) return;
     try {
       await createFireIssue.mutateAsync({ projectId: task.projectId, taskId: task.id });
-      alert("GitHub Issueを作成しました");
-      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
-      queryClient.refetchQueries({ queryKey: ["task", taskId] });
+      alert('GitHub Issueを作成しました');
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
     } catch (error: any) {
-      console.error("Fire create error:", error);
-      alert("GitHub Issueの作成に失敗しました: " + (error.message || "不明なエラー"));
+      console.error('Fire create error:', error);
+      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
-  const handleDeleteTask = async () => {
-    if (!task || !db) return;
-    
-    // タイトルが一致しない場合は削除しない
-    if (deleteConfirmTitle !== task.title) {
-      alert("タイトルが一致しません。削除をキャンセルしました。");
-      setDeleteDialogOpen(false);
-      setDeleteConfirmTitle("");
-      return;
-    }
-
-    try {
-      const taskRef = doc(db, "projects", task.projectId, "tasks", taskId);
-      await deleteDoc(taskRef);
-      
-      // タスク一覧を更新
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      
-      // タスク詳細ページから離れる（一覧ページにリダイレクト）
-      window.location.href = "/tasks";
-    } catch (error: any) {
-      console.error("Delete task error:", error);
-      alert("タスクの削除に失敗しました: " + (error.message || "不明なエラー"));
-    } finally {
-      setDeleteDialogOpen(false);
-      setDeleteConfirmTitle("");
-    }
-  };
+  // const handleDeleteTask = async () => {
+  //   if (!task || !db) return;
+  //
+  //   // タイトルが一致しない場合は削除しない
+  //   if (deleteConfirmTitle !== task.title) {
+  //     alert('タイトルが一致しません。削除をキャンセルしました。');
+  //     setDeleteDialogOpen(false);
+  //     setDeleteConfirmTitle('');
+  //     return;
+  //   }
+  //
+  //   try {
+  //     const taskRef = doc(db, 'projects', task.projectId, 'tasks', taskId);
+  //     await deleteDoc(taskRef);
+  //
+  //     // タスク一覧を更新
+  //     queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  //
+  //     // タスク詳細ページから離れる（一覧ページにリダイレクト）
+  //     window.location.href = '/tasks';
+  //   } catch (error: any) {
+  //     console.error('Delete task error:', error);
+  //     alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
+  //   } finally {
+  //     setDeleteDialogOpen(false);
+  //     setDeleteConfirmTitle('');
+  //   }
+  // };
 
   // セッション更新
   const updateSession = useMutation({
     mutationFn: async ({ sessionId, updates }: { sessionId: string; updates: Partial<any> }) => {
-      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
-      const sessionRef = doc(db, "projects", task.projectId, "taskSessions", sessionId);
-      
+      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionRef = doc(db, 'projects', task.projectId, 'taskSessions', sessionId);
+
       // startedAtとendedAtを更新する場合、durationSecも再計算
       const updateData: any = {};
       if (updates.startedAt) {
@@ -352,20 +380,33 @@ export default function TaskDetailPage() {
       if (updates.note !== undefined) {
         updateData.note = updates.note;
       }
-      
+
       // durationSecを再計算
-      const startedAt = updates.startedAt ? (updates.startedAt instanceof Date ? updates.startedAt : updates.startedAt.toDate()) : editingSession?.startedAt;
-      const endedAt = updates.endedAt !== null && updates.endedAt !== undefined 
-        ? (updates.endedAt instanceof Date ? updates.endedAt : updates.endedAt.toDate())
-        : editingSession?.endedAt;
+      let startedAt: Date | undefined;
+      if (updates.startedAt) {
+        startedAt = updates.startedAt instanceof Date
+          ? updates.startedAt
+          : updates.startedAt.toDate();
+      } else {
+        startedAt = editingSession?.startedAt;
+      }
+
+      let endedAt: Date | null | undefined;
+      if (updates.endedAt !== null && updates.endedAt !== undefined) {
+        endedAt = updates.endedAt instanceof Date
+          ? updates.endedAt
+          : updates.endedAt.toDate();
+      } else {
+        endedAt = editingSession?.endedAt;
+      }
       if (startedAt && endedAt) {
         updateData.durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
       }
-      
+
       await updateDoc(sessionRef, updateData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
       setSessionEditDialogOpen(false);
       setEditingSession(null);
     },
@@ -374,27 +415,29 @@ export default function TaskDetailPage() {
   // セッション削除
   const deleteSession = useMutation({
     mutationFn: async (sessionId: string) => {
-      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
-      const sessionRef = doc(db, "projects", task.projectId, "taskSessions", sessionId);
+      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionRef = doc(db, 'projects', task.projectId, 'taskSessions', sessionId);
       await deleteDoc(sessionRef);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
     },
   });
 
   // セッション追加
   const addSession = useMutation({
     mutationFn: async (sessionData: any) => {
-      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
-      const sessionsRef = collection(db, "projects", task.projectId, "taskSessions");
-      
+      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+
       // startedAtとendedAtからdurationSecを計算
       let durationSec = 0;
       if (sessionData.startedAt && sessionData.endedAt) {
-        durationSec = Math.floor((sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000);
+        durationSec = Math.floor(
+          (sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000,
+        );
       }
-      
+
       await addDoc(sessionsRef, {
         ...sessionData,
         taskId: task.id,
@@ -404,15 +447,15 @@ export default function TaskDetailPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessionHistory", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
       setSessionAddDialogOpen(false);
       setSessionFormData({
-        startedAt: "",
-        startedAtTime: "",
-        endedAt: "",
-        endedAtTime: "",
-        userId: "",
-        note: "",
+        startedAt: '',
+        startedAtTime: '',
+        endedAt: '',
+        endedAtTime: '',
+        userId: '',
+        note: '',
       });
     },
   });
@@ -421,14 +464,14 @@ export default function TaskDetailPage() {
     setEditingSession(session);
     const startedAt = session.startedAt ? new Date(session.startedAt) : new Date();
     const endedAt = session.endedAt ? new Date(session.endedAt) : null;
-    
+
     setSessionFormData({
-      startedAt: format(startedAt, "yyyy-MM-dd"),
-      startedAtTime: format(startedAt, "HH:mm"),
-      endedAt: endedAt ? format(endedAt, "yyyy-MM-dd") : "",
-      endedAtTime: endedAt ? format(endedAt, "HH:mm") : "",
+      startedAt: format(startedAt, 'yyyy-MM-dd'),
+      startedAtTime: format(startedAt, 'HH:mm'),
+      endedAt: endedAt ? format(endedAt, 'yyyy-MM-dd') : '',
+      endedAtTime: endedAt ? format(endedAt, 'HH:mm') : '',
       userId: session.userId,
-      note: session.note || "",
+      note: session.note || '',
     });
     setSessionEditDialogOpen(true);
   };
@@ -437,32 +480,32 @@ export default function TaskDetailPage() {
     setEditingSession(null);
     const now = new Date();
     setSessionFormData({
-      startedAt: format(now, "yyyy-MM-dd"),
-      startedAtTime: format(now, "HH:mm"),
-      endedAt: format(now, "yyyy-MM-dd"),
-      endedAtTime: format(now, "HH:mm"),
-      userId: user?.id || "",
-      note: "",
+      startedAt: format(now, 'yyyy-MM-dd'),
+      startedAtTime: format(now, 'HH:mm'),
+      endedAt: format(now, 'yyyy-MM-dd'),
+      endedAtTime: format(now, 'HH:mm'),
+      userId: user?.id || '',
+      note: '',
     });
     setSessionAddDialogOpen(true);
   };
 
   const handleSaveSession = async () => {
     if (!sessionFormData.startedAt || !sessionFormData.startedAtTime) {
-      alert("開始日時を入力してください");
+      alert('開始日時を入力してください');
       return;
     }
-    
+
     const startedAt = new Date(`${sessionFormData.startedAt}T${sessionFormData.startedAtTime}`);
     const endedAt = sessionFormData.endedAt && sessionFormData.endedAtTime
       ? new Date(`${sessionFormData.endedAt}T${sessionFormData.endedAtTime}`)
       : null;
-    
+
     if (endedAt && endedAt <= startedAt) {
-      alert("終了時刻は開始時刻より後である必要があります");
+      alert('終了時刻は開始時刻より後である必要があります');
       return;
     }
-    
+
     if (editingSession) {
       // 更新
       await updateSession.mutateAsync({
@@ -486,14 +529,15 @@ export default function TaskDetailPage() {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm("このセッションを削除しますか？")) return;
+    // eslint-disable-next-line no-alert
+    if (!window.confirm('このセッションを削除しますか？')) return;
     await deleteSession.mutateAsync(sessionId);
   };
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
-      if (!task?.projectId || !db) throw new Error("Task not found or Firestore not initialized");
-      const taskRef = doc(db, "projects", task.projectId, "tasks", taskId);
+      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
+      const taskRef = doc(db, 'projects', task.projectId, 'tasks', taskId);
       await updateDoc(taskRef, {
         ...updates,
         updatedAt: new Date(),
@@ -501,17 +545,17 @@ export default function TaskDetailPage() {
     },
     onSuccess: () => {
       // クエリを無効化して即座に再取得
-      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
-      queryClient.refetchQueries({ queryKey: ["task", taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
       // タスク一覧も更新
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setEditing(false);
     },
   });
 
   if (taskLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
       </Box>
     );
@@ -526,18 +570,20 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           {task.title}
         </Typography>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <CustomButton onClick={() => setEditing(!editing)}>
-            {editing ? "保存" : "編集"}
+            {editing ? '保存' : '編集'}
           </CustomButton>
           <CustomButton
             variant="destructive"
-            onClick={() => setDeleteDialogOpen(true)}
+            onClick={() => {
+              // setDeleteDialogOpen(true);
+            }}
           >
             <Delete fontSize="small" sx={{ mr: 1 }} />
             削除
@@ -548,14 +594,14 @@ export default function TaskDetailPage() {
       {task.external && (
         <Card>
           <CardContent>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 1 }}>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 1 }}>
               Backlog情報
             </Typography>
             <MUILink
               href={task.external.url}
               target="_blank"
               rel="noopener noreferrer"
-              sx={{ color: "primary.main", "&:hover": { textDecoration: "underline" } }}
+              sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
             >
               {task.external.issueKey}
             </MUILink>
@@ -567,20 +613,18 @@ export default function TaskDetailPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
                 基本情報
               </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>ステータス</InputLabel>
                   {editing ? (
                     <Select
                       value={task.flowStatus}
-                      onChange={(e) =>
-                        updateTask.mutate({
-                          flowStatus: e.target.value as FlowStatus,
-                        })
-                      }
+                      onChange={(e) => updateTask.mutate({
+                        flowStatus: e.target.value as FlowStatus,
+                      })}
                       label="ステータス"
                     >
                       {flowStatusOptions.map((status) => (
@@ -598,16 +642,14 @@ export default function TaskDetailPage() {
                   type="date"
                   value={
                     task.itUpDate
-                      ? format(task.itUpDate, "yyyy-MM-dd")
-                      : ""
+                      ? format(task.itUpDate, 'yyyy-MM-dd')
+                      : ''
                   }
-                  onChange={(e) =>
-                    updateTask.mutate({
-                      itUpDate: e.target.value
-                        ? new Date(e.target.value)
-                        : null,
-                    })
-                  }
+                  onChange={(e) => updateTask.mutate({
+                    itUpDate: e.target.value
+                      ? new Date(e.target.value)
+                      : null,
+                  })}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -617,16 +659,14 @@ export default function TaskDetailPage() {
                   type="date"
                   value={
                     task.releaseDate
-                      ? format(task.releaseDate, "yyyy-MM-dd")
-                      : ""
+                      ? format(task.releaseDate, 'yyyy-MM-dd')
+                      : ''
                   }
-                  onChange={(e) =>
-                    updateTask.mutate({
-                      releaseDate: e.target.value
-                        ? new Date(e.target.value)
-                        : null,
-                    })
-                  }
+                  onChange={(e) => updateTask.mutate({
+                    releaseDate: e.target.value
+                      ? new Date(e.target.value)
+                      : null,
+                  })}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -636,9 +676,7 @@ export default function TaskDetailPage() {
                   {editing ? (
                     <Select
                       value={task.kubunLabelId}
-                      onChange={(e) =>
-                        updateTask.mutate({ kubunLabelId: e.target.value })
-                      }
+                      onChange={(e) => updateTask.mutate({ kubunLabelId: e.target.value })}
                       label="区分"
                     >
                       {labels?.map((label) => (
@@ -649,7 +687,7 @@ export default function TaskDetailPage() {
                     </Select>
                   ) : (
                     <Typography sx={{ mt: 1 }}>
-                      {labels?.find((l) => l.id === task.kubunLabelId)?.name || "-"}
+                      {labels?.find((l) => l.id === task.kubunLabelId)?.name || '-'}
                     </Typography>
                   )}
                 </FormControl>
@@ -658,124 +696,127 @@ export default function TaskDetailPage() {
           </Card>
         </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold", mb: 2 }}>
-                    連携
-                  </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      {activeSession?.taskId === task.id ? (
-                        <Button
-                          fullWidth
-                          variant="contained"
-                          color="error"
-                          onClick={handleStopTimer}
-                          disabled={stopTimer.isPending}
-                          sx={{
-                            animation: stopTimer.isPending ? "none" : "pulse 2s ease-in-out infinite",
-                            "@keyframes pulse": {
-                              "0%, 100%": {
-                                opacity: 1,
-                              },
-                              "50%": {
-                                opacity: 0.8,
-                              },
-                            },
-                          }}
-                        >
-                          {stopTimer.isPending ? (
-                            <>
-                              <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
-                              停止中...
-                            </>
-                          ) : (
-                            <>
-                              <Stop fontSize="small" sx={{ mr: 1 }} />
-                              タイマー停止
-                            </>
-                          )}
-                        </Button>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
+                連携
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {activeSession?.taskId === task.id ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="error"
+                      onClick={handleStopTimer}
+                      disabled={stopTimer.isPending}
+                      sx={{
+                        animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': {
+                            opacity: 1,
+                          },
+                          '50%': {
+                            opacity: 0.8,
+                          },
+                        },
+                      }}
+                    >
+                      {stopTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          停止中...
+                        </>
                       ) : (
-                        <CustomButton
-                          fullWidth
-                          variant="outline"
-                          onClick={handleStartTimer}
-                          disabled={!!activeSession || startTimer.isPending}
-                        >
-                          {startTimer.isPending ? (
-                            <>
-                              <CircularProgress size={16} sx={{ color: "inherit", mr: 1 }} />
-                              開始中...
-                            </>
-                          ) : (
-                            <>
-                              <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                              タイマー開始
-                            </>
-                          )}
-                        </CustomButton>
+                        <>
+                          <Stop fontSize="small" sx={{ mr: 1 }} />
+                          タイマー停止
+                        </>
                       )}
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        {task.googleDriveUrl ? (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            onClick={() => window.open(task.googleDriveUrl!, "_blank")}
-                            sx={{ flex: 1 }}
-                          >
-                            <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                            Driveを開く
-                          </Button>
-                        ) : (
-                          <CustomButton
-                            fullWidth
-                            variant="outline"
-                            onClick={handleDriveCreate}
-                            disabled={createDriveFolder.isPending}
-                            sx={{ flex: 1 }}
-                          >
-                            <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                            Drive作成
-                          </CustomButton>
-                        )}
-                        {task.fireIssueUrl ? (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            onClick={() => window.open(task.fireIssueUrl!, "_blank")}
-                            sx={{ flex: 1 }}
-                          >
-                            <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                            Issueを開く
-                          </Button>
-                        ) : (
-                          <CustomButton
-                            fullWidth
-                            variant="outline"
-                            onClick={handleFireCreate}
-                            disabled={createFireIssue.isPending}
-                            sx={{ flex: 1 }}
-                          >
-                            <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                            Issue作成
-                          </CustomButton>
-                        )}
-                      </Box>
-                    </Box>
+                    </Button>
+                  ) : (
+                    <CustomButton
+                      fullWidth
+                      variant="outline"
+                      onClick={handleStartTimer}
+                      disabled={!!activeSession || startTimer.isPending}
+                    >
+                      {startTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          開始中...
+                        </>
+                      ) : (
+                        <>
+                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                          タイマー開始
+                        </>
+                      )}
+                    </CustomButton>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    {task.googleDriveUrl ? (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        onClick={() => window.open(task.googleDriveUrl!, '_blank')}
+                        sx={{ flex: 1 }}
+                      >
+                        <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                        Driveを開く
+                      </Button>
+                    ) : (
+                      <CustomButton
+                        fullWidth
+                        variant="outline"
+                        onClick={handleDriveCreate}
+                        disabled={createDriveFolder.isPending}
+                        sx={{ flex: 1 }}
+                      >
+                        <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                        Drive作成
+                      </CustomButton>
+                    )}
+                    {task.fireIssueUrl ? (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        onClick={() => window.open(task.fireIssueUrl!, '_blank')}
+                        sx={{ flex: 1 }}
+                      >
+                        <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                        Issueを開く
+                      </Button>
+                    ) : (
+                      <CustomButton
+                        fullWidth
+                        variant="outline"
+                        onClick={handleFireCreate}
+                        disabled={createFireIssue.isPending}
+                        sx={{ flex: 1 }}
+                      >
+                        <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                        Issue作成
+                      </CustomButton>
+                    )}
                   </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
       <Card>
         <CardContent>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: "semibold" }}>
+          <Box sx={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2,
+          }}
+          >
+            <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
               セッション履歴
             </Typography>
             <CustomButton
@@ -786,65 +827,72 @@ export default function TaskDetailPage() {
               追加
             </CustomButton>
           </Box>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {sessions && sessions.length > 0 ? (
               sessions.map((session: any) => {
                 const sessionUser = allUsers?.find((u) => u.id === session.userId);
                 const formatDuration = (seconds: number | undefined | null) => {
                   // durationSecが0または無効な場合、開始時刻と終了時刻から計算
                   let secs = 0;
-                  if (seconds === undefined || seconds === null || isNaN(seconds) || seconds === 0) {
+                  if (
+                    seconds === undefined
+                    || seconds === null
+                    || Number.isNaN(seconds)
+                    || seconds === 0
+                  ) {
                     if (session.endedAt && session.startedAt) {
-                      secs = Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000);
+                      secs = Math.floor(
+                        (session.endedAt.getTime() - session.startedAt.getTime()) / 1000,
+                      );
                     } else {
-                      return "0秒";
+                      return '0秒';
                     }
                   } else {
                     secs = Math.floor(Number(seconds));
                   }
-                  
+
                   const hours = Math.floor(secs / 3600);
                   const minutes = Math.floor((secs % 3600) / 60);
                   const remainingSecs = secs % 60;
                   if (hours > 0) {
                     return `${hours}時間${minutes}分${remainingSecs}秒`;
-                  } else if (minutes > 0) {
+                  } if (minutes > 0) {
                     return `${minutes}分${remainingSecs}秒`;
-                  } else {
-                    return `${remainingSecs}秒`;
                   }
+                  return `${remainingSecs}秒`;
                 };
                 return (
                   <Box
                     key={session.id}
-                    sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1 }}
+                    sx={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', pb: 1,
+                    }}
                   >
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1 }}>
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        {sessionUser?.displayName || "不明なユーザー"}
+                    <Box sx={{
+                      display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1,
+                    }}
+                    >
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {sessionUser?.displayName || '不明なユーザー'}
                       </Typography>
                       <Typography>
-                        {format(session.startedAt, "yyyy-MM-dd HH:mm:ss", {
-                          locale: ja,
-                        })}
-                        {" - "}
+                        {format(session.startedAt, 'yyyy-MM-dd HH:mm:ss')}
+                        {' - '}
                         {session.endedAt
-                          ? format(session.endedAt, "yyyy-MM-dd HH:mm:ss", {
-                              locale: ja,
-                            })
-                          : "実行中"}
+                          ? format(session.endedAt, 'yyyy-MM-dd HH:mm:ss')
+                          : '実行中'}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Typography sx={{ fontWeight: "medium", minWidth: "80px", textAlign: "right" }}>
-                        {session.endedAt ? formatDuration(session.durationSec) : "-"}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontWeight: 'medium', minWidth: '80px', textAlign: 'right' }}>
+                        {session.endedAt ? formatDuration(session.durationSec) : '-'}
                       </Typography>
                       {user?.id === session.userId && (
-                        <Box sx={{ display: "flex", gap: 0.5 }}>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
                           <Button
                             size="small"
                             onClick={() => handleEditSession(session)}
-                            sx={{ minWidth: "auto", p: 0.5 }}
+                            sx={{ minWidth: 'auto', p: 0.5 }}
                           >
                             <Edit fontSize="small" />
                           </Button>
@@ -852,7 +900,7 @@ export default function TaskDetailPage() {
                             size="small"
                             onClick={() => handleDeleteSession(session.id)}
                             color="error"
-                            sx={{ minWidth: "auto", p: 0.5 }}
+                            sx={{ minWidth: 'auto', p: 0.5 }}
                             disabled={deleteSession.isPending}
                           >
                             <Delete fontSize="small" />
@@ -864,7 +912,7 @@ export default function TaskDetailPage() {
                 );
               })
             ) : (
-              <Typography sx={{ color: "text.secondary", py: 2 }}>
+              <Typography sx={{ color: 'text.secondary', py: 2 }}>
                 セッション履歴がありません
               </Typography>
             )}
@@ -873,16 +921,24 @@ export default function TaskDetailPage() {
       </Card>
 
       {/* セッション編集ダイアログ */}
-      <Dialog open={sessionEditDialogOpen || sessionAddDialogOpen} onClose={() => {
-        setSessionEditDialogOpen(false);
-        setSessionAddDialogOpen(false);
-        setEditingSession(null);
-      }} maxWidth="sm" fullWidth>
+      <Dialog
+        open={sessionEditDialogOpen || sessionAddDialogOpen}
+        onClose={() => {
+          setSessionEditDialogOpen(false);
+          setSessionAddDialogOpen(false);
+          setEditingSession(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
-          {editingSession ? "セッション編集" : "セッション追加"}
+          {editingSession ? 'セッション編集' : 'セッション追加'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+          <Box sx={{
+            display: 'flex', flexDirection: 'column', gap: 2, pt: 2,
+          }}
+          >
             <FormControl fullWidth>
               <InputLabel>ユーザー</InputLabel>
               <Select
@@ -897,12 +953,14 @@ export default function TaskDetailPage() {
                 ))}
               </Select>
             </FormControl>
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 label="開始日"
                 type="date"
                 value={sessionFormData.startedAt}
-                onChange={(e) => setSessionFormData({ ...sessionFormData, startedAt: e.target.value })}
+                onChange={(e) => {
+                  setSessionFormData({ ...sessionFormData, startedAt: e.target.value });
+                }}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -910,17 +968,21 @@ export default function TaskDetailPage() {
                 label="開始時刻"
                 type="time"
                 value={sessionFormData.startedAtTime}
-                onChange={(e) => setSessionFormData({ ...sessionFormData, startedAtTime: e.target.value })}
+                onChange={(e) => {
+                  setSessionFormData({ ...sessionFormData, startedAtTime: e.target.value });
+                }}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
             </Box>
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 label="終了日"
                 type="date"
                 value={sessionFormData.endedAt}
-                onChange={(e) => setSessionFormData({ ...sessionFormData, endedAt: e.target.value })}
+                onChange={(e) => {
+                  setSessionFormData({ ...sessionFormData, endedAt: e.target.value });
+                }}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -928,7 +990,9 @@ export default function TaskDetailPage() {
                 label="終了時刻"
                 type="time"
                 value={sessionFormData.endedAtTime}
-                onChange={(e) => setSessionFormData({ ...sessionFormData, endedAtTime: e.target.value })}
+                onChange={(e) => {
+                  setSessionFormData({ ...sessionFormData, endedAtTime: e.target.value });
+                }}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -948,7 +1012,8 @@ export default function TaskDetailPage() {
             setSessionEditDialogOpen(false);
             setSessionAddDialogOpen(false);
             setEditingSession(null);
-          }}>
+          }}
+          >
             キャンセル
           </Button>
           <Button
@@ -956,11 +1021,10 @@ export default function TaskDetailPage() {
             variant="contained"
             disabled={updateSession.isPending || addSession.isPending}
           >
-            {editingSession ? "更新" : "追加"}
+            {editingSession ? '更新' : '追加'}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
 }
-

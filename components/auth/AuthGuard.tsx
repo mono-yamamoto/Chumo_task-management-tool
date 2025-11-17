@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Box, CircularProgress } from "@mui/material";
+import React, { useEffect } from 'react';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { Box, CircularProgress } from '@mui/material';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -11,13 +11,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [user, loading, router]);
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
+      <Box sx={{
+        display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center',
+      }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -27,6 +30,5 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return <>{children}</>;
+  return children;
 }
-
