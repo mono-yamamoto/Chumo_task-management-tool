@@ -128,10 +128,11 @@ export const createFireIssue = onRequest(
       const issueUrl = issueResponse.data.html_url;
 
       // タスクにURLを保存
-      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
-        fireIssueUrl: issueUrl,
-        updatedAt: new Date(),
-      });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
+        .update({
+          fireIssueUrl: issueUrl,
+          updatedAt: new Date(),
+        });
 
       res.status(200).json({
         success: true,

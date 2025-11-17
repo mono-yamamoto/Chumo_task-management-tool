@@ -45,12 +45,12 @@ async function createUser() {
 
   try {
     await db.collection('users').doc(uid).set(userData);
-    console.log('ユーザーを作成しました:');
-    console.log(`  UID: ${uid}`);
-    console.log(`  メール: ${email}`);
-    console.log(`  表示名: ${displayName}`);
-    console.log(`  ロール: ${role}`);
-    console.log('  許可: true');
+    console.info('ユーザーを作成しました:');
+    console.info(`  UID: ${uid}`);
+    console.info(`  メール: ${email}`);
+    console.info(`  表示名: ${displayName}`);
+    console.info(`  ロール: ${role}`);
+    console.info('  許可: true');
   } catch (error) {
     console.error('エラー:', error);
     process.exit(1);

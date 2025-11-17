@@ -65,7 +65,7 @@ export const createDriveFolder = onRequest(
       }
 
       // ユーザーのリフレッシュトークンを取得
-      console.log('Fetching user document for userId:', userId);
+      console.info('Fetching user document for userId:', userId);
       const userDoc = await db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
         console.error('User document not found for userId:', userId);
@@ -74,8 +74,8 @@ export const createDriveFolder = onRequest(
       }
 
       const userData = userDoc.data();
-      console.log('User data fields:', userData ? Object.keys(userData) : 'null');
-      console.log('googleRefreshToken exists:', !!userData?.googleRefreshToken);
+      console.info('User data fields:', userData ? Object.keys(userData) : 'null');
+      console.info('googleRefreshToken exists:', !!userData?.googleRefreshToken);
       const refreshToken = userData?.googleRefreshToken;
 
       if (!refreshToken) {
@@ -88,7 +88,7 @@ export const createDriveFolder = onRequest(
         return;
       }
 
-      console.log('Refresh token found, length:', refreshToken.length);
+      console.info('Refresh token found, length:', refreshToken.length);
 
       // タスク情報取得
       const taskDoc = await db
@@ -203,7 +203,7 @@ export const createDriveFolder = onRequest(
         let sheetId: string | null = null;
         try {
           const checksheetName = `チェックシート_${task.title}`;
-          console.log('Creating checksheet with name:', checksheetName);
+          console.info('Creating checksheet with name:', checksheetName);
 
           const copyResponse = await drive.files.copy({
             fileId: checksheetTemplateId,
@@ -215,7 +215,7 @@ export const createDriveFolder = onRequest(
           });
 
           sheetId = copyResponse.data.id!;
-          console.log('Checksheet created successfully, ID:', sheetId);
+          console.info('Checksheet created successfully, ID:', sheetId);
 
           const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
 
@@ -225,7 +225,7 @@ export const createDriveFolder = onRequest(
           });
           const firstSheet = spreadsheetInfo.data.sheets?.[0];
           const sheetName = firstSheet?.properties?.title || 'シート1';
-          console.log('Sheet name:', sheetName);
+          console.info('Sheet name:', sheetName);
 
           // セル書き込み（個別にエラーハンドリング）
           try {
@@ -237,7 +237,7 @@ export const createDriveFolder = onRequest(
                 values: [[task.title]],
               },
             });
-            console.log('Cell C4 updated successfully');
+            console.info('Cell C4 updated successfully');
           } catch (error) {
             console.error('Failed to update cell C4:', error);
             throw error;
@@ -252,7 +252,7 @@ export const createDriveFolder = onRequest(
                 values: [[task.external?.url || '']],
               },
             });
-            console.log('Cell C5 updated successfully');
+            console.info('Cell C5 updated successfully');
           } catch (error) {
             console.error('Failed to update cell C5:', error);
             throw error;
@@ -267,13 +267,13 @@ export const createDriveFolder = onRequest(
                 values: [[folderUrl]],
               },
             });
-            console.log('Cell C7 updated successfully');
+            console.info('Cell C7 updated successfully');
           } catch (error) {
             console.error('Failed to update cell C7:', error);
             throw error;
           }
 
-          console.log('All cells updated successfully');
+          console.info('All cells updated successfully');
         } catch (error) {
           // チェックシート作成でエラーが発生した場合、エラー情報を保存
           checksheetError = error instanceof Error ? error : new Error(String(error));
@@ -298,10 +298,11 @@ export const createDriveFolder = onRequest(
         }
 
         // タスクにURLを保存
-        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
-          googleDriveUrl: folderUrl,
-          updatedAt: new Date(),
-        });
+        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
+          .update({
+            googleDriveUrl: folderUrl,
+            updatedAt: new Date(),
+          });
 
         // チェックシート作成エラーがある場合は警告付きで返す
         if (checksheetError) {
@@ -321,10 +322,11 @@ export const createDriveFolder = onRequest(
       }
 
       // 既存フォルダの場合もURLを保存
-      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
-        googleDriveUrl: folderUrl,
-        updatedAt: new Date(),
-      });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
+        .update({
+          googleDriveUrl: folderUrl,
+          updatedAt: new Date(),
+        });
 
       res.status(200).json({
         success: true,

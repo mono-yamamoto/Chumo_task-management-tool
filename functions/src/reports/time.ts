@@ -26,7 +26,7 @@ export const getTimeReport = onRequest(
       const toDate = new Date(to as string);
 
       // 日付の検証
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
         res.status(400).json({ error: 'Invalid date format' });
         return;
       }
@@ -165,7 +165,7 @@ export const exportTimeReportCSV = onRequest(
       const toDate = new Date(to as string);
 
       // 日付の検証
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
         res.status(400).json({ error: 'Invalid date format' });
         return;
       }

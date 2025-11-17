@@ -54,9 +54,9 @@ async function createInitialData() {
     updatedAt: new Date(),
   });
 
-  console.log('初期データの作成が完了しました');
-  console.log(`プロジェクトID: ${projectId}`);
-  console.log(`デフォルトラベルID: ${defaultLabelId}`);
+  console.info('初期データの作成が完了しました');
+  console.info(`プロジェクトID: ${projectId}`);
+  console.info(`デフォルトラベルID: ${defaultLabelId}`);
 }
 
 createInitialData().catch(console.error);

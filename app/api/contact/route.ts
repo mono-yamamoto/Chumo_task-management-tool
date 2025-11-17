@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     let decodedToken;
     try {
       decodedToken = await auth.verifyIdToken(token);
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 });
     }
 
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
           for (const app of existingApps) {
             try {
               (app as any).delete();
-            } catch (deleteError) {
+            } catch {
               // 削除エラーは無視
             }
           }

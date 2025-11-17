@@ -79,12 +79,13 @@ export const syncBacklog = onRequest(
       } else {
         // 更新（外部情報のみ）
         const taskId = tasksSnapshot.docs[0].id;
-        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
-          external: taskData.external,
-          title: taskData.title,
-          description: taskData.description,
-          updatedAt: new Date(),
-        });
+        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
+          .update({
+            external: taskData.external,
+            title: taskData.title,
+            description: taskData.description,
+            updatedAt: new Date(),
+          });
       }
 
       res.status(200).json({ success: true });
