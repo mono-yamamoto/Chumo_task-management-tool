@@ -20,7 +20,11 @@
         "js": "never",
         "jsx": "never"
       }
-    ]
+    ],
+    "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
+    "no-await-in-loop": "off",
+    "import/prefer-default-export": "off",
+    "no-console": ["error", { "allow": ["error", "warn", "debug", "info"] }]
   },
   "settings": {
     "import/resolver": {
