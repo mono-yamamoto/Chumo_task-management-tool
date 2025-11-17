@@ -1,44 +1,45 @@
 # AGENTS.md
 
-このファイルは、AIコーディングエージェントがこのプロジェクトで作業する際のガイドラインです。
+This file contains guidelines for AI coding agents working on this project.
 
-## ExecPlan（実行計画）の使用
+## ExecPlan Usage
 
-複雑な機能実装や大きなリファクタリングを行う場合は、ExecPlan（実行計画）を作成してください。
+When implementing complex features or performing significant refactoring, create an ExecPlan (execution plan).
 
-**ExecPlanを使用すべき場合**:
-- 複数のファイルにまたがる機能追加
-- アーキテクチャの変更や大きなリファクタリング
-- 複数のステップが必要な機能実装
-- 外部ライブラリの統合やAPI連携の実装
-- データベーススキーマの変更やマイグレーション
+**When to use ExecPlan**:
+- Feature additions spanning multiple files
+- Architecture changes or major refactoring
+- Multi-step feature implementations
+- External library integrations or API integrations
+- Database schema changes or migrations
 
-ExecPlanの作成方法と形式については、`.agent/PLANS.md`を参照してください。ExecPlanは設計から実装まで一貫したガイドを提供し、複数時間にわたる作業でも正確に実装を進められます。
+Refer to `.agent/PLANS.md` for ExecPlan creation methods and format. ExecPlans provide consistent guidance from design to implementation, enabling accurate implementation even for multi-hour tasks.
 
 ## Setup commands
 
-### 開発環境のセットアップ
+### Development Environment Setup
 
-**前提条件**: Firebase、GCP、Cloud Functionsなどのインフラは既に管理者が設定済みです。
-開発者はローカル開発環境を構築するだけで開発を始められます。
+**Prerequisites**: Infrastructure such as Firebase, GCP, and Cloud Functions are already configured by administrators. Developers only need to set up their local development environment to start development.
 
-#### 1. 依存関係のインストール
+#### 1. Install Dependencies
 
 ```bash
-# ルートの依存関係をインストール
+# Install root dependencies
 npm install
 
-# Functionsの依存関係をインストール
+# Install Functions dependencies
 cd functions && npm install && cd ..
 ```
 
-#### 2. 環境変数の設定
+#### 2. Environment Variables Configuration
 
-`.env.local`ファイルが存在しない場合、プロジェクトルートに作成してください。
+**⚠️ IMPORTANT: This step requires manual user action. Inform the user in Japanese.**
 
-既存の開発者から環境変数の値を取得するか、管理者に依頼してください。
+If the `.env.local` file does not exist, create it in the project root.
 
-必要な環境変数：
+**Tell the user in Japanese**: 既存の開発者から環境変数の値を取得するか、管理者に依頼してください。
+
+Required environment variables:
 
 ```env
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
@@ -50,84 +51,86 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 NEXT_PUBLIC_FUNCTIONS_URL=https://asia-northeast1-chumo-3506a.cloudfunctions.net
 ```
 
-#### 3. Firebase CLIの設定（初回のみ）
+#### 3. Firebase CLI Configuration (First Time Only)
 
 ```bash
-# Firebase CLIがインストールされていない場合
+# If Firebase CLI is not installed
 npm install -g firebase-tools
 
-# Firebaseにログイン（初回のみ）
+# Login to Firebase (first time only)
 firebase login
 
-# プロジェクトを選択（初回のみ）
+# Select project (first time only)
 firebase use --add
-# プロンプトでプロジェクトID「chumo-3506a」を選択
+# Select project ID "chumo-3506a" in the prompt
 ```
 
-#### 4. 開発サーバー起動
+#### 4. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-ブラウザで `http://localhost:3000` にアクセスしてください。
+**Tell the user in Japanese**: ブラウザで `http://localhost:3000` にアクセスしてください。
 
-#### 5. Cursorユーザー向け: コミットコマンド
+#### 5. Cursor Users: Commit Command
 
-**Cursorを使用している場合**: セットアップ完了後、変更をコミットする際は `/commit` コマンドが利用可能です。
+**For Cursor users**: After setup is complete, the `/commit` command is available for committing changes.
 
-このコマンドは、変更を関連ごとに自動的にグルーピングし、各グループを1コミットに分割して即時コミットします。詳細は「コミットルール」セクションを参照してください。
+This command automatically groups changes by relevance and splits each group into separate commits. See the "Commit Rules" section for details.
 
-## 推奨ツール
+**Tell the user in Japanese**: セットアップ完了後、変更をコミットする際は `/commit` コマンドが利用可能です。このコマンドは、変更を関連ごとに自動的にグルーピングし、各グループを1コミットに分割して即時コミットします。詳細は「コミットルール」セクションを参照してください。
 
-### MCPツールの導入（推奨）
+## Recommended Tools
 
-開発効率を向上させるため、以下のMCPツールの導入を推奨します：
+### MCP Tools Setup (Recommended)
+
+To improve development efficiency, we recommend setting up the following MCP tools:
 
 #### Serena MCP
 
-コードの読み取り・編集を効率化するためのMCPツールです。
+An MCP tool for efficient code reading and editing.
 
-**導入方法**:
-- Cursorを使用している場合: プロジェクトに既に設定済みです
-- その他のエージェントを使用している場合: [Serena MCP](https://github.com/oraios/serena) のドキュメントを参照して導入してください
+**Setup**:
+- If using Cursor: Already configured in the project
+- For other agents: Refer to [Serena MCP](https://github.com/oraios/serena) documentation for setup
 
-**主な機能**:
-- シンボルベースのコード検索・編集
-- 関数・クラス・メソッドの正確な修正
-- コードのリファクタリング支援
+**Main features**:
+- Symbol-based code search and editing
+- Accurate function, class, and method modifications
+- Code refactoring support
 
 #### Chrome DevTools MCP
 
-ブラウザでの動作確認を効率化するためのMCPツールです。
+An MCP tool for efficient browser-based verification.
 
-**導入方法**:
-- Cursorを使用している場合: プロジェクトに既に設定済みです
-- その他のエージェントを使用している場合: [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) のドキュメントを参照して導入してください
+**Setup**:
+- If using Cursor: Already configured in the project
+- For other agents: Refer to [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) documentation for setup
 
-**主な機能**:
-- ページのスナップショット取得
-- コンソールエラーの確認
-- ネットワークリクエストの確認
-- UIの動作確認
+**Main features**:
+- Page snapshot capture
+- Console error checking
+- Network request verification
+- UI behavior verification
 
 ## Code style
 
-- **TypeScript**: strict mode有効
-- **フォーマット**: `oxfmt`を使用
-- **Lint**: `next lint`を使用
-- **命名規則**:
-  - コンポーネント: PascalCase
-  - 関数・変数: camelCase
-  - 定数: UPPER_SNAKE_CASE
+- **TypeScript**: strict mode enabled
+- **Formatter**: Use `oxfmt`
+- **Linter**: Use `next lint`
+- **Naming conventions**:
+  - Components: PascalCase
+  - Functions and variables: camelCase
+  - Constants: UPPER_SNAKE_CASE
 
-### コードフォーマット
+### Code Formatting
 
 ```bash
-# フォーマット実行
+# Format code
 npm run format
 
-# フォーマットチェック
+# Check formatting
 npm run format:check
 ```
 
@@ -137,240 +140,243 @@ npm run format:check
 npm run lint
 ```
 
-## 開発ルール
+## Development Rules
 
-### MCPツールの使用ルール
+### MCP Tools Usage Rules
 
-#### Serena MCPの使用
+#### Serena MCP Usage
 
-**コード修正時の原則**: Serena MCPが有効な場合は、常にSerena MCPのツールを使用してコードを修正してください。
+**Principle for code modifications**: If Serena MCP is available, always use Serena MCP tools for code modifications.
 
-- **コードの読み取り**: `mcp_serena_read_file`、`mcp_serena_find_symbol`、`mcp_serena_get_symbols_overview`などを使用
-- **コードの編集**: `mcp_serena_replace_symbol_body`、`mcp_serena_replace_regex`、`mcp_serena_insert_after_symbol`、`mcp_serena_insert_before_symbol`などを使用
-- **シンボルの検索**: `mcp_serena_find_symbol`、`mcp_serena_find_referencing_symbols`を使用
-- **パターン検索**: `mcp_serena_search_for_pattern`を使用
+- **Code reading**: Use `mcp_serena_read_file`, `mcp_serena_find_symbol`, `mcp_serena_get_symbols_overview`, etc.
+- **Code editing**: Use `mcp_serena_replace_symbol_body`, `mcp_serena_replace_regex`, `mcp_serena_insert_after_symbol`, `mcp_serena_insert_before_symbol`, etc.
+- **Symbol search**: Use `mcp_serena_find_symbol`, `mcp_serena_find_referencing_symbols`
+- **Pattern search**: Use `mcp_serena_search_for_pattern`
 
-**使用すべき場面**:
-- ファイルの読み取り・編集
-- 関数・クラス・メソッドの修正
-- シンボルの検索・参照の確認
-- コードのリファクタリング
-- バグ修正
+**When to use**:
+- File reading and editing
+- Function, class, and method modifications
+- Symbol search and reference verification
+- Code refactoring
+- Bug fixes
 
-**通常のツールとの使い分け**:
-Serena MCPが利用できない場合や、以下のような場合のみ通常のツールを使用してください：
-- ファイルの作成・削除（`write`、`delete_file`）
-- ディレクトリの一覧取得（`list_dir`）
-- ターミナルコマンドの実行（`run_terminal_cmd`）
-- リンターエラーの確認（`read_lints`）
+**When to use standard tools instead**:
+Use standard tools only when Serena MCP is unavailable or for the following cases:
+- File creation and deletion (`write`, `delete_file`)
+- Directory listing (`list_dir`)
+- Terminal command execution (`run_terminal_cmd`)
+- Linter error checking (`read_lints`)
 
-#### Chrome DevTools MCPの使用
+#### Chrome DevTools MCP Usage
 
-**ローカルサーバーでの動作確認**: ローカルサーバーが起動している場合、またはローカルサーバーのURL（例: `http://localhost:3000`）が共有された場合は、Chrome DevTools MCPを使用してページを確認してください。
+**Local server verification**: When a local server is running or a local server URL (e.g., `http://localhost:3000`) is shared, use Chrome DevTools MCP to verify the page.
 
-**使用すべき場面**:
-- ページの表示確認
-- UIの動作確認
-- コンソールエラーの確認
-- ネットワークリクエストの確認
-- パフォーマンスの確認
-- 要素の状態確認
+**When to use**:
+- Page display verification
+- UI behavior verification
+- Console error checking
+- Network request verification
+- Performance verification
+- Element state verification
 
-**基本的なワークフロー**:
-1. **ページに移動**: `mcp_chrome-devtools_navigate_page`でURLに移動
-2. **スナップショット取得**: `mcp_chrome-devtools_take_snapshot`でページの状態を確認
-3. **操作**: 必要に応じてクリック、入力などの操作を実行
-4. **確認**: コンソールメッセージやネットワークリクエストを確認
-5. **スクリーンショット**: 必要に応じて`mcp_chrome-devtools_take_screenshot`でスクリーンショットを取得
+**Basic workflow**:
+1. **Navigate to page**: Use `mcp_chrome-devtools_navigate_page` to navigate to the URL
+2. **Take snapshot**: Use `mcp_chrome-devtools_take_snapshot` to verify page state
+3. **Interact**: Perform clicks, input, etc. as needed
+4. **Verify**: Check console messages and network requests
+5. **Screenshot**: Use `mcp_chrome-devtools_take_screenshot` to capture screenshots as needed
 
-**確認すべき項目**:
-- ページが正しく表示されているか
-- エラーメッセージが表示されていないか
-- コンソールにエラーが出ていないか（`mcp_chrome-devtools_list_console_messages`）
-- ネットワークリクエストが正常に完了しているか（`mcp_chrome-devtools_list_network_requests`）
-- UIの動作が期待通りか
+**Verification checklist**:
+- Is the page displayed correctly?
+- Are there any error messages?
+- Are there console errors? (Use `mcp_chrome-devtools_list_console_messages`)
+- Are network requests completing successfully? (Use `mcp_chrome-devtools_list_network_requests`)
+- Is UI behavior as expected?
 
-**URLの検出**:
-以下のような情報が提供された場合は、Chrome DevTools MCPを使用してください：
-- `http://localhost:*` の形式のURL
-- `localhost:3000` などのローカルサーバーのURL
-- ユーザーが「ローカルサーバーが起動している」と明示的に述べた場合
-- ユーザーが「ページを確認して」と依頼した場合
+**URL detection**:
+Use Chrome DevTools MCP when the following information is provided:
+- URLs in the format `http://localhost:*`
+- Local server URLs like `localhost:3000`
+- When the user explicitly states "local server is running"
+- When the user requests "check the page"
 
-**優先順位**:
-1. **Serena MCP**: コードの修正・読み取りは常に優先
-2. **Chrome DevTools MCP**: ローカルサーバーでの動作確認が必要な場合
-3. **通常のツール**: 上記のMCPツールが使用できない場合のみ
+**Priority**:
+1. **Serena MCP**: Always prioritize for code modifications and reading
+2. **Chrome DevTools MCP**: When local server verification is needed
+3. **Standard tools**: Only when the above MCP tools are unavailable
 
-**注意事項**:
-- Serena MCPとChrome DevTools MCPは併用可能です
-- コード修正後は、Chrome DevTools MCPで動作確認を行うことを推奨します
-- MCPツールが利用できない場合は、通常のツールを使用してください
+**Notes**:
+- Serena MCP and Chrome DevTools MCP can be used together
+- After code modifications, verify behavior with Chrome DevTools MCP
+- If MCP tools are unavailable, use standard tools
 
-### 実装テストのルール
+### Implementation Testing Rules
 
-**実装や修正を行った後は、必ず以下の手順で実装テストを行い、問題がないことを確認してから修正完了とします。**
+**After implementing or modifying code, always perform implementation testing following the steps below and confirm there are no issues before marking the modification as complete.**
 
-#### 必須確認項目
+#### Required Verification Items
 
-1. **ブラウザでの動作確認**
-   - ローカルサーバーが起動している場合、またはローカルサーバーのURL（例: `http://localhost:3000`）が共有された場合は、Chrome DevTools MCPを使用してページを確認してください
-   - 実装した機能が正しく動作することを確認
-   - UIが期待通りに表示されることを確認
-   - ユーザーインタラクション（クリック、入力など）が正常に動作することを確認
+1. **Browser Behavior Verification**
+   - When a local server is running or a local server URL (e.g., `http://localhost:3000`) is shared, use Chrome DevTools MCP to verify the page
+   - Verify that implemented features work correctly
+   - Verify that UI is displayed as expected
+   - Verify that user interactions (clicks, input, etc.) work normally
 
-2. **コンソールエラーの確認**
-   - Chrome DevTools MCPの`mcp_chrome-devtools_list_console_messages`を使用して、コンソールにエラーが発生していないか確認
-   - エラーメッセージが表示されている場合は、原因を特定して修正
-   - 警告メッセージについても、必要に応じて対処
+2. **Console Error Verification**
+   - Use Chrome DevTools MCP's `mcp_chrome-devtools_list_console_messages` to check for console errors
+   - If error messages are displayed, identify the cause and fix
+   - Address warning messages as needed
 
-3. **ネットワークリクエストの確認**
-   - 必要に応じて、`mcp_chrome-devtools_list_network_requests`を使用してAPIリクエストが正常に完了しているか確認
-   - エラーレスポンスがないか確認
+3. **Network Request Verification**
+   - As needed, use `mcp_chrome-devtools_list_network_requests` to verify API requests complete successfully
+   - Check for error responses
 
-4. **ページスナップショットの確認**
-   - `mcp_chrome-devtools_take_snapshot`を使用して、ページの状態が期待通りか確認
-   - 要素が正しく表示されているか確認
+4. **Page Snapshot Verification**
+   - Use `mcp_chrome-devtools_take_snapshot` to verify page state is as expected
+   - Verify elements are displayed correctly
 
-#### 実装テストのワークフロー
+#### Implementation Testing Workflow
 
-1. **コード修正後**
-   - コードの修正が完了したら、まずリンターエラーがないか確認（`read_lints`）
+1. **After Code Modification**
+   - After code modification is complete, first check for linter errors (`read_lints`)
 
-2. **ブラウザでの確認**
-   - ローカルサーバーが起動している場合、またはURLが共有された場合：
-     - `mcp_chrome-devtools_navigate_page`でページに移動（またはリロード）
-     - `mcp_chrome-devtools_wait_for`で必要な要素が読み込まれるまで待機
-     - `mcp_chrome-devtools_take_snapshot`でページの状態を確認
-     - 実装した機能を実際に操作して動作確認
-     - `mcp_chrome-devtools_list_console_messages`でエラーを確認
+2. **Browser Verification**
+   - When a local server is running or a URL is shared:
+     - Use `mcp_chrome-devtools_navigate_page` to navigate to the page (or reload)
+     - Use `mcp_chrome-devtools_wait_for` to wait for required elements to load
+     - Use `mcp_chrome-devtools_take_snapshot` to verify page state
+     - Actually interact with implemented features to verify behavior
+     - Use `mcp_chrome-devtools_list_console_messages` to check for errors
 
-3. **問題の修正**
-   - エラーや問題が見つかった場合、原因を特定して修正
-   - 修正後、再度ブラウザで確認を繰り返す
+3. **Issue Fixing**
+   - If errors or issues are found, identify the cause and fix
+   - After fixing, repeat browser verification
 
-4. **修正完了の判断**
-   - すべての必須確認項目をクリアした場合のみ、修正完了とする
-   - エラーが残っている場合は、修正完了としない
+4. **Completion Determination**
+   - Mark as complete only when all required verification items pass
+   - Do not mark as complete if errors remain
 
-#### 注意事項
+#### Notes
 
-- ローカルサーバーが起動していない場合やURLが共有されていない場合は、実装テストをスキップしても構いません
-- ただし、可能な限り実装テストを行うことを推奨します
-- 実装テストで問題が見つかった場合は、必ず修正してから完了とします
+- If a local server is not running or a URL is not shared, implementation testing may be skipped
+- However, we recommend performing implementation testing whenever possible
+- If issues are found during implementation testing, always fix them before completion
 
 ## Testing instructions
 
-現在、テストスイートは実装されていません。機能追加時は、適切なテストを追加してください。
+Currently, no test suite is implemented. When adding features, add appropriate tests.
 
 ## Build commands
 
 ```bash
-# フロントエンドビルド
+# Frontend build
 npm run build
 
-# Cloud Functionsビルド
+# Cloud Functions build
 npm run functions:build
 ```
 
 ## Deploy commands
 
 ```bash
-# Firestoreルールとインデックスをデプロイ
+# Deploy Firestore rules and indexes
 firebase deploy --only firestore:rules,firestore:indexes
 
-# Cloud Functionsをデプロイ
+# Deploy Cloud Functions
 npm run functions:deploy
 
-# 個別にデプロイ
+# Deploy individually
 npm run functions:deploy:timer
 npm run functions:deploy:drive
 npm run functions:deploy:github
 ```
 
-## 重要な注意事項
+## Important Notes
 
-### 手動で実行する必要がある手順
+### Manual Steps Required
 
-以下の手順は、エージェントが自動で実行できません。ユーザーに指示を出してください：
+**⚠️ IMPORTANT: These steps cannot be executed automatically by the agent. Inform the user in Japanese.**
+
+**Tell the user in Japanese**: 以下の手順は、エージェントが自動で実行できません。ユーザーに指示を出してください：
 
 1. **環境変数設定**: `.env.local`ファイルの作成と設定値の入力（既存の開発者から取得）
 
-### トラブルシューティング
+### Troubleshooting
 
-- **Firebase CLIエラー**: `firebase login`を再実行
-- **デプロイエラー**: `firebase use --add`でプロジェクトを再選択
-- **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認
+**Tell the user in Japanese when providing troubleshooting guidance**:
+
+- **Firebase CLIエラー**: `firebase login`を再実行してください
+- **デプロイエラー**: `firebase use --add`でプロジェクトを再選択してください
+- **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認してください
 
 詳細なトラブルシューティングは `docs/operations/TROUBLESHOOTING.md` を参照してください。
 
-## コミットルール
+## Commit Rules
 
-### コミットメッセージ規約
+### Commit Message Convention
 
-- **形式**: `<絵文字> <type>(<scope>): <説明> (#<issue>)`
-- **言語**: 日本語（技術用語の英語可）
-- **1行目**: 50文字以内に要約
+- **Format**: `<emoji> <type>(<scope>): <description> (#<issue>)`
+- **Language**: Japanese (English technical terms allowed)
+- **First line**: Summary within 50 characters
 
-#### タイプと絵文字
+#### Types and Emojis
 
-- `✨ feat` 新機能
-- `🐛 fix` バグ修正
-- `📝 docs` ドキュメント
-- `💄 style` 見た目/体裁のみ（動作影響なしのCSSや整形）
-- `♻️ refactor` リファクタリング
-- `✅ test` テスト
-- `🔧 build` ビルド/配布/スクリプト
+- `✨ feat` New feature
+- `🐛 fix` Bug fix
+- `📝 docs` Documentation
+- `💄 style` Appearance/formatting only (CSS or formatting with no behavioral impact)
+- `♻️ refactor` Refactoring
+- `✅ test` Tests
+- `🔧 build` Build/distribution/scripts
 - `👷 ci` CI/CD
-- `🚀 perf` パフォーマンス改善
-- `⚙️ chore` その他、依存/設定更新
+- `🚀 perf` Performance improvement
+- `⚙️ chore` Other, dependency/configuration updates
 
-#### スコープ
+#### Scope
 
-- `packages/<pkg>/...` → `<pkg>` をスコープにする
-- それ以外は先頭ディレクトリ名、なければ `root`
+- `packages/<pkg>/...` → Use `<pkg>` as scope
+- Otherwise, use the top-level directory name, or `root` if none
 
-#### Issue番号
+#### Issue Number
 
-現在のブランチ名から数字を抽出し `(#<番号>)` を末尾に付与（存在する場合）。
+Extract numbers from the current branch name and append `(#<number>)` at the end (if present).
 
-### 自動コミット（Cursorユーザー向け）
+### Auto Commit (For Cursor Users)
 
-**Cursorを使用している場合**: `/commit` コマンドが利用可能です。
+**For Cursor users**: The `/commit` command is available.
 
-このコマンドは、変更を関連ごとに自動的にグルーピングし、各グループを1コミットに分割して即時コミットします。
+This command automatically groups changes by relevance and splits each group into separate commits.
 
-**使用方法**:
-1. 変更を加えた後、Cursorのチャットで `/commit` と入力
-2. エージェントが自動的に変更を分析し、適切なコミットメッセージを生成
-3. 1コミット=1事柄の原則に従って、複数のコミットに分割
+**Usage**:
+1. After making changes, type `/commit` in Cursor's chat
+2. The agent automatically analyzes changes and generates appropriate commit messages
+3. Splits into multiple commits following the one-commit-per-matter principle
 
-**自動コミットのルール**:
-- 1コミット=1事柄の原則を厳守
-- 変更ファイルを関連ごとにグルーピング
-- 各グループを1コミットに分割
-- コミットメッセージ規約に従ったメッセージを自動生成
-- 確認ダイアログなしで即時コミット
+**Auto commit rules**:
+- Strictly follow the one-commit-per-matter principle
+- Group change files by relevance
+- Split each group into one commit
+- Generate commit messages following the commit message convention
+- Commit immediately without confirmation dialog
 
-**例**:
+**Examples**:
 - `✨ feat(root): 新機能を追加 (#123)`
 - `🐛 fix(auth): ログイン処理のバグを修正 (#123)`
 - `📝 docs(root): ドキュメントを更新 (#123)`
 
-### 手動コミットの場合
+### Manual Commits
 
-Cursor以外のエージェントを使用している場合や、手動でコミットする場合は、上記のコミットメッセージ規約に従ってコミットしてください。
+For agents other than Cursor or when committing manually, follow the commit message convention above.
 
-**原則**:
-- 1コミット=1事柄
-- 関連のない変更は別々のコミットに分割
-- コミットメッセージは明確で簡潔に
+**Principles**:
+- One commit per matter
+- Split unrelated changes into separate commits
+- Commit messages should be clear and concise
 
-## 参考ドキュメント
+## Reference Documentation
 
-- `docs/setup/INITIAL_SETUP.md`: 初期セットアップ手順（詳細）
-- `docs/setup/FIREBASE.md`: Firebase設定手順
-- `docs/setup/ENV.md`: 環境変数設定手順
-- `docs/setup/CHECKLIST.md`: Firebase初期設定チェックリスト
-- `docs/operations/TROUBLESHOOTING.md`: トラブルシューティング
-
+- `docs/setup/INITIAL_SETUP.md`: Initial setup instructions (detailed)
+- `docs/setup/FIREBASE.md`: Firebase setup instructions
+- `docs/setup/ENV.md`: Environment variable setup instructions
+- `docs/setup/CHECKLIST.md`: Firebase initial setup checklist
+- `docs/operations/TROUBLESHOOTING.md`: Troubleshooting
