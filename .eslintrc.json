@@ -1,7 +1,48 @@
 {
+  "root": true,
   "extends": [
     "airbnb",
     "next/core-web-vitals"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "plugins": ["@typescript-eslint", "react", "import"],
+  "overrides": [
+    {
+      "files": ["app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts"],
+      "parserOptions": {
+        "project": ["./tsconfig.json"]
+      },
+      "rules": {
+        "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+        "no-undef": "off"
+      }
+    },
+    {
+      "files": ["scripts/**/*.ts", "types/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+        "no-undef": "off"
+      }
+    },
+    {
+      "files": ["functions/**/*.ts"],
+      "parserOptions": {
+        "project": ["./functions/tsconfig.json"]
+      },
+      "rules": {
+        "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+        "no-undef": "off",
+        "no-continue": "off",
+        "no-nested-ternary": "off"
+      }
+    }
   ],
   "rules": {
     "react/react-in-jsx-scope": "off",
@@ -37,7 +78,10 @@
   },
   "settings": {
     "import/resolver": {
-      "typescript": {}
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": ["./tsconfig.json", "./functions/tsconfig.json"]
+      }
     }
   }
 }
