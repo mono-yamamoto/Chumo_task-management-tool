@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getCreateDriveFolderUrl, getCreateFireIssueUrl } from '@/lib/utils/functions';
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
@@ -13,9 +14,7 @@ export function useDriveIntegration() {
         throw new Error('ユーザーがログインしていません');
       }
 
-      // Firebase Functions v2では関数ごとにURLが割り当てられる
-      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const driveUrl = 'https://createdrivefolder-zbk3yr5vta-uc.a.run.app';
+      const driveUrl = getCreateDriveFolderUrl();
       console.debug('Creating drive folder with:', { projectId, taskId, userId: user.id });
       const response = await fetch(`${driveUrl}/projects/${projectId}/tasks/${taskId}`, {
         method: 'POST',
@@ -57,9 +56,7 @@ export function useFireIntegration() {
 
   const createFireIssue = useMutation({
     mutationFn: async ({ projectId, taskId }: { projectId: string; taskId: string }) => {
-      // Firebase Functions v2では関数ごとにURLが割り当てられる
-      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const fireUrl = 'https://createfireissue-zbk3yr5vta-uc.a.run.app';
+      const fireUrl = getCreateFireIssueUrl();
       const response = await fetch(`${fireUrl}/projects/${projectId}/tasks/${taskId}`, {
         method: 'POST',
       });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getStartTimerUrl, getStopTimerUrl } from '@/lib/utils/functions';
 
 export function useTimer() {
   const queryClient = useQueryClient();
@@ -15,9 +16,7 @@ export function useTimer() {
       taskId: string;
       userId: string;
     }) => {
-      // Firebase Functions v2では関数ごとにURLが割り当てられる
-      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const timerUrl = 'https://starttimer-zbk3yr5vta-uc.a.run.app';
+      const timerUrl = getStartTimerUrl();
       const response = await fetch(`${timerUrl}/projects/${projectId}/tasks/${taskId}`, {
         method: 'POST',
         headers: {
@@ -41,9 +40,7 @@ export function useTimer() {
 
   const stopTimer = useMutation({
     mutationFn: async ({ projectId, sessionId }: { projectId: string; sessionId: string }) => {
-      // Firebase Functions v2では関数ごとにURLが割り当てられる
-      // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const timerUrl = 'https://stoptimer-zbk3yr5vta-uc.a.run.app';
+      const timerUrl = getStopTimerUrl();
       const response = await fetch(`${timerUrl}/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: {

@@ -19,6 +19,7 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
+import { getTimeReportUrl, getExportTimeReportCsvUrl } from '@/lib/utils/functions';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'normal' | 'brg'>('normal');
@@ -40,8 +41,7 @@ export default function ReportsPage() {
         type: activeTab,
       });
 
-      // Firebase Functions v2では関数ごとにURLが割り当てられる
-      const reportUrl = 'https://gettimereport-zbk3yr5vta-uc.a.run.app';
+      const reportUrl = getTimeReportUrl();
       const response = await fetch(`${reportUrl}?${params}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
@@ -64,8 +64,7 @@ export default function ReportsPage() {
       type: activeTab,
     });
 
-    // Firebase Functions v2では関数ごとにURLが割り当てられる
-    const csvUrl = 'https://exporttimereportcsv-zbk3yr5vta-uc.a.run.app';
+    const csvUrl = getExportTimeReportCsvUrl();
     const response = await fetch(`${csvUrl}?${params}`);
     if (!response.ok) {
       alert('CSVのエクスポートに失敗しました');
