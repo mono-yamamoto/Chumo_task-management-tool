@@ -65,7 +65,36 @@ firebase use --add
 # Select project ID "chumo-3506a" in the prompt
 ```
 
-#### 4. Start Development Server
+#### 4. Git Hooks Setup (Security Check)
+
+**⚠️ IMPORTANT: This step prevents accidental commit of secrets. Inform the user in Japanese.**
+
+Set up Git hooks to automatically check for secrets before committing.
+
+**Tell the user in Japanese**: 機密情報の誤コミットを防ぐため、Git Hookを設定してください。
+
+**Install gitleaks**:
+
+```bash
+# macOS
+brew install gitleaks
+
+# Windows
+# Download from https://github.com/gitleaks/gitleaks/releases
+# Add to PATH and verify with: gitleaks version
+```
+
+**Set up pre-commit hook**:
+
+```bash
+# Copy the hook to .git/hooks
+cp .githooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+**Tell the user in Japanese**: これで、コミット前に自動的に機密情報がチェックされます。機密情報が含まれている場合はコミットがブロックされます。
+
+#### 5. Start Development Server
 
 ```bash
 npm run dev
@@ -73,7 +102,7 @@ npm run dev
 
 **Tell the user in Japanese**: ブラウザで `http://localhost:3000` にアクセスしてください。
 
-#### 5. Cursor Users: Commit Command
+#### 6. Cursor Users: Commit Command
 
 **For Cursor users**: After setup is complete, the `/commit` command is available for committing changes.
 
@@ -300,6 +329,7 @@ npm run functions:deploy:github
 **Tell the user in Japanese**: 以下の手順は、エージェントが自動で実行できません。ユーザーに指示を出してください：
 
 1. **環境変数設定**: `.env.local`ファイルの作成と設定値の入力（既存の開発者から取得）
+2. **Git Hooks設定**: gitleaksのインストールとpre-commit hookの設定（機密情報の誤コミット防止）
 
 ### Troubleshooting
 
@@ -308,6 +338,7 @@ npm run functions:deploy:github
 - **Firebase CLIエラー**: `firebase login`を再実行してください
 - **デプロイエラー**: `firebase use --add`でプロジェクトを再選択してください
 - **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認してください
+- **gitleaksエラー**: `gitleaks version`でインストールを確認し、`.git/hooks/pre-commit`に実行権限があるか確認してください（`chmod +x .git/hooks/pre-commit`）
 
 詳細なトラブルシューティングは `docs/operations/TROUBLESHOOTING.md` を参照してください。
 
