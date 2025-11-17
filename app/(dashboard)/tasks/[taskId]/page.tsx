@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   doc,
@@ -22,6 +22,8 @@ import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useParams } from 'next/navigation';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
+import { PROJECT_TYPES } from '@/lib/constants/projectTypes';
+import { formatDuration as formatDurationUtil } from '@/lib/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Button,
@@ -75,7 +77,7 @@ export default function TaskDetailPage() {
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const [activeSession, setActiveSession] = useState<{
-    projectId: string;
+    projectType: string;
     taskId: string;
     sessionId: string;
   } | null>(null);
@@ -97,18 +99,13 @@ export default function TaskDetailPage() {
     queryKey: ['task', taskId],
     queryFn: async () => {
       if (!db) return null;
-      // まずプロジェクトIDを取得する必要がある
-      // 簡略化のため、全プロジェクトから検索
-      const projectsRef = collection(db, 'projects');
-      const projectsSnapshot = await getDocs(projectsRef);
-
-      for (const projectDoc of projectsSnapshot.docs) {
-        const taskRef = doc(db, 'projects', projectDoc.id, 'tasks', taskId);
+      // 全プロジェクトタイプから検索
+      for (const projectType of PROJECT_TYPES) {
+        const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
         const taskDoc = await getDoc(taskRef);
         if (taskDoc.exists()) {
           return {
             id: taskDoc.id,
-            projectId: projectDoc.id,
             ...taskDoc.data(),
             createdAt: taskDoc.data().createdAt?.toDate(),
             updatedAt: taskDoc.data().updatedAt?.toDate(),
@@ -116,7 +113,7 @@ export default function TaskDetailPage() {
             releaseDate: taskDoc.data().releaseDate?.toDate() || null,
             dueDate: taskDoc.data().dueDate?.toDate() || null,
             completedAt: taskDoc.data().completedAt?.toDate() || null,
-          } as Task & { projectId: string };
+          } as Task;
         }
       }
       return null;
@@ -126,6 +123,11 @@ export default function TaskDetailPage() {
 
   // 区分ラベルは全プロジェクト共通
   const { data: labels } = useKubunLabels();
+
+  // 「個別」ラベルのIDを取得
+  const kobetsuLabelId = useMemo(() => {
+    return labels?.find((label) => label.name === '個別')?.id || null;
+  }, [labels]);
 
   // すべてのユーザーを取得（セッション履歴のユーザー表示用）
   const { data: allUsers } = useQuery({
@@ -143,50 +145,51 @@ export default function TaskDetailPage() {
   });
 
   // アクティブなセッション（未終了）を取得
-  // const { data: activeSessionData } = useQuery({
-  //   queryKey: ['activeSession', taskId, user?.id],
-  //   queryFn: async () => {
-  //     if (!task?.projectId || !db || !user) return null;
-  //     const sessionsRef = collection(
-  //       db,
-  //       'projects',
-  //       task.projectId,
-  //       'taskSessions',
-  //     );
-  //     const q = query(
-  //       sessionsRef,
-  //       where('taskId', '==', taskId),
-  //       where('userId', '==', user.id),
-  //       where('endedAt', '==', null),
-  //     );
-  //     const snapshot = await getDocs(q);
-  //     if (!snapshot.empty) {
-  //       const session = snapshot.docs[0];
-  //       setActiveSession({
-  //         projectId: task.projectId,
-  //         taskId,
-  //         sessionId: session.id,
-  //       });
-  //       return {
-  //         id: session.id,
-  //         ...session.data(),
-  //         startedAt: session.data().startedAt?.toDate(),
-  //         endedAt: null,
-  //       };
-  //     }
-  //     setActiveSession(null);
-  //     return null;
-  //   },
-  //   enabled: !!task?.projectId && !!taskId && !!user,
-  // });
+  useQuery({
+    queryKey: ['activeSession', taskId, user?.id],
+    queryFn: async () => {
+      if (!task?.projectType || !db || !user) return null;
+      const sessionsRef = collection(
+        db,
+        'projects',
+        task.projectType,
+        'taskSessions',
+      );
+      const q = query(
+        sessionsRef,
+        where('taskId', '==', taskId),
+        where('userId', '==', user.id),
+        where('endedAt', '==', null),
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const session = snapshot.docs[0];
+        setActiveSession({
+          projectType: task.projectType,
+          taskId,
+          sessionId: session.id,
+        });
+        return {
+          id: session.id,
+          ...session.data(),
+          startedAt: session.data().startedAt?.toDate(),
+          endedAt: null,
+        };
+      }
+      setActiveSession(null);
+      return null;
+    },
+    enabled: !!task?.projectType && !!taskId && !!user,
+    refetchInterval: 5000, // 5秒ごとに再取得して、リアルタイムで状態を更新
+  });
 
   // セッション履歴（すべてのユーザーの終了したセッションを含む）を取得
   const { data: sessions } = useQuery({
     queryKey: ['sessionHistory', taskId],
     queryFn: async () => {
-      if (!task?.projectId || !db) return [];
+      if (!task?.projectType || !db) return [];
       try {
-        const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+        const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
         const q = query(sessionsRef, where('taskId', '==', taskId), orderBy('startedAt', 'desc'));
         const snapshot = await getDocs(q);
         return snapshot.docs.map((docItem) => {
@@ -203,7 +206,7 @@ export default function TaskDetailPage() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+            const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
             const q = query(sessionsRef, where('taskId', '==', taskId));
             const snapshot = await getDocs(q);
             const taskSessionsData = snapshot.docs.map((docItem) => {
@@ -231,7 +234,7 @@ export default function TaskDetailPage() {
         return [];
       }
     },
-    enabled: !!task && !!task.projectId && !!taskId && !taskLoading,
+    enabled: !!task && !!task.projectType && !!taskId && !taskLoading,
     retry: false, // エラー時に自動リトライしない（フォールバック処理で対応済み）
   });
 
@@ -239,13 +242,15 @@ export default function TaskDetailPage() {
     if (!user || !task) return;
     try {
       await startTimer.mutateAsync({
-        projectId: task.projectId,
+        projectType: task.projectType,
         taskId: task.id,
         userId: user.id,
       });
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      // アクティブセッションを再取得（グローバルとタスク固有の両方）
+      queryClient.invalidateQueries({ queryKey: ['activeSession'] });
       queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
       queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
       queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user.id] });
       queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
     } catch (error: any) {
@@ -262,13 +267,15 @@ export default function TaskDetailPage() {
     if (!activeSession) return;
     try {
       await stopTimer.mutateAsync({
-        projectId: activeSession.projectId,
+        projectType: activeSession.projectType,
         sessionId: activeSession.sessionId,
       });
       setActiveSession(null);
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      // アクティブセッションを再取得（グローバルとタスク固有の両方）
+      queryClient.invalidateQueries({ queryKey: ['activeSession'] });
       queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
       queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
       queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user?.id] });
       queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
     } catch (error: any) {
@@ -281,7 +288,7 @@ export default function TaskDetailPage() {
     if (!task) return;
     try {
       const result = await createDriveFolder.mutateAsync({
-        projectId: task.projectId,
+        projectType: task.projectType,
         taskId: task.id,
       });
       // タスク詳細を更新（URLが反映されるように）
@@ -291,16 +298,12 @@ export default function TaskDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
       if (result.warning) {
-        // チェックシート作成エラーがある場合
+        // チェックシート作成エラーがある場合（警告として表示）
         alert(
           `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
         );
-      } else {
-        // 完全に成功した場合
-        alert(
-          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
-        );
       }
+      // 完全に成功した場合はalertを表示しない
     } catch (error: any) {
       console.error('Drive create error:', error);
       const errorMessage = error?.message || '不明なエラー';
@@ -311,8 +314,8 @@ export default function TaskDetailPage() {
   const handleFireCreate = async () => {
     if (!task) return;
     try {
-      await createFireIssue.mutateAsync({ projectId: task.projectId, taskId: task.id });
-      alert('GitHub Issueを作成しました');
+      await createFireIssue.mutateAsync({ projectType: task.projectType, taskId: task.id });
+      // 成功時はalertを表示しない
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
       queryClient.refetchQueries({ queryKey: ['task', taskId] });
     } catch (error: any) {
@@ -353,8 +356,8 @@ export default function TaskDetailPage() {
   // セッション更新
   const updateSession = useMutation({
     mutationFn: async ({ sessionId, updates }: { sessionId: string; updates: Partial<any> }) => {
-      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionRef = doc(db, 'projects', task.projectId, 'taskSessions', sessionId);
+      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionRef = doc(db, 'projects', task.projectType, 'taskSessions', sessionId);
 
       // startedAtとendedAtを更新する場合、durationSecも再計算
       const updateData: any = {};
@@ -402,8 +405,8 @@ export default function TaskDetailPage() {
   // セッション削除
   const deleteSession = useMutation({
     mutationFn: async (sessionId: string) => {
-      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionRef = doc(db, 'projects', task.projectId, 'taskSessions', sessionId);
+      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionRef = doc(db, 'projects', task.projectType, 'taskSessions', sessionId);
       await deleteDoc(sessionRef);
     },
     onSuccess: () => {
@@ -414,8 +417,8 @@ export default function TaskDetailPage() {
   // セッション追加
   const addSession = useMutation({
     mutationFn: async (sessionData: any) => {
-      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionsRef = collection(db, 'projects', task.projectId, 'taskSessions');
+      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
+      const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
 
       // startedAtとendedAtからdurationSecを計算
       let durationSec = 0;
@@ -524,8 +527,8 @@ export default function TaskDetailPage() {
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
-      if (!task?.projectId || !db) throw new Error('Task not found or Firestore not initialized');
-      const taskRef = doc(db, 'projects', task.projectId, 'tasks', taskId);
+      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
+      const taskRef = doc(db, 'projects', task.projectType, 'tasks', taskId);
       await updateDoc(taskRef, {
         ...updates,
         updatedAt: new Date(),
@@ -702,106 +705,108 @@ export default function TaskDetailPage() {
                 連携
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {activeSession?.taskId === task.id ? (
+                {task?.kubunLabelId === kobetsuLabelId ? null : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {activeSession?.taskId === task.id ? (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="error"
+                        onClick={handleStopTimer}
+                        disabled={stopTimer.isPending}
+                        sx={{
+                          animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                          '@keyframes pulse': {
+                            '0%, 100%': {
+                              opacity: 1,
+                            },
+                            '50%': {
+                              opacity: 0.8,
+                            },
+                          },
+                        }}
+                      >
+                        {stopTimer.isPending ? (
+                          <>
+                            <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                            停止中...
+                          </>
+                        ) : (
+                          <>
+                            <Stop fontSize="small" sx={{ mr: 1 }} />
+                            タイマー停止
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <CustomButton
+                        fullWidth
+                        variant="outline"
+                        onClick={handleStartTimer}
+                        disabled={!!activeSession || startTimer.isPending}
+                      >
+                        {startTimer.isPending ? (
+                          <>
+                            <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                            開始中...
+                          </>
+                        ) : (
+                          <>
+                            <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                            タイマー開始
+                          </>
+                        )}
+                      </CustomButton>
+                    )}
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {task.googleDriveUrl ? (
                     <Button
                       fullWidth
                       variant="contained"
-                      color="error"
-                      onClick={handleStopTimer}
-                      disabled={stopTimer.isPending}
-                      sx={{
-                        animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': {
-                            opacity: 1,
-                          },
-                          '50%': {
-                            opacity: 0.8,
-                          },
-                        },
-                      }}
+                      color="primary"
+                      onClick={() => window.open(task.googleDriveUrl!, '_blank')}
+                      sx={{ flex: 1 }}
                     >
-                      {stopTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                          停止中...
-                        </>
-                      ) : (
-                        <>
-                          <Stop fontSize="small" sx={{ mr: 1 }} />
-                          タイマー停止
-                        </>
-                      )}
+                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                      Driveを開く
                     </Button>
                   ) : (
                     <CustomButton
                       fullWidth
                       variant="outline"
-                      onClick={handleStartTimer}
-                      disabled={!!activeSession || startTimer.isPending}
+                      onClick={handleDriveCreate}
+                      disabled={createDriveFolder.isPending}
+                      sx={{ flex: 1 }}
                     >
-                      {startTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                          開始中...
-                        </>
-                      ) : (
-                        <>
-                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                          タイマー開始
-                        </>
-                      )}
+                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                      Drive作成
                     </CustomButton>
                   )}
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {task.googleDriveUrl ? (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        onClick={() => window.open(task.googleDriveUrl!, '_blank')}
-                        sx={{ flex: 1 }}
-                      >
-                        <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                        Driveを開く
-                      </Button>
-                    ) : (
-                      <CustomButton
-                        fullWidth
-                        variant="outline"
-                        onClick={handleDriveCreate}
-                        disabled={createDriveFolder.isPending}
-                        sx={{ flex: 1 }}
-                      >
-                        <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                        Drive作成
-                      </CustomButton>
-                    )}
-                    {task.fireIssueUrl ? (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        onClick={() => window.open(task.fireIssueUrl!, '_blank')}
-                        sx={{ flex: 1 }}
-                      >
-                        <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                        Issueを開く
-                      </Button>
-                    ) : (
-                      <CustomButton
-                        fullWidth
-                        variant="outline"
-                        onClick={handleFireCreate}
-                        disabled={createFireIssue.isPending}
-                        sx={{ flex: 1 }}
-                      >
-                        <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                        Issue作成
-                      </CustomButton>
-                    )}
-                  </Box>
+                  {task.fireIssueUrl ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      onClick={() => window.open(task.fireIssueUrl!, '_blank')}
+                      sx={{ flex: 1 }}
+                    >
+                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                      Issueを開く
+                    </Button>
+                  ) : (
+                    <CustomButton
+                      fullWidth
+                      variant="outline"
+                      onClick={handleFireCreate}
+                      disabled={createFireIssue.isPending}
+                      sx={{ flex: 1 }}
+                    >
+                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                      Issue作成
+                    </CustomButton>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -850,17 +855,7 @@ export default function TaskDetailPage() {
                   } else {
                     secs = Math.floor(Number(seconds));
                   }
-
-                  const hours = Math.floor(secs / 3600);
-                  const minutes = Math.floor((secs % 3600) / 60);
-                  const remainingSecs = secs % 60;
-                  if (hours > 0) {
-                    return `${hours}時間${minutes}分${remainingSecs}秒`;
-                  }
-                  if (minutes > 0) {
-                    return `${minutes}分${remainingSecs}秒`;
-                  }
-                  return `${remainingSecs}秒`;
+                  return formatDurationUtil(secs);
                 };
                 return (
                   <Box

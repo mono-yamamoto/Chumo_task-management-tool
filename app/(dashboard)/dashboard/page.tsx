@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
@@ -13,11 +13,13 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User, Project } from '@/types';
+import { Task, FlowStatus, User } from '@/types';
 import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
+import { PROJECT_TYPES, ProjectType } from '@/lib/constants/projectTypes';
+import { formatDuration as formatDurationUtil } from '@/lib/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Button,
@@ -41,7 +43,7 @@ import {
 } from '@mui/material';
 import { PlayArrow, Stop } from '@mui/icons-material';
 import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
-import { format, ja } from 'date-fns';
+import { format } from 'date-fns';
 
 // const flowStatusOptions: FlowStatus[] = [
 //   '未着手',
@@ -76,60 +78,32 @@ function DashboardPageContent() {
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const [activeSession, setActiveSession] = useState<{
-    projectId: string;
+    projectType: string;
     taskId: string;
     sessionId: string;
   } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
-  // const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
-  // const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
-  // const [editingSession, setEditingSession] = useState<any | null>(null);
-  // const [sessionFormData, setSessionFormData] = useState({
-  //   startedAt: '',
-  //   startedAtTime: '',
-  //   endedAt: '',
-  //   endedAtTime: '',
-  //   userId: '',
-  //   note: '',
-  // });
-
-  const { data: projects } = useQuery<Project[]>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      if (!user || !db) return [];
-      const projectsRef = collection(db, 'projects');
-      const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-        createdAt: docItem.data().createdAt?.toDate(),
-        updatedAt: docItem.data().updatedAt?.toDate(),
-      })) as Project[];
-    },
-    enabled: !!user && !!db,
-  });
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['dashboard-tasks', user?.id],
     queryFn: async () => {
-      if (!db || !user || !projects) return [];
+      if (!db || !user) return [];
 
-      const allTasks: (Task & { projectId: string })[] = [];
+      const allTasks: (Task & { projectType: ProjectType })[] = [];
 
-      for (const project of projects) {
-        const projectId = project.id;
-        const tasksRef = collection(db, 'projects', projectId, 'tasks');
+      // すべてのプロジェクトタイプからタスクを取得
+      for (const projectType of PROJECT_TYPES) {
+        const tasksRef = collection(db, 'projects', projectType, 'tasks');
         const tasksSnapshot = await getDocs(tasksRef);
 
         tasksSnapshot.docs.forEach((docItem) => {
           const taskData = {
             id: docItem.id,
-            projectId,
+            projectType,
             ...docItem.data(),
             createdAt: docItem.data().createdAt?.toDate(),
             updatedAt: docItem.data().updatedAt?.toDate(),
@@ -137,7 +111,7 @@ function DashboardPageContent() {
             releaseDate: docItem.data().releaseDate?.toDate() || null,
             dueDate: docItem.data().dueDate?.toDate() || null,
             completedAt: docItem.data().completedAt?.toDate() || null,
-          } as Task & { projectId: string };
+          } as Task & { projectType: ProjectType };
 
           // 自分のタスクかつ完了以外のもののみを追加
           if (taskData.assigneeIds.includes(user.id) && taskData.flowStatus !== '完了') {
@@ -148,7 +122,7 @@ function DashboardPageContent() {
 
       return allTasks;
     },
-    enabled: !!user && !!db && !!projects && projects.length > 0,
+    enabled: !!user && !!db,
   });
 
   // すべてのユーザーを取得（アサイン表示用）
@@ -169,45 +143,48 @@ function DashboardPageContent() {
   // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
-  // アクティブなセッションを取得（すべてのプロジェクトから）
-  // const { data: sessions } = useQuery({
-  //   queryKey: ['sessions', user?.id],
-  //   queryFn: async () => {
-  //     if (!user || !db || !projects) return [];
-  //     const allSessions: any[] = [];
-  //
-  //     for (const project of projects) {
-  //       const sessionsRef = collection(db, 'projects', project.id, 'taskSessions');
-  //       const q = query(
-  //         sessionsRef,
-  //         where('userId', '==', user.id),
-  //         where('endedAt', '==', null),
-  //       );
-  //       const snapshot = await getDocs(q);
-  //       snapshot.docs.forEach((docItem) => {
-  //         allSessions.push({
-  //           id: docItem.id,
-  //           projectId: project.id,
-  //           ...docItem.data(),
-  //         });
-  //       });
-  //     }
-  //
-  //     if (allSessions.length > 0) {
-  //       const session = allSessions[0];
-  //       setActiveSession({
-  //         projectId: session.projectId,
-  //         taskId: session.taskId,
-  //       sessionId: session.id,
-  //     });
-  //   } else {
-  //     setActiveSession(null);
-  //   }
-  //
-  //   return allSessions;
-  // },
-  // enabled: !!user && !!projects && projects.length > 0,
-  // });
+  // アクティブなセッションを取得（すべてのプロジェクトタイプから）
+  useQuery({
+    queryKey: ['activeSession', user?.id],
+    queryFn: async () => {
+      if (!user || !db) return null;
+      const allSessions: any[] = [];
+
+      // すべてのプロジェクトタイプからアクティブセッションを取得
+      for (const projectType of PROJECT_TYPES) {
+        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
+        const q = query(
+          sessionsRef,
+          where('userId', '==', user.id),
+          where('endedAt', '==', null),
+        );
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach((docItem) => {
+          allSessions.push({
+            id: docItem.id,
+            projectType,
+            taskId: docItem.data().taskId,
+            ...docItem.data(),
+          });
+        });
+      }
+
+      if (allSessions.length > 0) {
+        const session = allSessions[0];
+        setActiveSession({
+          projectType: session.projectType,
+          taskId: session.taskId,
+          sessionId: session.id,
+        });
+        return session;
+      } else {
+        setActiveSession(null);
+        return null;
+      }
+    },
+    enabled: !!user && !!db,
+    refetchInterval: 5000, // 5秒ごとに再取得して、リアルタイムで状態を更新
+  });
 
   // 時間計測中のタスクを最優先でソート
   const sortedTasks = useMemo(() => {
@@ -252,18 +229,25 @@ function DashboardPageContent() {
     } else if (!selectedTaskId) {
       setTaskFormData(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTask?.id, selectedTaskId]);
 
   // 区分ラベルは全プロジェクト共通なので、そのまま使用
   const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
+  // 「個別」ラベルのIDを取得
+  const kobetsuLabelId = useMemo(() => {
+    return allLabels?.find((label) => label.name === '個別')?.id || null;
+  }, [allLabels]);
+
   // 選択されたタスクのセッション履歴を取得
   const { data: taskSessions } = useQuery({
     queryKey: ['taskSessions', selectedTaskId],
     queryFn: async () => {
-      if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
+      const projectType = (selectedTask as any)?.projectType;
+      if (!projectType || !db || !selectedTaskId) return [];
       try {
-        const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
         const q = query(
           sessionsRef,
           where('taskId', '==', selectedTaskId),
@@ -284,7 +268,7 @@ function DashboardPageContent() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+            const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
             const q = query(sessionsRef, where('taskId', '==', selectedTaskId));
             const snapshot = await getDocs(q);
             const taskSessionsData = snapshot.docs.map((docItem) => {
@@ -312,13 +296,15 @@ function DashboardPageContent() {
         return [];
       }
     },
-    enabled: !!selectedTask?.projectId && !!selectedTaskId,
+    enabled: !!selectedTask && !!selectedTaskId,
   });
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
       if (!selectedTask || !db) throw new Error('Task not found');
-      const taskRef = doc(db, 'projects', selectedTask.projectId, 'tasks', selectedTask.id);
+      const projectType = (selectedTask as any)?.projectType;
+      if (!projectType) throw new Error('Project type not found');
+      const taskRef = doc(db, 'projects', projectType, 'tasks', selectedTask.id);
       await updateDoc(taskRef, {
         ...updates,
         updatedAt: new Date(),
@@ -366,29 +352,20 @@ function DashboardPageContent() {
     } else {
       secs = Math.floor(Number(seconds));
     }
-
-    const hours = Math.floor(secs / 3600);
-    const minutes = Math.floor((secs % 3600) / 60);
-    const remainingSecs = secs % 60;
-    if (hours > 0) {
-      return `${hours}時間${minutes}分${remainingSecs}秒`;
-    }
-    if (minutes > 0) {
-      return `${minutes}分${remainingSecs}秒`;
-    }
-    return `${remainingSecs}秒`;
+    return formatDurationUtil(secs);
   };
 
-  const handleStartTimer = async (projectId: string, taskId: string) => {
+  const handleStartTimer = async (projectType: string, taskId: string) => {
     if (!user) return;
     try {
       await startTimer.mutateAsync({
-        projectId,
+        projectType: projectType,
         taskId,
         userId: user.id,
       });
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.refetchQueries({ queryKey: ['sessions', user.id] });
+      // アクティブセッションを再取得
+      queryClient.invalidateQueries({ queryKey: ['activeSession', user.id] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
     } catch (error: any) {
       console.error('Timer start error:', error);
       if (error.message?.includes('稼働中')) {
@@ -405,12 +382,13 @@ function DashboardPageContent() {
     if (!activeSession) return;
     try {
       await stopTimer.mutateAsync({
-        projectId: activeSession.projectId,
+        projectType: activeSession.projectType,
         sessionId: activeSession.sessionId,
       });
       setActiveSession(null);
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.refetchQueries({ queryKey: ['sessions', user?.id] });
+      // アクティブセッションを再取得
+      queryClient.invalidateQueries({ queryKey: ['activeSession', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
     } catch (error: any) {
       console.error('Timer stop error:', error);
       // eslint-disable-next-line no-alert
@@ -418,9 +396,9 @@ function DashboardPageContent() {
     }
   };
 
-  const handleDriveCreate = async (projectId: string, taskId: string) => {
+  const handleDriveCreate = async (projectType: string, taskId: string) => {
     try {
-      const result = await createDriveFolder.mutateAsync({ projectId, taskId });
+      const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
       queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
@@ -428,16 +406,13 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['task', taskId] });
 
       if (result.warning) {
+        // チェックシート作成エラーがある場合（警告として表示）
         // eslint-disable-next-line no-alert
         alert(
           `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
         );
-      } else {
-        // eslint-disable-next-line no-alert
-        alert(
-          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
-        );
       }
+      // 完全に成功した場合はalertを表示しない
     } catch (error: any) {
       console.error('Drive create error:', error);
       const errorMessage = error?.message || '不明なエラー';
@@ -446,11 +421,10 @@ function DashboardPageContent() {
     }
   };
 
-  const handleFireCreate = async (projectId: string, taskId: string) => {
+  const handleFireCreate = async (projectType: string, taskId: string) => {
     try {
-      await createFireIssue.mutateAsync({ projectId, taskId });
-      // eslint-disable-next-line no-alert
-      alert('GitHub Issueを作成しました');
+      await createFireIssue.mutateAsync({ projectType: projectType, taskId });
+      // 成功時はalertを表示しない
       queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
@@ -461,15 +435,15 @@ function DashboardPageContent() {
     }
   };
 
-  const handleDeleteClick = (taskId: string, projectId: string) => {
+  const handleDeleteClick = (taskId: string, projectType: string) => {
     setDeleteTaskId(taskId);
-    setDeleteProjectId(projectId);
+    setDeleteProjectType(projectType);
     setDeleteDialogOpen(true);
     setDeleteConfirmTitle('');
   };
 
   const handleDeleteTask = async () => {
-    if (!deleteTaskId || !deleteProjectId || !db) return;
+    if (!deleteTaskId || !deleteProjectType || !db) return;
 
     const taskToDelete = sortedTasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
@@ -488,7 +462,7 @@ function DashboardPageContent() {
     }
 
     try {
-      const taskRef = doc(db, 'projects', deleteProjectId, 'tasks', deleteTaskId);
+      const taskRef = doc(db, 'projects', deleteProjectType, 'tasks', deleteTaskId);
       await deleteDoc(taskRef);
 
       queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
@@ -509,7 +483,7 @@ function DashboardPageContent() {
     } finally {
       setDeleteDialogOpen(false);
       setDeleteTaskId(null);
-      setDeleteProjectId(null);
+      setDeleteProjectType(null);
       setDeleteConfirmTitle('');
     }
   };
@@ -591,15 +565,15 @@ function DashboardPageContent() {
                         <Typography sx={{ fontWeight: 'medium' }}>{task.title}</Typography>
                       </TableCell>
                       <TableCell>
-                        {projects?.find((p) => p.id === task.projectId)?.name || '-'}
+                        {(task as any).projectType || '-'}
                       </TableCell>
                       <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
                       <TableCell>
-                        {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd', { locale: ja }) : '-'}
+                        {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
                       </TableCell>
                       <TableCell>
                         {task.releaseDate
-                          ? format(task.releaseDate, 'yyyy-MM-dd', { locale: ja })
+                          ? format(task.releaseDate, 'yyyy-MM-dd')
                           : '-'}
                       </TableCell>
                       <TableCell>{flowStatusLabels[task.flowStatus]}</TableCell>
@@ -608,7 +582,11 @@ function DashboardPageContent() {
                         {isActive && <Chip label="稼働中" color="success" size="small" />}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isActive ? (
+                        {task.kubunLabelId === kobetsuLabelId ? (
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            -
+                          </Typography>
+                        ) : isActive ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -644,7 +622,7 @@ function DashboardPageContent() {
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStartTimer(task.projectId, task.id);
+                              handleStartTimer((task as any).projectType, task.id);
                             }}
                             disabled={
                               (!!activeSession && activeSession.taskId !== task.id) ||
@@ -736,15 +714,5 @@ function DashboardPageContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <Suspense
-      fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      }
-    >
-      <DashboardPageContent />
-    </Suspense>
-  );
+  return <DashboardPageContent />;
 }

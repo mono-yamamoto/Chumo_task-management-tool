@@ -36,14 +36,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Typography>
               </Link>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <Link href="/projects" style={{ textDecoration: 'none' }}>
-                  <MUILink
-                    component="span"
-                    sx={{ color: 'text.primary', '&:hover': { color: 'text.secondary' } }}
-                  >
-                    プロジェクト
-                  </MUILink>
-                </Link>
                 <Link href="/tasks" style={{ textDecoration: 'none' }}>
                   <MUILink
                     component="span"

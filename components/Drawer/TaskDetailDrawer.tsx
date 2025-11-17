@@ -54,7 +54,7 @@ interface TaskDetailDrawerProps {
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
-  activeSession: { projectId: string; taskId: string; sessionId: string } | null;
+  activeSession: { projectType: string; taskId: string; sessionId: string } | null;
   // eslint-disable-next-line no-unused-vars
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
@@ -146,7 +146,10 @@ export function TaskDetailDrawer({
             <CustomButton
               variant="destructive"
               size="sm"
-              onClick={() => onDelete(selectedTask.id, selectedTask.projectId)}
+              onClick={() => {
+                const { projectType } = (selectedTask as any);
+                onDelete(selectedTask.id, projectType);
+              }}
             >
               <Delete fontSize="small" sx={{ mr: 0.5 }} />
               削除
@@ -210,22 +213,29 @@ export function TaskDetailDrawer({
                 onTaskFormDataChange({ ...taskFormData, kubunLabelId: e.target.value });
               }}
               label="区分"
+              disabled={taskLabels.length === 0}
             >
-              {taskLabels.map((label) => (
-                <MenuItem key={label.id} value={label.id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: '50%',
-                        backgroundColor: label.color,
-                      }}
-                    />
-                    {label.name}
-                  </Box>
+              {taskLabels.length === 0 ? (
+                <MenuItem value="" disabled>
+                  区分ラベルが設定されていません
                 </MenuItem>
-              ))}
+              ) : (
+                taskLabels.map((label) => (
+                  <MenuItem key={label.id} value={label.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          backgroundColor: label.color,
+                        }}
+                      />
+                      {label.name}
+                    </Box>
+                  </MenuItem>
+                ))
+              )}
             </Select>
           </FormControl>
 
@@ -333,7 +343,10 @@ export function TaskDetailDrawer({
                 <CustomButton
                   fullWidth
                   variant="outline"
-                  onClick={() => onStartTimer(selectedTask.projectId, selectedTask.id)}
+                  onClick={() => {
+                    const { projectType } = (selectedTask as any);
+                    onStartTimer(projectType, selectedTask.id);
+                  }}
                   disabled={!!activeSession || isStartingTimer}
                 >
                   {isStartingTimer ? (
@@ -366,7 +379,10 @@ export function TaskDetailDrawer({
                 <CustomButton
                   fullWidth
                   variant="outline"
-                  onClick={() => onDriveCreate(selectedTask.projectId, selectedTask.id)}
+                  onClick={() => {
+                    const { projectType } = (selectedTask as any);
+                    onDriveCreate(projectType, selectedTask.id);
+                  }}
                   disabled={isCreatingDrive}
                   sx={{ flex: 1 }}
                 >
@@ -389,7 +405,10 @@ export function TaskDetailDrawer({
                 <CustomButton
                   fullWidth
                   variant="outline"
-                  onClick={() => onFireCreate(selectedTask.projectId, selectedTask.id)}
+                  onClick={() => {
+                    const { projectType } = (selectedTask as any);
+                    onFireCreate(projectType, selectedTask.id);
+                  }}
                   disabled={isCreatingFire}
                   sx={{ flex: 1 }}
                 >

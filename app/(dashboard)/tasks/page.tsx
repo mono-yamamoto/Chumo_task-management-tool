@@ -13,11 +13,13 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User, Project } from '@/types';
+import { Task, FlowStatus, User } from '@/types';
 import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useTimer } from '@/lib/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
+import { PROJECT_TYPES, ProjectType } from '@/lib/constants/projectTypes';
+import { formatDuration as formatDurationUtil } from '@/lib/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Button,
@@ -76,20 +78,20 @@ const flowStatusLabels: Record<FlowStatus, string> = {
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [selectedProjectType, setSelectedProjectType] = useState<ProjectType | 'all'>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskFormData, setTaskFormData] = useState<Partial<Task> | null>(null);
   const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const [activeSession, setActiveSession] = useState<{
-    projectId: string;
+    projectType: string;
     taskId: string;
     sessionId: string;
   } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   // フィルタリング用のstate
   const [filterStatus, setFilterStatus] = useState<FlowStatus | 'all'>('all');
@@ -99,52 +101,32 @@ function TasksPageContent() {
   const [filterItUpDateMonth, setFilterItUpDateMonth] = useState<string>('');
   const [filterReleaseDateMonth, setFilterReleaseDateMonth] = useState<string>('');
 
-  const { data: projects } = useQuery<Project[]>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      if (!user || !db) return [];
-      const projectsRef = collection(db, 'projects');
-      const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-        createdAt: docItem.data().createdAt?.toDate(),
-        updatedAt: docItem.data().updatedAt?.toDate(),
-      })) as Project[];
-    },
-    enabled: !!user && !!db,
-  });
-
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ['tasks', selectedProject],
+    queryKey: ['tasks', selectedProjectType],
     queryFn: async () => {
       if (!db || !user) return [];
 
-      if (selectedProject === 'all') {
-        const projectsRef = collection(db, 'projects');
-        const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
-        const projectsSnapshot = await getDocs(q);
+      if (selectedProjectType === 'all') {
+        const allTasks: (Task & { projectType: ProjectType })[] = [];
 
-        const allTasks: (Task & { projectId: string })[] = [];
-
-        for (const projectDoc of projectsSnapshot.docs) {
-          const projectId = projectDoc.id;
-          const tasksRef = collection(db, 'projects', projectId, 'tasks');
+        // すべてのプロジェクトタイプからタスクを取得
+        for (const projectType of PROJECT_TYPES) {
+          const tasksRef = collection(db, 'projects', projectType, 'tasks');
           const tasksSnapshot = await getDocs(tasksRef);
 
           tasksSnapshot.docs.forEach((docItem) => {
+            const taskData = docItem.data();
             allTasks.push({
               id: docItem.id,
-              projectId,
-              ...docItem.data(),
-              createdAt: docItem.data().createdAt?.toDate(),
-              updatedAt: docItem.data().updatedAt?.toDate(),
-              itUpDate: docItem.data().itUpDate?.toDate() || null,
-              releaseDate: docItem.data().releaseDate?.toDate() || null,
-              dueDate: docItem.data().dueDate?.toDate() || null,
-              completedAt: docItem.data().completedAt?.toDate() || null,
-            } as Task & { projectId: string });
+              projectType,
+              ...taskData,
+              createdAt: taskData.createdAt?.toDate(),
+              updatedAt: taskData.updatedAt?.toDate(),
+              itUpDate: taskData.itUpDate?.toDate() || null,
+              releaseDate: taskData.releaseDate?.toDate() || null,
+              dueDate: taskData.dueDate?.toDate() || null,
+              completedAt: taskData.completedAt?.toDate() || null,
+            } as Task & { projectType: ProjectType });
           });
         }
 
@@ -154,19 +136,22 @@ function TasksPageContent() {
           return bTime - aTime;
         });
       }
-      const tasksRef = collection(db, 'projects', selectedProject, 'tasks');
+      const tasksRef = collection(db, 'projects', selectedProjectType, 'tasks');
       const snapshot = await getDocs(tasksRef);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        projectId: selectedProject,
-        ...docItem.data(),
-        createdAt: docItem.data().createdAt?.toDate(),
-        updatedAt: docItem.data().updatedAt?.toDate(),
-        itUpDate: docItem.data().itUpDate?.toDate() || null,
-        releaseDate: docItem.data().releaseDate?.toDate() || null,
-        dueDate: docItem.data().dueDate?.toDate() || null,
-        completedAt: docItem.data().completedAt?.toDate() || null,
-      })) as (Task & { projectId: string })[];
+      return snapshot.docs.map((docItem) => {
+        const taskData = docItem.data();
+        return {
+          id: docItem.id,
+          projectType: selectedProjectType,
+          ...taskData,
+          createdAt: taskData.createdAt?.toDate(),
+          updatedAt: taskData.updatedAt?.toDate(),
+          itUpDate: taskData.itUpDate?.toDate() || null,
+          releaseDate: taskData.releaseDate?.toDate() || null,
+          dueDate: taskData.dueDate?.toDate() || null,
+          completedAt: taskData.completedAt?.toDate() || null,
+        } as Task & { projectType: ProjectType };
+      });
     },
     enabled: !!user && !!db,
   });
@@ -290,13 +275,19 @@ function TasksPageContent() {
   // 区分ラベルは全プロジェクト共通なので、そのまま使用
   const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
+  // 「個別」ラベルのIDを取得
+  const kobetsuLabelId = useMemo(() => {
+    return allLabels?.find((label) => label.name === '個別')?.id || null;
+  }, [allLabels]);
+
   // 選択されたタスクのセッション履歴を取得
   const { data: taskSessions } = useQuery({
     queryKey: ['taskSessions', selectedTaskId],
     queryFn: async () => {
-      if (!selectedTask?.projectId || !db || !selectedTaskId) return [];
+      const projectType = (selectedTask as any)?.projectType;
+      if (!projectType || !db || !selectedTaskId) return [];
       try {
-        const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
         const q = query(
           sessionsRef,
           where('taskId', '==', selectedTaskId),
@@ -317,7 +308,7 @@ function TasksPageContent() {
         // インデックスエラーの場合、orderByなしで再試行
         if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
           try {
-            const sessionsRef = collection(db, 'projects', selectedTask.projectId, 'taskSessions');
+            const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
             const q = query(sessionsRef, where('taskId', '==', selectedTaskId));
             const snapshot = await getDocs(q);
             const sessions = snapshot.docs.map((docItem) => {
@@ -345,58 +336,58 @@ function TasksPageContent() {
         return [];
       }
     },
-    enabled: !!selectedTask?.projectId && !!selectedTaskId,
+    enabled: !!selectedTask && !!selectedTaskId,
   });
 
-  // アクティブなセッションを取得（すべてのプロジェクトから）
-  // const { data: sessions } = useQuery({
-  //     //   queryKey: ['sessions', user?.id],
-  //   queryFn: async () => {
-  //     if (!user || !db || !projects) return [];
-  //     const allSessions: any[] = [];
+  // アクティブなセッションを取得（すべてのプロジェクトタイプから）
+  useQuery({
+    queryKey: ['activeSession', user?.id],
+    queryFn: async () => {
+      if (!user || !db) return null;
+      const allSessions: any[] = [];
 
-  //     for (const project of projects) {
-  //       const sessionsRef = collection(
-  //         db,
-  //         'projects',
-  //         project.id,
-  //         'taskSessions',
-  //       );
-  //       const q = query(
-  //         sessionsRef,
-  //         where('userId', '==', user.id),
-  //         where('endedAt', '==', null),
-  //       );
-  //       const snapshot = await getDocs(q);
-  //       snapshot.docs.forEach((docItem) => {
-  //         allSessions.push({
-  //           id: docItem.id,
-  //           projectId: project.id,
-  //           ...docItem.data(),
-  //         });
-  //       });
-  //     }
+      // すべてのプロジェクトタイプからアクティブセッションを取得
+      for (const projectType of PROJECT_TYPES) {
+        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
+        const q = query(
+          sessionsRef,
+          where('userId', '==', user.id),
+          where('endedAt', '==', null),
+        );
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach((docItem) => {
+          allSessions.push({
+            id: docItem.id,
+            projectType,
+            taskId: docItem.data().taskId,
+            ...docItem.data(),
+          });
+        });
+      }
 
-  //     if (allSessions.length > 0) {
-  //       const session = allSessions[0];
-  //       setActiveSession({
-  //         projectId: session.projectId,
-  //         taskId: session.taskId,
-  //         sessionId: session.id,
-  //       });
-  //     } else {
-  //       setActiveSession(null);
-  //     }
-
-  //     return allSessions;
-  //   },
-  //   enabled: !!user && !!projects && projects.length > 0,
-  // });
+      if (allSessions.length > 0) {
+        const session = allSessions[0];
+        setActiveSession({
+          projectType: session.projectType,
+          taskId: session.taskId,
+          sessionId: session.id,
+        });
+        return session;
+      } else {
+        setActiveSession(null);
+        return null;
+      }
+    },
+    enabled: !!user && !!db,
+    refetchInterval: 5000, // 5秒ごとに再取得して、リアルタイムで状態を更新
+  });
 
   const updateTask = useMutation({
     mutationFn: async (updates: Partial<Task>) => {
       if (!selectedTask || !db) throw new Error('Task not found');
-      const taskRef = doc(db, 'projects', selectedTask.projectId, 'tasks', selectedTask.id);
+      const projectType = (selectedTask as any)?.projectType;
+      if (!projectType) throw new Error('Project type not found');
+      const taskRef = doc(db, 'projects', projectType, 'tasks', selectedTask.id);
       await updateDoc(taskRef, {
         ...updates,
         updatedAt: new Date(),
@@ -446,21 +437,11 @@ function TasksPageContent() {
     } else {
       secs = Math.floor(Number(seconds));
     }
-
-    const hours = Math.floor(secs / 3600);
-    const minutes = Math.floor((secs % 3600) / 60);
-    const remainingSecs = secs % 60;
-    if (hours > 0) {
-      return `${hours}時間${minutes}分${remainingSecs}秒`;
-    }
-    if (minutes > 0) {
-      return `${minutes}分${remainingSecs}秒`;
-    }
-    return `${remainingSecs}秒`;
+    return formatDurationUtil(secs);
   };
 
   const handleResetFilters = () => {
-    setSelectedProject('all');
+    setSelectedProjectType('all');
     setFilterStatus('all');
     setFilterAssignee('all');
     setFilterLabel('all');
@@ -469,17 +450,17 @@ function TasksPageContent() {
     setFilterReleaseDateMonth('');
   };
 
-  const handleStartTimer = async (projectId: string, taskId: string) => {
+  const handleStartTimer = async (projectType: string, taskId: string) => {
     if (!user) return;
     try {
       await startTimer.mutateAsync({
-        projectId,
+        projectType: projectType,
         taskId,
         userId: user.id,
       });
-      // セッション一覧を再取得
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.refetchQueries({ queryKey: ['sessions', user.id] });
+      // アクティブセッションを再取得
+      queryClient.invalidateQueries({ queryKey: ['activeSession', user.id] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
     } catch (error: any) {
       console.error('Timer start error:', error);
       if (error.message?.includes('稼働中')) {
@@ -494,22 +475,22 @@ function TasksPageContent() {
     if (!activeSession) return;
     try {
       await stopTimer.mutateAsync({
-        projectId: activeSession.projectId,
+        projectType: activeSession.projectType,
         sessionId: activeSession.sessionId,
       });
       setActiveSession(null);
-      // セッション一覧を再取得
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.refetchQueries({ queryKey: ['sessions', user?.id] });
+      // アクティブセッションを再取得
+      queryClient.invalidateQueries({ queryKey: ['activeSession', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
     } catch (error: any) {
       console.error('Timer stop error:', error);
       alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
-  const handleDriveCreate = async (projectId: string, taskId: string) => {
+  const handleDriveCreate = async (projectType: string, taskId: string) => {
     try {
-      const result = await createDriveFolder.mutateAsync({ projectId, taskId });
+      const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
       // タスク一覧と詳細を更新（URLが反映されるように）
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.refetchQueries({ queryKey: ['tasks'] });
@@ -517,16 +498,12 @@ function TasksPageContent() {
       queryClient.refetchQueries({ queryKey: ['task', taskId] });
 
       if (result.warning) {
-        // チェックシート作成エラーがある場合
+        // チェックシート作成エラーがある場合（警告として表示）
         alert(
           `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
         );
-      } else {
-        // 完全に成功した場合
-        alert(
-          `Driveフォルダとチェックシートを作成しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}`
-        );
       }
+      // 完全に成功した場合はalertを表示しない
     } catch (error: any) {
       console.error('Drive create error:', error);
       const errorMessage = error?.message || '不明なエラー';
@@ -534,10 +511,10 @@ function TasksPageContent() {
     }
   };
 
-  const handleFireCreate = async (projectId: string, taskId: string) => {
+  const handleFireCreate = async (projectType: string, taskId: string) => {
     try {
-      await createFireIssue.mutateAsync({ projectId, taskId });
-      alert('GitHub Issueを作成しました');
+      await createFireIssue.mutateAsync({ projectType: projectType, taskId });
+      // 成功時はalertを表示しない
       queryClient.invalidateQueries({ queryKey: ['tasks'] }); // タスク一覧を更新
       queryClient.refetchQueries({ queryKey: ['tasks'] });
     } catch (error: any) {
@@ -546,15 +523,15 @@ function TasksPageContent() {
     }
   };
 
-  const handleDeleteClick = (taskId: string, projectId: string) => {
+  const handleDeleteClick = (taskId: string, projectType: string) => {
     setDeleteTaskId(taskId);
-    setDeleteProjectId(projectId);
+    setDeleteProjectType(projectType);
     setDeleteDialogOpen(true);
     setDeleteConfirmTitle('');
   };
 
   const handleDeleteTask = async () => {
-    if (!deleteTaskId || !deleteProjectId || !db) return;
+    if (!deleteTaskId || !deleteProjectType || !db) return;
 
     const taskToDelete = tasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
@@ -572,7 +549,7 @@ function TasksPageContent() {
     }
 
     try {
-      const taskRef = doc(db, 'projects', deleteProjectId, 'tasks', deleteTaskId);
+      const taskRef = doc(db, 'projects', deleteProjectType, 'tasks', deleteTaskId);
       await deleteDoc(taskRef);
 
       // タスク一覧を更新
@@ -592,7 +569,7 @@ function TasksPageContent() {
     } finally {
       setDeleteDialogOpen(false);
       setDeleteTaskId(null);
-      setDeleteProjectId(null);
+      setDeleteProjectType(null);
       setDeleteConfirmTitle('');
     }
   };
@@ -653,14 +630,14 @@ function TasksPageContent() {
               <FormControl fullWidth>
                 <InputLabel>プロジェクト</InputLabel>
                 <Select
-                  value={selectedProject}
-                  onChange={(e) => setSelectedProject(e.target.value)}
+                  value={selectedProjectType}
+                  onChange={(e) => setSelectedProjectType(e.target.value as ProjectType | 'all')}
                   label="プロジェクト"
                 >
                   <MenuItem value="all">すべて</MenuItem>
-                  {projects?.map((project: any) => (
-                    <MenuItem key={project.id} value={project.id}>
-                      {project.name}
+                  {PROJECT_TYPES.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -787,7 +764,7 @@ function TasksPageContent() {
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       {(() => {
                         if (tasks && tasks.length === 0) {
-                          if (selectedProject === 'all') {
+                          if (selectedProjectType === 'all') {
                             return 'タスクがありません';
                           }
                           return 'このプロジェクトにタスクがありません';
@@ -808,7 +785,7 @@ function TasksPageContent() {
                     >
                       <TableCell>
                         <Typography sx={{ fontWeight: 'medium' }}>{task.title}</Typography>
-                        {selectedProject === 'all' && (
+                        {selectedProjectType === 'all' && (
                           <Typography
                             variant="caption"
                             sx={{
@@ -817,7 +794,7 @@ function TasksPageContent() {
                               mt: 0.5,
                             }}
                           >
-                            {projects?.find((p) => p.id === task.projectId)?.name || ''}
+                            {(task as any).projectType || ''}
                           </Typography>
                         )}
                       </TableCell>
@@ -834,7 +811,11 @@ function TasksPageContent() {
                         {isActive && <Chip label="稼働中" color="success" size="small" />}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isActive ? (
+                        {task.kubunLabelId === kobetsuLabelId ? (
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            -
+                          </Typography>
+                        ) : isActive ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -870,7 +851,8 @@ function TasksPageContent() {
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStartTimer(task.projectId, task.id);
+                              const { projectType } = (task as any);
+                              handleStartTimer(projectType, task.id);
                             }}
                             disabled={
                               (!!activeSession && activeSession.taskId !== task.id) ||

@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, addDoc, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { FlowStatus, Priority, User, Project } from '@/types';
+import { FlowStatus, Priority, User } from '@/types';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
 import { useRouter } from 'next/navigation';
+import { PROJECT_TYPES, ProjectType } from '@/lib/constants/projectTypes';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -20,7 +21,6 @@ import {
   Card,
   CardContent,
   Grid,
-  CircularProgress,
   OutlinedInput,
   FormHelperText,
   Checkbox,
@@ -52,7 +52,7 @@ export default function NewTaskPage() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [projectId, setProjectId] = useState<string>('');
+  const [projectType, setProjectType] = useState<ProjectType | ''>('');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [flowStatus, setFlowStatus] = useState<FlowStatus>('未着手');
@@ -63,55 +63,27 @@ export default function NewTaskPage() {
   const [kubunLabelId, setKubunLabelId] = useState<string>('');
   const [priority, setPriority] = useState<Priority | ''>('');
 
-  const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      if (!user || !db) return [];
-      const projectsRef = collection(db, 'projects');
-      const q = query(projectsRef, where('memberIds', 'array-contains', user.id));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as Project[];
-    },
-    enabled: !!user && !!db,
-  });
-
-  const { data: project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      if (!projectId || !db) return null;
-      const projectDoc = await getDoc(doc(db, 'projects', projectId));
-      if (!projectDoc.exists()) return null;
-      return { id: projectDoc.id, ...projectDoc.data() } as Project;
-    },
-    enabled: !!projectId && !!db,
-  });
-
   // 区分ラベルは全プロジェクト共通
   const { data: labels, isLoading: labelsLoading } = useKubunLabels();
 
-  const { data: projectMembers } = useQuery({
-    queryKey: ['projectMembers', projectId],
+  // すべてのユーザーを取得（アサイン表示用）
+  const { data: allUsers } = useQuery({
+    queryKey: ['allUsers'],
     queryFn: async () => {
-      if (!projectId || !project || !db) return [];
-      const memberIds = project.memberIds || [];
-      const members: User[] = [];
-      for (const memberId of memberIds) {
-        const userDoc = await getDoc(doc(db, 'users', memberId));
-        if (userDoc.exists()) {
-          members.push({ id: userDoc.id, ...userDoc.data() } as User);
-        }
-      }
-      return members;
+      if (!db) return [];
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      return snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
+      })) as User[];
     },
-    enabled: !!projectId && !!project && !!db,
+    enabled: !!db,
   });
 
   const createTask = useMutation({
     mutationFn: async () => {
-      if (!user || !projectId || !db || !title.trim()) {
+      if (!user || !projectType || !db || !title.trim()) {
         throw new Error('必須項目が入力されていません');
       }
       if (!kubunLabelId) {
@@ -119,7 +91,7 @@ export default function NewTaskPage() {
       }
 
       const taskData = {
-        projectId,
+        projectType: projectType as ProjectType,
         title: title.trim(),
         description: description.trim() || '',
         flowStatus,
@@ -135,16 +107,15 @@ export default function NewTaskPage() {
         updatedAt: new Date(),
       };
 
-      const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), taskData);
+      // TODO: データ構造の変更が必要（現在は後方互換性のためprojects/{projectType}/tasksに保存）
+      // 将来的にはtasksコレクションに統合する
+      const docRef = await addDoc(collection(db, 'projects', projectType, 'tasks'), taskData);
       return docRef.id;
     },
     onSuccess: () => {
       // すべてのプロジェクトのタスククエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.refetchQueries({ queryKey: ['tasks'] });
-      // プロジェクト一覧も再取得（タスク作成ページで使用しているため）
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.refetchQueries({ queryKey: ['projects'] });
       // タスク一覧に遷移（「すべて」が選択された状態）
       router.push('/tasks');
     },
@@ -152,7 +123,9 @@ export default function NewTaskPage() {
       console.error('Error creating task:', error);
       console.error('Error details:', {
         user: !!user,
-        projectId,
+        userId: user?.id,
+        projectType,
+        projectTypeValid: PROJECT_TYPES.includes(projectType as ProjectType),
         title,
         kubunLabelId,
         error: error.message,
@@ -166,14 +139,6 @@ export default function NewTaskPage() {
   const handleSubmit = () => {
     createTask.mutate();
   };
-
-  if (projectsLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box>
@@ -199,19 +164,18 @@ export default function NewTaskPage() {
             <FormControl fullWidth required>
               <InputLabel>プロジェクト</InputLabel>
               <Select
-                value={projectId}
+                value={projectType}
                 onChange={(e) => {
-                  setProjectId(e.target.value);
-                  setAssigneeIds([]); // プロジェクト変更時にアサインをリセット
+                  setProjectType(e.target.value as ProjectType);
                 }}
                 label="プロジェクト"
               >
                 <MenuItem value="">
                   <em>選択してください</em>
                 </MenuItem>
-                {projects?.map((projectItem) => (
-                  <MenuItem key={projectItem.id} value={projectItem.id}>
-                    {projectItem.name}
+                {PROJECT_TYPES.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
                   </MenuItem>
                 ))}
               </Select>
@@ -311,17 +275,17 @@ export default function NewTaskPage() {
                     renderValue={(selected) => {
                       if (selected.length === 0) return '';
                       return (
-                        projectMembers
-                          ?.filter((member) => selected.includes(member.id))
-                          .map((member) => member.displayName)
+                        allUsers
+                          ?.filter((userItem) => selected.includes(userItem.id))
+                          .map((userItem) => userItem.displayName)
                           .join(', ') || ''
                       );
                     }}
                   >
-                    {projectMembers?.map((member) => (
-                      <MenuItem key={member.id} value={member.id}>
-                        <Checkbox checked={assigneeIds.indexOf(member.id) > -1} />
-                        <ListItemText primary={member.displayName} />
+                    {allUsers?.map((userItem) => (
+                      <MenuItem key={userItem.id} value={userItem.id}>
+                        <Checkbox checked={assigneeIds.indexOf(userItem.id) > -1} />
+                        <ListItemText primary={userItem.displayName} />
                       </MenuItem>
                     ))}
                   </Select>
@@ -393,7 +357,7 @@ export default function NewTaskPage() {
                 onClick={handleSubmit}
                 disabled={
                   createTask.isPending ||
-                  !projectId ||
+                  !projectType ||
                   !title.trim() ||
                   !kubunLabelId ||
                   labelsLoading
