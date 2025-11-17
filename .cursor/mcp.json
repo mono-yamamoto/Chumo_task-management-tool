@@ -2,7 +2,8 @@
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {}
     },
     "serena": {
       "type": "stdio",
@@ -33,7 +34,7 @@
     },
     "kiri": {
       "command": "npx",
-      "args": ["kiri-mcp-server@latest", "--repo", ".", "--db", ".kiri/index.duckdb", "--watch"]
+      "args": ["kiri-mcp-server@latest", "--repo", "/Users/m126/works/SS/Chumo_task-management-tool", "--db", "/Users/m126/works/SS/Chumo_task-management-tool/.kiri/index.duckdb", "--watch"]
     }
   }
 }
