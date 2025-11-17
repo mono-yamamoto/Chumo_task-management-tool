@@ -1,7 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, Storage } from 'firebase/storage';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
 let appVar: FirebaseApp | undefined;
 let authVar: Auth | undefined;
 let dbVar: Firestore | undefined;
-let storageVar: Storage | undefined;
+let storageVar: FirebaseStorage | undefined;
 
 if (typeof window !== 'undefined') {
   try {
