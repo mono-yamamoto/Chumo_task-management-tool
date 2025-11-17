@@ -11,14 +11,28 @@
 
 ## セットアップ
 
-### 1. 依存関係のインストール
+### 開発に参加する場合
+
+**AIコーディングエージェント（Cursor等）を使用する場合**:
+
+1. AIエージェントに `@AGENTS.md` を読み込ませてください
+2. AIエージェントに「セットアップを実行して」と指示してください
+3. エージェントが自動でセットアップを実行します（環境変数の設定は手動で行う必要があります）
+
+詳細なセットアップ手順は `AGENTS.md` を参照してください。
+
+### 手動でセットアップする場合（管理者向け）
+
+プロジェクトを初めてセットアップする場合は、以下の手順を実行してください。
+
+#### 1. 依存関係のインストール
 
 ```bash
 npm install
 cd functions && npm install
 ```
 
-### 2. Firebase設定
+#### 2. Firebase設定
 
 1. Firebaseプロジェクトを作成
 2. Firebase CLIをインストール: `npm install -g firebase-tools`
@@ -36,7 +50,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 NEXT_PUBLIC_FUNCTIONS_URL=https://your-region-your-project.cloudfunctions.net
 ```
 
-### 3. GCP Secret Manager設定
+#### 3. GCP Secret Manager設定
 
 以下のSecretsを作成:
 
@@ -46,13 +60,13 @@ NEXT_PUBLIC_FUNCTIONS_URL=https://your-region-your-project.cloudfunctions.net
 - `GITHUB_TOKEN`: GitHub Personal Access Token (repo権限)
 - `DRIVE_SERVICE_ACCOUNT_KEY`: Google DriveサービスアカウントのJSONキー
 
-### 4. Firestoreセキュリティルールとインデックス
+#### 4. Firestoreセキュリティルールとインデックス
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-### 5. Cloud Functionsデプロイ
+#### 5. Cloud Functionsデプロイ
 
 ```bash
 cd functions
@@ -60,9 +74,11 @@ npm run build
 firebase deploy --only functions
 ```
 
-### 6. 初期データ作成
+#### 6. 初期データ作成
 
 `scripts/create-initial-data.ts`を実行してサンプルデータを作成します。
+
+詳細は `docs/setup/INITIAL_SETUP.md` を参照してください。
 
 ## 開発
 
