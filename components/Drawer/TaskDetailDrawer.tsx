@@ -307,62 +307,73 @@ export function TaskDetailDrawer({
               mt: 2,
             }}
           >
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {activeSession?.taskId === selectedTask.id ? (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="error"
-                  onClick={onStopTimer}
-                  disabled={isStoppingTimer}
-                  sx={{
-                    animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
-                    '@keyframes pulse': {
-                      '0%, 100%': {
-                        opacity: 1,
-                      },
-                      '50%': {
-                        opacity: 0.8,
-                      },
-                    },
-                  }}
-                >
-                  {isStoppingTimer ? (
-                    <>
-                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                      停止中...
-                    </>
+            {(() => {
+              const kobetsuLabelId = taskLabels.find((label) => label.name === '個別')?.id;
+              const isKobetsu = selectedTask.kubunLabelId === kobetsuLabelId;
+
+              if (isKobetsu) {
+                return null;
+              }
+
+              return (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {activeSession?.taskId === selectedTask.id ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="error"
+                      onClick={onStopTimer}
+                      disabled={isStoppingTimer}
+                      sx={{
+                        animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': {
+                            opacity: 1,
+                          },
+                          '50%': {
+                            opacity: 0.8,
+                          },
+                        },
+                      }}
+                    >
+                      {isStoppingTimer ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          停止中...
+                        </>
+                      ) : (
+                        <>
+                          <Stop fontSize="small" sx={{ mr: 1 }} />
+                          タイマー停止
+                        </>
+                      )}
+                    </Button>
                   ) : (
-                    <>
-                      <Stop fontSize="small" sx={{ mr: 1 }} />
-                      タイマー停止
-                    </>
+                    <CustomButton
+                      fullWidth
+                      variant="outline"
+                      onClick={() => {
+                        const { projectType } = (selectedTask as any);
+                        onStartTimer(projectType, selectedTask.id);
+                      }}
+                      disabled={!!activeSession || isStartingTimer}
+                    >
+                      {isStartingTimer ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          開始中...
+                        </>
+                      ) : (
+                        <>
+                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                          タイマー開始
+                        </>
+                      )}
+                    </CustomButton>
                   )}
-                </Button>
-              ) : (
-                <CustomButton
-                  fullWidth
-                  variant="outline"
-                  onClick={() => {
-                    const { projectType } = (selectedTask as any);
-                    onStartTimer(projectType, selectedTask.id);
-                  }}
-                  disabled={!!activeSession || isStartingTimer}
-                >
-                  {isStartingTimer ? (
-                    <>
-                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                      開始中...
-                    </>
-                  ) : (
-                    <>
-                      <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                      タイマー開始
-                    </>
-                  )}
-                </CustomButton>
-              )}
-            </Box>
+                </Box>
+              );
+            })()}
             <Box sx={{ display: 'flex', gap: 1 }}>
               {selectedTask.googleDriveUrl ? (
                 <Button
