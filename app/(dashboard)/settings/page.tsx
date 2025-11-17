@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { User } from '@/types';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   Box,

@@ -14,8 +14,8 @@ import {
   SmartphoneType,
   ErrorReportDetails,
 } from '@/types';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useImageUpload } from '@/lib/hooks/useImageUpload';
+import { useAuth } from '@/hooks/useAuth';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { Button } from '@/components/ui/button';
 import {
   Box,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PROJECT_TYPES } from '@/lib/constants/projectTypes';
+import { PROJECT_TYPES } from '@/constants/projectTypes';
 
 export const flowStatusSchema = z.enum([
   '未着手',
@@ -99,3 +99,4 @@ export const reportFilterSchema = z.object({
   taskId: z.string().optional(),
   type: z.enum(['normal', 'brg']).optional(),
 });
+

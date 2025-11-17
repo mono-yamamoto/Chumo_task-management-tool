@@ -58,3 +58,4 @@ export function getTimeReportUrl(): string {
 export function getExportTimeReportCsvUrl(): string {
   return getFunctionUrl('exportTimeReportCsv', 'https://exporttimereportcsv-zbk3yr5vta-uc.a.run.app');
 }
+

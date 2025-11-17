@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase/config';
-import { compressImage } from '@/lib/utils/imageCompression';
+import { compressImage } from '@/utils/imageCompression';
 
 export function useImageUpload() {
   const [uploading, setUploading] = useState(false);
@@ -70,3 +70,4 @@ export function useImageUpload() {
     progress,
   };
 }
+

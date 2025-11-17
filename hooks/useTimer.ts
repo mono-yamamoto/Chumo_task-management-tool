@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getStartTimerUrl, getStopTimerUrl } from '@/lib/utils/functions';
+import { getStartTimerUrl, getStopTimerUrl } from '@/utils/functions';
 
 export function useTimer() {
   const queryClient = useQueryClient();
@@ -81,3 +81,4 @@ export function useTimer() {
     stopTimer,
   };
 }
+

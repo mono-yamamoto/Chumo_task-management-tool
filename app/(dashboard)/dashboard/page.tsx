@@ -14,12 +14,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task, FlowStatus, User } from '@/types';
-import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useTimer } from '@/lib/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
-import { PROJECT_TYPES, ProjectType } from '@/lib/constants/projectTypes';
-import { formatDuration as formatDurationUtil } from '@/lib/utils/timer';
+import { useKubunLabels } from '@/hooks/useKubunLabels';
+import { useAuth } from '@/hooks/useAuth';
+import { useTimer } from '@/hooks/useTimer';
+import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
+import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
+import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Button,

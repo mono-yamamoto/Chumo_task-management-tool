@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { AppBar, Toolbar, Typography, Box, Link as MUILink } from '@mui/material';
 import Link from 'next/link';

@@ -17,13 +17,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task, FlowStatus, User } from '@/types';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
+import { useAuth } from '@/hooks/useAuth';
+import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useParams } from 'next/navigation';
-import { useTimer } from '@/lib/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration } from '@/lib/hooks/useIntegrations';
-import { PROJECT_TYPES } from '@/lib/constants/projectTypes';
-import { formatDuration as formatDurationUtil } from '@/lib/utils/timer';
+import { useTimer } from '@/hooks/useTimer';
+import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
+import { PROJECT_TYPES } from '@/constants/projectTypes';
+import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Button,

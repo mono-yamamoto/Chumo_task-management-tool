@@ -1,8 +1,8 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { getCreateDriveFolderUrl, getCreateFireIssueUrl } from '@/lib/utils/functions';
+import { useAuth } from '@/hooks/useAuth';
+import { getCreateDriveFolderUrl, getCreateFireIssueUrl } from '@/utils/functions';
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
@@ -79,3 +79,4 @@ export function useFireIntegration() {
     createFireIssue,
   };
 }
+

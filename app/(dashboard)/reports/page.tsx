@@ -19,8 +19,8 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
-import { getTimeReportUrl, getExportTimeReportCsvUrl } from '@/lib/utils/functions';
-import { formatDuration } from '@/lib/utils/timer';
+import { getTimeReportUrl, getExportTimeReportCsvUrl } from '@/utils/functions';
+import { formatDuration } from '@/utils/timer';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'normal' | 'brg'>('normal');

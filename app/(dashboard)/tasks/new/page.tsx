@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { FlowStatus, Priority, User } from '@/types';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useKubunLabels } from '@/lib/hooks/useKubunLabels';
+import { useAuth } from '@/hooks/useAuth';
+import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useRouter } from 'next/navigation';
-import { PROJECT_TYPES, ProjectType } from '@/lib/constants/projectTypes';
+import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { Button } from '@/components/ui/button';
 import {
   Box,
