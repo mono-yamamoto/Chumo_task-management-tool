@@ -2,6 +2,62 @@
 
 This file contains guidelines for AI coding agents working on this project.
 
+## ⚠️ IMPORTANT: Rule Check Before Execution
+
+**Before executing any user prompt, AI agents MUST check the following rule files:**
+
+1. **`.cursor/rules/` directory** - Check all rule files in this directory, especially:
+   - `.cursor/rules/mcp-tools-rule.mdc` - MCP tools usage rules
+   - `.cursor/rules/implementation-testing-rule.mdc` - Implementation testing rules
+   - Any other rule files with `alwaysApply: true`
+
+2. **This file (AGENTS.md)** - Contains project-wide guidelines, setup instructions, and development rules
+
+**Priority order:**
+- `.cursor/rules/` files take precedence (they are integrated into Cursor's rule system with `alwaysApply: true`)
+- `AGENTS.md` provides additional context and setup instructions
+
+**Why this matters:**
+- `.cursor/rules/` contains detailed, project-specific rules that must be followed
+- These rules may be updated more frequently than `AGENTS.md`
+- Following these rules ensures consistent code quality and development practices
+
+**Action required:**
+Before starting any task, read the relevant rule files to understand:
+- Which tools to use (Serena MCP, Chrome DevTools MCP, standard tools)
+- How to structure code modifications
+- Testing and verification requirements
+- Project-specific conventions
+
+**⚠️ MANDATORY: Report Rule Check and Change Type**
+
+**After checking the rules, AI agents MUST report the following at the very beginning of their response:**
+
+1. **Rule check confirmation**: Explicitly state that you have checked the relevant rule files
+   - Example: "✅ ルールを確認しました: `.cursor/rules/mcp-tools-rule.mdc`、`.cursor/rules/implementation-testing-rule.mdc`、`AGENTS.md`を確認済み"
+
+2. **Change type declaration**: Declare what type of change you will be implementing
+   - **⚠️ IMPORTANT**: You MUST check `.cursor/rules/main.mdc` クイックリファレンス section to see the available change types
+   - Do NOT list change types here - you must read them from `.cursor/rules/main.mdc`
+   - Report the change type exactly as defined in the クイックリファレンス table
+   - Include the Phase numbers and estimated time from the table
+   - Example: "実装タイプ: **新機能追加** (Phase 1-11) - 区分ラベルの共通化機能を追加"
+
+**Why this is required:**
+- Allows the user to verify that rules were actually checked before implementation
+- Provides clear context about the type of work being performed
+- Helps track the nature of changes for commit messages and documentation
+- Ensures consistent communication and transparency
+
+**Example response format:**
+```
+✅ ルールを確認しました: `.cursor/rules/main.mdc`、`.cursor/rules/mcp-tools-rule.mdc`、`.cursor/rules/implementation-testing-rule.mdc`、`AGENTS.md`を確認済み
+
+実装タイプ: **新機能追加** (Phase 1-11) - 区分ラベルの共通化機能を追加
+
+[実装内容の説明...]
+```
+
 ## ExecPlan Usage
 
 When implementing complex features or performing significant refactoring, create an ExecPlan (execution plan).
