@@ -9,97 +9,22 @@
 - **認証**: Firebase Auth (Googleログイン)
 - **連携**: Google Drive API / GitHub API / Make Webhook
 
-## セットアップ
+## セットアップ・使い方
+
+**すべてのセットアップ手順や使い方は、AIコーディングエージェント（Cursor、Claude Code等）に質問してください。**
+`AGENTS.md`にAI向けの説明を記述しています。
+セットアップ等指示しても理解してなさそうであれば`AGENTS.md`を読み込ませて質問をしてください。
 
 ### 開発に参加する場合
 
-**AIコーディングエージェント（Cursor等）を使用する場合**:
+1. AIエージェントに「セットアップを実行して」と指示してください
+2. エージェントが自動でセットアップを実行します（環境変数の設定など、手動で行う必要がある手順はエージェントが案内します）
 
-1. AIエージェントに `@AGENTS.md` を読み込ませてください
-2. AIエージェントに「セットアップを実行して」と指示してください
-3. エージェントが自動でセットアップを実行します（環境変数の設定は手動で行う必要があります）
+### 使い方・開発方法
 
-詳細なセットアップ手順は `AGENTS.md` を参照してください。
+- セットアップ方法
+- 開発サーバーの起動方法
+- ビルド・デプロイ方法
+- その他の使い方
 
-### 手動でセットアップする場合（管理者向け）
-
-プロジェクトを初めてセットアップする場合は、以下の手順を実行してください。
-
-#### 1. 依存関係のインストール
-
-```bash
-npm install
-cd functions && npm install
-```
-
-#### 2. Firebase設定
-
-1. Firebaseプロジェクトを作成
-2. Firebase CLIをインストール: `npm install -g firebase-tools`
-3. Firebaseにログイン: `firebase login`
-4. プロジェクトを初期化: `firebase init`
-5. `.env.local`ファイルを作成し、Firebase設定を追加:
-
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-NEXT_PUBLIC_FUNCTIONS_URL=https://your-region-your-project.cloudfunctions.net
-```
-
-#### 3. GCP Secret Manager設定
-
-以下のSecretsを作成:
-
-- `MAKE_WEBHOOK_SECRET`: Make Webhookの秘密鍵
-- `DRIVE_PARENT_ID`: Google Driveの親フォルダID (`14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh`)
-- `CHECKSHEET_TEMPLATE_ID`: チェックシートテンプレートID (`1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M`)
-- `GITHUB_TOKEN`: GitHub Personal Access Token (repo権限)
-- `DRIVE_SERVICE_ACCOUNT_KEY`: Google DriveサービスアカウントのJSONキー
-
-#### 4. Firestoreセキュリティルールとインデックス
-
-```bash
-firebase deploy --only firestore:rules,firestore:indexes
-```
-
-#### 5. Cloud Functionsデプロイ
-
-```bash
-cd functions
-npm run build
-firebase deploy --only functions
-```
-
-#### 6. 初期データ作成
-
-`scripts/create-initial-data.ts`を実行してサンプルデータを作成します。
-
-詳細は `docs/setup/INITIAL_SETUP.md` を参照してください。
-
-## 開発
-
-```bash
-# フロントエンド開発サーバー起動
-npm run dev
-
-# Cloud Functionsローカル実行
-cd functions
-npm run serve
-```
-
-## 主要機能
-
-- **認証**: Googleログイン + 許可リスト制御
-- **タスク管理**: Backlog同期、ローカル項目編集
-- **時間計測**: タスクごとのタイマー（排他制御）
-- **Google Drive連携**: フォルダ・チェックシート自動作成
-- **GitHub連携**: Issue自動作成
-- **レポート**: 時間集計とCSVエクスポート
-
-## ライセンス
-
-Private
+**上記すべてについて、AIエージェントに質問してください。**
