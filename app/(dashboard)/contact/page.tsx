@@ -584,7 +584,7 @@ export default function ContactPage() {
                                     }}
                                     onClick={() =>
                                       window.open(
-                                        contact.errorReportDetails.screenshotUrl,
+                                        contact.errorReportDetails?.screenshotUrl || '',
                                         '_blank'
                                       )
                                     }
@@ -834,7 +834,7 @@ export default function ContactPage() {
                                     }}
                                     onClick={() =>
                                       window.open(
-                                        contact.errorReportDetails.screenshotUrl,
+                                        contact.errorReportDetails?.screenshotUrl || '',
                                         '_blank'
                                       )
                                     }

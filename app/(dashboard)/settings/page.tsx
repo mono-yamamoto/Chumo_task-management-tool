@@ -182,7 +182,7 @@ export default function SettingsPage() {
                 <Chip label="連携済み" color="success" size="small" />
                 <Typography variant="body2" color="text.secondary">
                   {currentUser?.googleOAuthUpdatedAt
-                    ? `最終更新: ${new Date(currentUser.googleOAuthUpdatedAt.seconds * 1000).toLocaleString('ja-JP')}`
+                    ? `最終更新: ${(currentUser.googleOAuthUpdatedAt instanceof Date ? currentUser.googleOAuthUpdatedAt : new Date(currentUser.googleOAuthUpdatedAt)).toLocaleString('ja-JP')}`
                     : ''}
                 </Typography>
               </Box>
