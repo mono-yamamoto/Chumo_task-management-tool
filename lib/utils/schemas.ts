@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PROJECT_TYPES } from '@/lib/constants/projectTypes';
 
 export const flowStatusSchema = z.enum([
   '未着手',
@@ -47,8 +48,10 @@ export const taskExternalSchema = z.object({
   syncStatus: z.enum(['ok', 'failed']),
 });
 
+export const projectTypeSchema = z.enum([...PROJECT_TYPES] as [string, ...string[]]);
+
 export const taskSchema = z.object({
-  projectId: z.string(),
+  projectType: projectTypeSchema, // プロジェクトタイプ（固定値）
   external: taskExternalSchema.optional(),
   title: z.string().min(1),
   description: z.string().optional(),

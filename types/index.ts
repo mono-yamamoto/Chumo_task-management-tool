@@ -1,6 +1,8 @@
 // import { User as FirebaseUser } from 'firebase/auth';
 // import { Timestamp } from 'firebase/firestore';
 
+import { ProjectType } from '@/lib/constants/projectTypes';
+
 export type UserRole = 'admin' | 'member';
 
 export type FlowStatus =
@@ -61,7 +63,7 @@ export interface TaskExternal {
 
 export interface Task {
   id: string;
-  projectId: string;
+  projectType: ProjectType; // プロジェクトタイプ（固定値）
   external?: TaskExternal;
   title: string;
   description?: string;
