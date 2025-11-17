@@ -1,16 +1,16 @@
-import { onRequest } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
-import { Octokit } from "@octokit/rest";
-import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { onRequest } from 'firebase-functions/v2/https';
+import { getFirestore } from 'firebase-admin/firestore';
+import { Octokit } from '@octokit/rest';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 const db = getFirestore();
 const secretClient = new SecretManagerServiceClient();
 
 async function getSecret(secretName: string): Promise<string> {
-  const projectId = process.env.GCLOUD_PROJECT || "";
+  const projectId = process.env.GCLOUD_PROJECT || '';
   const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
   const [version] = await secretClient.accessSecretVersion({ name });
-  return version.payload?.data?.toString() || "";
+  return version.payload?.data?.toString() || '';
 }
 
 export const createFireIssue = onRequest(
@@ -20,57 +20,57 @@ export const createFireIssue = onRequest(
   },
   async (req, res) => {
     // CORSヘッダーを設定
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
 
     // OPTIONSリクエスト（preflight）に対応
-    if (req.method === "OPTIONS") {
-      res.status(204).send("");
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
       return;
     }
 
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
     try {
       // Firebase Functions v2では、req.pathは関数のルートからの相対パス
       // 例: /projects/{projectId}/tasks/{taskId}
-      const pathParts = req.path.split("/").filter(Boolean);
-      const projectIdIndex = pathParts.indexOf("projects");
-      const taskIdIndex = pathParts.indexOf("tasks");
-      
+      const pathParts = req.path.split('/').filter(Boolean);
+      const projectIdIndex = pathParts.indexOf('projects');
+      const taskIdIndex = pathParts.indexOf('tasks');
+
       if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
-        res.status(400).json({ error: "Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}" });
+        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
         return;
       }
-      
+
       const projectId = pathParts[projectIdIndex + 1];
       const taskId = pathParts[taskIdIndex + 1];
 
       if (!projectId || !taskId) {
-        res.status(400).json({ error: "Missing projectId or taskId" });
+        res.status(400).json({ error: 'Missing projectId or taskId' });
         return;
       }
 
       // タスク情報取得
       const taskDoc = await db
-        .collection("projects")
+        .collection('projects')
         .doc(projectId)
-        .collection("tasks")
+        .collection('tasks')
         .doc(taskId)
         .get();
 
       if (!taskDoc.exists) {
-        res.status(404).json({ error: "Task not found" });
+        res.status(404).json({ error: 'Task not found' });
         return;
       }
 
       const task = taskDoc.data();
       if (!task) {
-        res.status(404).json({ error: "Task data not found" });
+        res.status(404).json({ error: 'Task data not found' });
         return;
       }
 
@@ -85,9 +85,9 @@ export const createFireIssue = onRequest(
       }
 
       // GitHubトークン取得
-      const githubToken = await getSecret("GITHUB_TOKEN");
+      const githubToken = await getSecret('GITHUB_TOKEN');
       if (!githubToken) {
-        res.status(500).json({ error: "Failed to retrieve GitHub token" });
+        res.status(500).json({ error: 'Failed to retrieve GitHub token' });
         return;
       }
       const octokit = new Octokit({ auth: githubToken });
@@ -97,7 +97,7 @@ export const createFireIssue = onRequest(
       const assignees: string[] = [];
 
       for (const userId of assigneeIds) {
-        const userDoc = await db.collection("users").doc(userId).get();
+        const userDoc = await db.collection('users').doc(userId).get();
         if (userDoc.exists) {
           const user = userDoc.data();
           if (user?.githubUsername) {
@@ -107,17 +107,17 @@ export const createFireIssue = onRequest(
       }
 
       // Issue作成
-      const issueTitle = `${task.external?.issueKey || ""} ${task.title}`;
+      const issueTitle = `${task.external?.issueKey || ''} ${task.title}`;
       const issueBody = [
-        task.external?.url ? `Backlog: ${task.external.url}` : "",
-        task.description || "",
+        task.external?.url ? `Backlog: ${task.external.url}` : '',
+        task.description || '',
       ]
         .filter(Boolean)
-        .join("\n\n");
+        .join('\n\n');
 
       const issueResponse = await octokit.rest.issues.create({
-        owner: "monosus",
-        repo: "ss-fire-design-system",
+        owner: 'monosus',
+        repo: 'ss-fire-design-system',
         title: issueTitle,
         body: issueBody,
         assignees: assignees.length > 0 ? assignees : undefined,
@@ -127,9 +127,9 @@ export const createFireIssue = onRequest(
 
       // タスクにURLを保存
       await db
-        .collection("projects")
+        .collection('projects')
         .doc(projectId)
-        .collection("tasks")
+        .collection('tasks')
         .doc(taskId)
         .update({
           fireIssueUrl: issueUrl,
@@ -141,9 +141,8 @@ export const createFireIssue = onRequest(
         url: issueUrl,
       });
     } catch (error) {
-      console.error("Create Fire issue error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error('Create Fire issue error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
+  },
 );
-

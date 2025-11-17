@@ -1,5 +1,5 @@
-import { onRequest } from "firebase-functions/v2/https";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { onRequest } from 'firebase-functions/v2/https';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 const db = getFirestore();
 
@@ -9,16 +9,16 @@ export const getTimeReport = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-    if (req.method !== "GET") {
-      res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
     try {
-      const { from, to, type = "normal" } = req.query;
+      const { from, to, type = 'normal' } = req.query;
 
       if (!from || !to) {
-        res.status(400).json({ error: "Missing required parameters" });
+        res.status(400).json({ error: 'Missing required parameters' });
         return;
       }
 
@@ -27,7 +27,7 @@ export const getTimeReport = onRequest(
 
       // 日付の検証
       if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        res.status(400).json({ error: "Invalid date format" });
+        res.status(400).json({ error: 'Invalid date format' });
         return;
       }
 
@@ -35,7 +35,7 @@ export const getTimeReport = onRequest(
       toDate.setHours(23, 59, 59, 999);
 
       // 全プロジェクトからタスクとセッションを取得
-      const projectsSnapshot = await db.collection("projects").get();
+      const projectsSnapshot = await db.collection('projects').get();
       const items: Array<{
         title: string;
         durationMin: number;
@@ -46,19 +46,19 @@ export const getTimeReport = onRequest(
       for (const projectDoc of projectsSnapshot.docs) {
         const projectId = projectDoc.id;
         const tasksSnapshot = await db
-          .collection("projects")
+          .collection('projects')
           .doc(projectId)
-          .collection("tasks")
+          .collection('tasks')
           .get();
 
         for (const taskDoc of tasksSnapshot.docs) {
           const task = taskDoc.data();
 
           // BRGフィルタ
-          if (type === "brg" && !task.external?.issueKey?.includes("BRGREG")) {
+          if (type === 'brg' && !task.external?.issueKey?.includes('BRGREG')) {
             continue;
           }
-          if (type === "normal" && task.external?.issueKey?.includes("BRGREG")) {
+          if (type === 'normal' && task.external?.issueKey?.includes('BRGREG')) {
             continue;
           }
 
@@ -67,34 +67,34 @@ export const getTimeReport = onRequest(
           let sessionsSnapshot;
           try {
             sessionsSnapshot = await db
-              .collection("projects")
+              .collection('projects')
               .doc(projectId)
-              .collection("taskSessions")
-              .where("taskId", "==", taskDoc.id)
-              .where("startedAt", ">=", fromDate)
-              .where("startedAt", "<=", toDate)
+              .collection('taskSessions')
+              .where('taskId', '==', taskDoc.id)
+              .where('startedAt', '>=', fromDate)
+              .where('startedAt', '<=', toDate)
               .get();
           } catch (indexError: any) {
             // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index")) {
+            if (indexError?.code === 'failed-precondition' || indexError?.message?.includes('index')) {
               const allSessionsSnapshot = await db
-                .collection("projects")
+                .collection('projects')
                 .doc(projectId)
-                .collection("taskSessions")
-                .where("taskId", "==", taskDoc.id)
+                .collection('taskSessions')
+                .where('taskId', '==', taskDoc.id)
                 .get();
-              
+
               // クライアント側で日付範囲をフィルタ
               sessionsSnapshot = {
                 docs: allSessionsSnapshot.docs.filter((doc) => {
                   const session = doc.data();
-                  const startedAt = session.startedAt;
+                  const { startedAt } = session;
                   if (!startedAt) return false;
                   // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate = startedAt instanceof Timestamp 
-                    ? startedAt.toDate() 
-                    : (startedAt as any).toDate 
-                      ? (startedAt as any).toDate() 
+                  const startedAtDate = startedAt instanceof Timestamp
+                    ? startedAt.toDate()
+                    : (startedAt as any).toDate
+                      ? (startedAt as any).toDate()
                       : new Date(startedAt);
                   return startedAtDate >= fromDate && startedAtDate <= toDate;
                 }),
@@ -128,14 +128,14 @@ export const getTimeReport = onRequest(
         totalDurationMin,
       });
     } catch (error) {
-      console.error("Get time report error:", error);
+      console.error('Get time report error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ 
-        error: "Internal server error",
-        details: errorMessage 
+      res.status(500).json({
+        error: 'Internal server error',
+        details: errorMessage,
       });
     }
-  }
+  },
 );
 
 export const exportTimeReportCSV = onRequest(
@@ -144,16 +144,16 @@ export const exportTimeReportCSV = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-    if (req.method !== "GET") {
-      res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
     try {
-      const { from, to, type = "normal" } = req.query;
+      const { from, to, type = 'normal' } = req.query;
 
       if (!from || !to) {
-        res.status(400).json({ error: "Missing required parameters" });
+        res.status(400).json({ error: 'Missing required parameters' });
         return;
       }
 
@@ -162,7 +162,7 @@ export const exportTimeReportCSV = onRequest(
 
       // 日付の検証
       if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        res.status(400).json({ error: "Invalid date format" });
+        res.status(400).json({ error: 'Invalid date format' });
         return;
       }
 
@@ -170,7 +170,7 @@ export const exportTimeReportCSV = onRequest(
       toDate.setHours(23, 59, 59, 999);
 
       // データ取得（getTimeReportと同じロジック）
-      const projectsSnapshot = await db.collection("projects").get();
+      const projectsSnapshot = await db.collection('projects').get();
       const items: Array<{
         title: string;
         durationMin: number;
@@ -180,18 +180,18 @@ export const exportTimeReportCSV = onRequest(
       for (const projectDoc of projectsSnapshot.docs) {
         const projectId = projectDoc.id;
         const tasksSnapshot = await db
-          .collection("projects")
+          .collection('projects')
           .doc(projectId)
-          .collection("tasks")
+          .collection('tasks')
           .get();
 
         for (const taskDoc of tasksSnapshot.docs) {
           const task = taskDoc.data();
 
-          if (type === "brg" && !task.external?.issueKey?.includes("BRGREG")) {
+          if (type === 'brg' && !task.external?.issueKey?.includes('BRGREG')) {
             continue;
           }
-          if (type === "normal" && task.external?.issueKey?.includes("BRGREG")) {
+          if (type === 'normal' && task.external?.issueKey?.includes('BRGREG')) {
             continue;
           }
 
@@ -200,34 +200,34 @@ export const exportTimeReportCSV = onRequest(
           let sessionsSnapshot;
           try {
             sessionsSnapshot = await db
-              .collection("projects")
+              .collection('projects')
               .doc(projectId)
-              .collection("taskSessions")
-              .where("taskId", "==", taskDoc.id)
-              .where("startedAt", ">=", fromDate)
-              .where("startedAt", "<=", toDate)
+              .collection('taskSessions')
+              .where('taskId', '==', taskDoc.id)
+              .where('startedAt', '>=', fromDate)
+              .where('startedAt', '<=', toDate)
               .get();
           } catch (indexError: any) {
             // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (indexError?.code === "failed-precondition" || indexError?.message?.includes("index")) {
+            if (indexError?.code === 'failed-precondition' || indexError?.message?.includes('index')) {
               const allSessionsSnapshot = await db
-                .collection("projects")
+                .collection('projects')
                 .doc(projectId)
-                .collection("taskSessions")
-                .where("taskId", "==", taskDoc.id)
+                .collection('taskSessions')
+                .where('taskId', '==', taskDoc.id)
                 .get();
-              
+
               // クライアント側で日付範囲をフィルタ
               sessionsSnapshot = {
                 docs: allSessionsSnapshot.docs.filter((doc) => {
                   const session = doc.data();
-                  const startedAt = session.startedAt;
+                  const { startedAt } = session;
                   if (!startedAt) return false;
                   // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate = startedAt instanceof Timestamp 
-                    ? startedAt.toDate() 
-                    : (startedAt as any).toDate 
-                      ? (startedAt as any).toDate() 
+                  const startedAtDate = startedAt instanceof Timestamp
+                    ? startedAt.toDate()
+                    : (startedAt as any).toDate
+                      ? (startedAt as any).toDate()
                       : new Date(startedAt);
                   return startedAtDate >= fromDate && startedAtDate <= toDate;
                 }),
@@ -256,32 +256,31 @@ export const exportTimeReportCSV = onRequest(
       }
 
       // CSV生成（UTF-8+BOM/CRLF）
-      const BOM = "\uFEFF";
+      const BOM = '\uFEFF';
       const csvRows = [
-        ["title", "durationMin", "over3hours"],
+        ['title', 'durationMin', 'over3hours'],
         ...items.map((item) => [
           `"${item.title.replace(/"/g, '""')}"`,
           item.durationMin.toString(),
-          item.over3hours ? `"${item.over3hours.replace(/"/g, '""')}"` : "",
+          item.over3hours ? `"${item.over3hours.replace(/"/g, '""')}"` : '',
         ]),
       ];
 
-      const csv = BOM + csvRows.map((row) => row.join(",")).join("\r\n");
+      const csv = BOM + csvRows.map((row) => row.join(',')).join('\r\n');
 
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="report_${type}_${fromDate.toISOString().split("T")[0]}_${toDate.toISOString().split("T")[0]}.csv"`
+        'Content-Disposition',
+        `attachment; filename="report_${type}_${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}.csv"`,
       );
       res.status(200).send(csv);
     } catch (error) {
-      console.error("Export CSV error:", error);
+      console.error('Export CSV error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ 
-        error: "Internal server error",
-        details: errorMessage 
+      res.status(500).json({
+        error: 'Internal server error',
+        details: errorMessage,
       });
     }
-  }
+  },
 );
-

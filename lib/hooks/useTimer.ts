@@ -1,8 +1,6 @@
-"use client";
+'use client';
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-const functionsUrl = process.env.NEXT_PUBLIC_FUNCTIONS_URL || "";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function useTimer() {
   const queryClient = useQueryClient();
@@ -19,28 +17,28 @@ export function useTimer() {
     }) => {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const timerUrl = "https://starttimer-zbk3yr5vta-uc.a.run.app";
+      const timerUrl = 'https://starttimer-zbk3yr5vta-uc.a.run.app';
       const response = await fetch(
         `${timerUrl}/projects/${projectId}/tasks/${taskId}`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId }),
-        }
+        },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "タイマーの開始に失敗しました");
+        throw new Error(error.message || 'タイマーの開始に失敗しました');
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 
@@ -54,28 +52,28 @@ export function useTimer() {
     }) => {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const timerUrl = "https://stoptimer-zbk3yr5vta-uc.a.run.app";
+      const timerUrl = 'https://stoptimer-zbk3yr5vta-uc.a.run.app';
       const response = await fetch(
         `${timerUrl}/projects/${projectId}/tasks`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ sessionId }),
-        }
+        },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "タイマーの停止に失敗しました");
+        throw new Error(error.message || 'タイマーの停止に失敗しました');
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 
@@ -84,4 +82,3 @@ export function useTimer() {
     stopTimer,
   };
 }
-

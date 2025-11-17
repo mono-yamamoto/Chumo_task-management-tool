@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase/config";
-import { compressImage } from "@/lib/utils/imageCompression";
+import { useState } from 'react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+import { compressImage } from '@/lib/utils/imageCompression';
 
 export function useImageUpload() {
   const [uploading, setUploading] = useState(false);
@@ -17,10 +17,10 @@ export function useImageUpload() {
       maxHeight?: number;
       quality?: number;
       maxSizeKB?: number;
-    }
+    },
   ): Promise<string | null> => {
     if (!storage) {
-      setError("Storage is not initialized");
+      setError('Storage is not initialized');
       return null;
     }
 
@@ -39,7 +39,7 @@ export function useImageUpload() {
           options?.maxWidth,
           options?.maxHeight,
           options?.quality,
-          options?.maxSizeKB
+          options?.maxSizeKB,
         );
         setProgress(30);
       }
@@ -55,7 +55,7 @@ export function useImageUpload() {
 
       return downloadURL;
     } catch (err: any) {
-      setError(err.message || "画像のアップロードに失敗しました");
+      setError(err.message || '画像のアップロードに失敗しました');
       return null;
     } finally {
       setUploading(false);
@@ -63,6 +63,7 @@ export function useImageUpload() {
     }
   };
 
-  return { uploadImage, uploading, error, progress };
+  return {
+    uploadImage, uploading, error, progress,
+  };
 }
-

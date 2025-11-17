@@ -1,20 +1,20 @@
-import { User as FirebaseUser } from "firebase/auth";
-import { Timestamp } from "firebase/firestore";
+import { User as FirebaseUser } from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 
-export type UserRole = "admin" | "member";
+export type UserRole = 'admin' | 'member';
 
 export type FlowStatus =
-  | "未着手"
-  | "ディレクション"
-  | "コーディング"
-  | "デザイン"
-  | "待ち"
-  | "対応中"
-  | "週次報告"
-  | "月次報告"
-  | "完了";
+  | '未着手'
+  | 'ディレクション'
+  | 'コーディング'
+  | 'デザイン'
+  | '待ち'
+  | '対応中'
+  | '週次報告'
+  | '月次報告'
+  | '完了';
 
-export type Priority = "low" | "medium" | "high" | "urgent";
+export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface User {
   id: string;
@@ -51,12 +51,12 @@ export interface Label {
 }
 
 export interface TaskExternal {
-  source: "backlog";
+  source: 'backlog';
   issueId: string;
   issueKey: string;
   url: string;
   lastSyncedAt: Date;
-  syncStatus: "ok" | "failed";
+  syncStatus: 'ok' | 'failed';
 }
 
 export interface Task {
@@ -95,19 +95,19 @@ export interface TaskSession {
 export interface TaskActivity {
   id: string;
   taskId: string;
-  type: "sync" | "timerStart" | "timerStop" | "update" | "driveCreate" | "fireCreate";
+  type: 'sync' | 'timerStart' | 'timerStop' | 'update' | 'driveCreate' | 'fireCreate';
   actorId: string;
   payload?: Record<string, unknown>;
   createdAt: Date;
 }
 
-export type ContactType = "error" | "feature" | "other";
+export type ContactType = 'error' | 'feature' | 'other';
 
-export type DeviceType = "PC" | "SP";
-export type PCOSType = "Mac" | "Windows" | "Linux" | "other";
-export type SPOSType = "iOS" | "Android" | "other";
-export type BrowserType = "Chrome" | "Firefox" | "Safari" | "Arc" | "Comet" | "Dia" | "other";
-export type SmartphoneType = "iPhone" | "Android" | "other";
+export type DeviceType = 'PC' | 'SP';
+export type PCOSType = 'Mac' | 'Windows' | 'Linux' | 'other';
+export type SPOSType = 'iOS' | 'Android' | 'other';
+export type BrowserType = 'Chrome' | 'Firefox' | 'Safari' | 'Arc' | 'Comet' | 'Dia' | 'other';
+export type SmartphoneType = 'iPhone' | 'Android' | 'other';
 
 export interface ErrorReportDetails {
   issue: string; // 事象
@@ -132,8 +132,7 @@ export interface Contact {
   userEmail: string;
   errorReportDetails?: ErrorReportDetails; // エラー報告の場合の詳細情報
   githubIssueUrl?: string;
-  status: "pending" | "resolved";
+  status: 'pending' | 'resolved';
   createdAt: Date;
   updatedAt: Date;
 }
-

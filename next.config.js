@@ -6,7 +6,6 @@ const nextConfig = {
   },
   // scriptsディレクトリをビルドから除外
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-}
+};
 
-module.exports = nextConfig
-
+module.exports = nextConfig;

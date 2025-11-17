@@ -1,16 +1,16 @@
-import { onRequest } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
-import { google } from "googleapis";
-import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { onRequest } from 'firebase-functions/v2/https';
+import { getFirestore } from 'firebase-admin/firestore';
+import { google } from 'googleapis';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 const db = getFirestore();
 const secretClient = new SecretManagerServiceClient();
 
 async function getSecret(secretName: string): Promise<string> {
-  const projectId = process.env.GCLOUD_PROJECT || "";
+  const projectId = process.env.GCLOUD_PROJECT || '';
   const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
   const [version] = await secretClient.accessSecretVersion({ name });
-  return version.payload?.data?.toString() || "";
+  return version.payload?.data?.toString() || '';
 }
 
 export const createDriveFolder = onRequest(
@@ -20,18 +20,18 @@ export const createDriveFolder = onRequest(
   },
   async (req, res) => {
     // CORSヘッダーを設定
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
 
     // OPTIONSリクエスト（preflight）に対応
-    if (req.method === "OPTIONS") {
-      res.status(204).send("");
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
       return;
     }
 
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
@@ -39,71 +39,71 @@ export const createDriveFolder = onRequest(
       // リクエストボディからuserIdを取得
       const userId = req.body?.userId;
       if (!userId) {
-        res.status(400).json({ error: "Missing userId in request body" });
+        res.status(400).json({ error: 'Missing userId in request body' });
         return;
       }
 
       // Firebase Functions v2では、req.pathは関数のルートからの相対パス
       // 例: /projects/{projectId}/tasks/{taskId}
-      const pathParts = req.path.split("/").filter(Boolean);
-      const projectIdIndex = pathParts.indexOf("projects");
-      const taskIdIndex = pathParts.indexOf("tasks");
-      
+      const pathParts = req.path.split('/').filter(Boolean);
+      const projectIdIndex = pathParts.indexOf('projects');
+      const taskIdIndex = pathParts.indexOf('tasks');
+
       if (projectIdIndex === -1 || taskIdIndex === -1 || taskIdIndex <= projectIdIndex) {
-        res.status(400).json({ error: "Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}" });
+        res.status(400).json({ error: 'Invalid path format. Expected: /projects/{projectId}/tasks/{taskId}' });
         return;
       }
-      
+
       const projectId = pathParts[projectIdIndex + 1];
       const taskId = pathParts[taskIdIndex + 1];
 
       if (!projectId || !taskId) {
-        res.status(400).json({ error: "Missing projectId or taskId" });
+        res.status(400).json({ error: 'Missing projectId or taskId' });
         return;
       }
 
       // ユーザーのリフレッシュトークンを取得
-      console.log("Fetching user document for userId:", userId);
-      const userDoc = await db.collection("users").doc(userId).get();
+      console.log('Fetching user document for userId:', userId);
+      const userDoc = await db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
-        console.error("User document not found for userId:", userId);
-        res.status(404).json({ error: "User not found" });
+        console.error('User document not found for userId:', userId);
+        res.status(404).json({ error: 'User not found' });
         return;
       }
 
       const userData = userDoc.data();
-      console.log("User data fields:", userData ? Object.keys(userData) : "null");
-      console.log("googleRefreshToken exists:", !!userData?.googleRefreshToken);
+      console.log('User data fields:', userData ? Object.keys(userData) : 'null');
+      console.log('googleRefreshToken exists:', !!userData?.googleRefreshToken);
       const refreshToken = userData?.googleRefreshToken;
 
       if (!refreshToken) {
-        console.error("Refresh token not found for userId:", userId);
-        console.error("Available fields:", userData ? Object.keys(userData).join(", ") : "none");
-        res.status(400).json({ 
-          error: "Google Drive認証が必要です。設定ページでGoogle Driveと連携してください。",
-          requiresAuth: true 
+        console.error('Refresh token not found for userId:', userId);
+        console.error('Available fields:', userData ? Object.keys(userData).join(', ') : 'none');
+        res.status(400).json({
+          error: 'Google Drive認証が必要です。設定ページでGoogle Driveと連携してください。',
+          requiresAuth: true,
         });
         return;
       }
 
-      console.log("Refresh token found, length:", refreshToken.length);
+      console.log('Refresh token found, length:', refreshToken.length);
 
       // タスク情報取得
       const taskDoc = await db
-        .collection("projects")
+        .collection('projects')
         .doc(projectId)
-        .collection("tasks")
+        .collection('tasks')
         .doc(taskId)
         .get();
 
       if (!taskDoc.exists) {
-        res.status(404).json({ error: "Task not found" });
+        res.status(404).json({ error: 'Task not found' });
         return;
       }
 
       const task = taskDoc.data();
       if (!task) {
-        res.status(404).json({ error: "Task data not found" });
+        res.status(404).json({ error: 'Task data not found' });
         return;
       }
 
@@ -114,16 +114,16 @@ export const createDriveFolder = onRequest(
         parts.push(task.external.issueKey);
       }
       parts.push(task.title);
-      const folderName = parts.join(" ");
-      
+      const folderName = parts.join(' ');
+
       // Secrets取得
-      const oauthClientId = await getSecret("GOOGLE_OAUTH_CLIENT_ID");
-      const oauthClientSecret = await getSecret("GOOGLE_OAUTH_CLIENT_SECRET");
-      const driveParentId = await getSecret("DRIVE_PARENT_ID");
-      const checksheetTemplateId = await getSecret("CHECKSHEET_TEMPLATE_ID");
+      const oauthClientId = await getSecret('GOOGLE_OAUTH_CLIENT_ID');
+      const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
+      const driveParentId = await getSecret('DRIVE_PARENT_ID');
+      const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
-        res.status(500).json({ error: "Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager." });
+        res.status(500).json({ error: 'Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager.' });
         return;
       }
 
@@ -132,7 +132,7 @@ export const createDriveFolder = onRequest(
         oauthClientId,
         oauthClientSecret,
         // リダイレクトURIは使用しないが、OAuth2Clientのコンストラクタに必要
-        "urn:ietf:wg:oauth:2.0:oob"
+        'urn:ietf:wg:oauth:2.0:oob',
       );
 
       oauth2Client.setCredentials({
@@ -142,19 +142,19 @@ export const createDriveFolder = onRequest(
       // アクセストークンを取得（必要に応じて自動的にリフレッシュされる）
       const accessToken = await oauth2Client.getAccessToken();
       if (!accessToken.token) {
-        res.status(401).json({ 
-          error: "Google Drive認証トークンの取得に失敗しました。設定ページで再認証してください。",
-          requiresAuth: true 
+        res.status(401).json({
+          error: 'Google Drive認証トークンの取得に失敗しました。設定ページで再認証してください。',
+          requiresAuth: true,
         });
         return;
       }
 
-      const drive = google.drive({ version: "v3", auth: oauth2Client });
+      const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
       // 親フォルダが共有ドライブかどうかを確認
       const parentFolder = await drive.files.get({
         fileId: driveParentId,
-        fields: "id, name, driveId",
+        fields: 'id, name, driveId',
         supportsAllDrives: true,
       });
 
@@ -164,10 +164,10 @@ export const createDriveFolder = onRequest(
       // 同名フォルダ検索
       const searchResponse = await drive.files.list({
         q: `name='${folderName.replace(/'/g, "\\'")}' and parents in '${driveParentId}' and trashed=false`,
-        fields: "files(id, name)",
+        fields: 'files(id, name)',
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
-        corpora: isSharedDrive ? "drive" : "user",
+        corpora: isSharedDrive ? 'drive' : 'user',
         driveId: isSharedDrive ? driveId : undefined,
       });
 
@@ -184,9 +184,9 @@ export const createDriveFolder = onRequest(
           requestBody: {
             name: folderName,
             parents: [driveParentId],
-            mimeType: "application/vnd.google-apps.folder",
+            mimeType: 'application/vnd.google-apps.folder',
           },
-          fields: "id",
+          fields: 'id',
           supportsAllDrives: true,
         });
 
@@ -198,8 +198,8 @@ export const createDriveFolder = onRequest(
         let sheetId: string | null = null;
         try {
           const checksheetName = `チェックシート_${task.title}`;
-          console.log("Creating checksheet with name:", checksheetName);
-          
+          console.log('Creating checksheet with name:', checksheetName);
+
           const copyResponse = await drive.files.copy({
             fileId: checksheetTemplateId,
             requestBody: {
@@ -210,31 +210,31 @@ export const createDriveFolder = onRequest(
           });
 
           sheetId = copyResponse.data.id!;
-          console.log("Checksheet created successfully, ID:", sheetId);
-          
-          const sheets = google.sheets({ version: "v4", auth: oauth2Client });
+          console.log('Checksheet created successfully, ID:', sheetId);
+
+          const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
 
           // シート名を取得
           const spreadsheetInfo = await sheets.spreadsheets.get({
             spreadsheetId: sheetId,
           });
           const firstSheet = spreadsheetInfo.data.sheets?.[0];
-          const sheetName = firstSheet?.properties?.title || "シート1";
-          console.log("Sheet name:", sheetName);
+          const sheetName = firstSheet?.properties?.title || 'シート1';
+          console.log('Sheet name:', sheetName);
 
           // セル書き込み（個別にエラーハンドリング）
           try {
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
               range: `${sheetName}!C4`,
-              valueInputOption: "RAW",
+              valueInputOption: 'RAW',
               requestBody: {
                 values: [[task.title]],
               },
             });
-            console.log("Cell C4 updated successfully");
+            console.log('Cell C4 updated successfully');
           } catch (error) {
-            console.error("Failed to update cell C4:", error);
+            console.error('Failed to update cell C4:', error);
             throw error;
           }
 
@@ -242,14 +242,14 @@ export const createDriveFolder = onRequest(
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
               range: `${sheetName}!C5`,
-              valueInputOption: "RAW",
+              valueInputOption: 'RAW',
               requestBody: {
-                values: [[task.external?.url || ""]],
+                values: [[task.external?.url || '']],
               },
             });
-            console.log("Cell C5 updated successfully");
+            console.log('Cell C5 updated successfully');
           } catch (error) {
-            console.error("Failed to update cell C5:", error);
+            console.error('Failed to update cell C5:', error);
             throw error;
           }
 
@@ -257,22 +257,22 @@ export const createDriveFolder = onRequest(
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
               range: `${sheetName}!C7`,
-              valueInputOption: "RAW",
+              valueInputOption: 'RAW',
               requestBody: {
                 values: [[folderUrl]],
               },
             });
-            console.log("Cell C7 updated successfully");
+            console.log('Cell C7 updated successfully');
           } catch (error) {
-            console.error("Failed to update cell C7:", error);
+            console.error('Failed to update cell C7:', error);
             throw error;
           }
 
-          console.log("All cells updated successfully");
+          console.log('All cells updated successfully');
         } catch (error) {
           // チェックシート作成でエラーが発生した場合、エラー情報を保存
           checksheetError = error instanceof Error ? error : new Error(String(error));
-          console.error("チェックシートの作成に失敗しました:", {
+          console.error('チェックシートの作成に失敗しました:', {
             error: checksheetError.message,
             stack: checksheetError.stack,
             checksheetTemplateId,
@@ -280,11 +280,11 @@ export const createDriveFolder = onRequest(
             taskTitle: task.title,
             sheetId,
           });
-          
+
           // Google APIエラーの場合は詳細情報を取得
           if (error && typeof error === 'object' && 'response' in error) {
             const apiError = error as any;
-            console.error("Google API Error:", {
+            console.error('Google API Error:', {
               status: apiError.response?.status,
               statusText: apiError.response?.statusText,
               data: apiError.response?.data,
@@ -294,9 +294,9 @@ export const createDriveFolder = onRequest(
 
         // タスクにURLを保存
         await db
-          .collection("projects")
+          .collection('projects')
           .doc(projectId)
-          .collection("tasks")
+          .collection('tasks')
           .doc(taskId)
           .update({
             googleDriveUrl: folderUrl,
@@ -308,7 +308,7 @@ export const createDriveFolder = onRequest(
           res.status(200).json({
             success: true,
             url: folderUrl,
-            warning: "チェックシートの作成に失敗しました",
+            warning: 'チェックシートの作成に失敗しました',
             error: checksheetError.message,
           });
           return;
@@ -322,9 +322,9 @@ export const createDriveFolder = onRequest(
 
       // 既存フォルダの場合もURLを保存
       await db
-        .collection("projects")
+        .collection('projects')
         .doc(projectId)
-        .collection("tasks")
+        .collection('tasks')
         .doc(taskId)
         .update({
           googleDriveUrl: folderUrl,
@@ -336,9 +336,8 @@ export const createDriveFolder = onRequest(
         url: folderUrl,
       });
     } catch (error) {
-      console.error("Create Drive folder error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error('Create Drive folder error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
+  },
 );
-
