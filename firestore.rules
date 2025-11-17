@@ -4,14 +4,19 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isProjectMember(projectId) {
-      return exists(/databases/$(database)/documents/projects/$(projectId)) &&
-        request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+
+    // プロジェクトタイプ（固定値）のリスト
+    function isValidProjectType(projectId) {
+      return projectId == 'REG2017' ||
+             projectId == 'BRGREG' ||
+             projectId == 'MONO' ||
+             projectId == 'MONO_ADMIN' ||
+             projectId == 'DES_FIRE' ||
+             projectId == 'DesignSystem';
     }
 
     function isAdmin() {
-      return isSignedIn() && 
+      return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
@@ -21,28 +26,34 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // プロジェクトタイプ（固定値）のドキュメント
+    // プロジェクトタイプは固定値なので、認証済みユーザー全員がアクセス可能
     match /projects/{projectId} {
-      allow read: if isSignedIn() && isProjectMember(projectId);
-      allow list: if isSignedIn(); // リスト読み取りは認証済みユーザー全員に許可（クエリでフィルタリング）
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+      // プロジェクトタイプのドキュメントは読み取り可能（存在確認用）
+      allow read: if isSignedIn() && isValidProjectType(projectId);
+      allow list: if isSignedIn(); // リスト読み取りは認証済みユーザー全員に許可
+      // プロジェクトタイプのドキュメントは作成・更新・削除不可（固定値のため）
+      allow create, update, delete: if false;
 
+      // タスク（サブコレクション）
       match /tasks/{taskId} {
-        allow read, list: if isSignedIn() && isProjectMember(projectId);
-        allow create: if isSignedIn() && isProjectMember(projectId);
-        allow update, delete: if isSignedIn() && isProjectMember(projectId);
+        allow read, list: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId);
+        allow update, delete: if isSignedIn() && isValidProjectType(projectId);
       }
 
+      // タスクセッション（サブコレクション）
       match /taskSessions/{sessionId} {
-        allow read: if isSignedIn() && isProjectMember(projectId);
-        allow create: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == request.resource.data.userId;
-        allow update: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == resource.data.userId;
-        allow delete: if isSignedIn() && isProjectMember(projectId) && request.auth.uid == resource.data.userId;
+        allow read: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == request.resource.data.userId;
+        allow update: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == resource.data.userId;
+        allow delete: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == resource.data.userId;
       }
 
+      // タスクアクティビティ（サブコレクション）
       match /taskActivities/{activityId} {
-        allow read: if isSignedIn() && isProjectMember(projectId);
-        allow create: if isSignedIn() && isProjectMember(projectId);
+        allow read: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId);
       }
     }
 
