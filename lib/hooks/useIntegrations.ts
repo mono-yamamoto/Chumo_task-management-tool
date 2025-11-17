@@ -1,9 +1,7 @@
-"use client";
+'use client';
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/hooks/useAuth";
-
-const functionsUrl = process.env.NEXT_PUBLIC_FUNCTIONS_URL || "";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
@@ -18,42 +16,42 @@ export function useDriveIntegration() {
       taskId: string;
     }) => {
       if (!user) {
-        throw new Error("ユーザーがログインしていません");
+        throw new Error('ユーザーがログインしていません');
       }
 
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const driveUrl = "https://createdrivefolder-zbk3yr5vta-uc.a.run.app";
-      console.log("Creating drive folder with:", { projectId, taskId, userId: user.id });
+      const driveUrl = 'https://createdrivefolder-zbk3yr5vta-uc.a.run.app';
+      console.debug('Creating drive folder with:', { projectId, taskId, userId: user.id });
       const response = await fetch(
         `${driveUrl}/projects/${projectId}/tasks/${taskId}`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             userId: user.id,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-        
+
         // 認証が必要なエラーの場合、特別なエラーを投げる
         if (errorData.requiresAuth) {
           throw new Error(errorMessage);
         }
-        
+
         throw new Error(errorMessage);
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["task"] });
+      queryClient.invalidateQueries({ queryKey: ['task'] });
     },
   });
 
@@ -75,12 +73,12 @@ export function useFireIntegration() {
     }) => {
       // Firebase Functions v2では関数ごとにURLが割り当てられる
       // 環境変数は古い形式（v1）のURLを参照している可能性があるため、常にデフォルトのURLを使用
-      const fireUrl = "https://createfireissue-zbk3yr5vta-uc.a.run.app";
+      const fireUrl = 'https://createfireissue-zbk3yr5vta-uc.a.run.app';
       const response = await fetch(
         `${fireUrl}/projects/${projectId}/tasks/${taskId}`,
         {
-          method: "POST",
-        }
+          method: 'POST',
+        },
       );
 
       if (!response.ok) {
@@ -92,7 +90,7 @@ export function useFireIntegration() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["task"] });
+      queryClient.invalidateQueries({ queryKey: ['task'] });
     },
   });
 
@@ -100,4 +98,3 @@ export function useFireIntegration() {
     createFireIssue,
   };
 }
-
