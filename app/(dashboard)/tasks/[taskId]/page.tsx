@@ -657,15 +657,32 @@ export default function TaskDetailPage() {
                   <InputLabel>区分</InputLabel>
                   {editing ? (
                     <Select
-                      value={task.kubunLabelId}
+                      value={task.kubunLabelId || ''}
                       onChange={(e) => updateTask.mutate({ kubunLabelId: e.target.value })}
                       label="区分"
+                      disabled={!labels || labels.length === 0}
                     >
-                      {labels?.map((label) => (
-                        <MenuItem key={label.id} value={label.id}>
-                          {label.name}
+                      {!labels || labels.length === 0 ? (
+                        <MenuItem value="" disabled>
+                          区分ラベルが設定されていません
                         </MenuItem>
-                      ))}
+                      ) : (
+                        labels.map((label) => (
+                          <MenuItem key={label.id} value={label.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box
+                                sx={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: '50%',
+                                  backgroundColor: label.color,
+                                }}
+                              />
+                              {label.name}
+                            </Box>
+                          </MenuItem>
+                        ))
+                      )}
                     </Select>
                   ) : (
                     <Typography sx={{ mt: 1 }}>

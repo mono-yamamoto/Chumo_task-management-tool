@@ -611,7 +611,8 @@ function TasksPageContent() {
   // 区分の表示名を取得
   const getLabelName = (labelId: string) => {
     if (!allLabels || !labelId) return '-';
-    return allLabels.find((l) => l.id === labelId)?.name || labelId;
+    const label = allLabels.find((l) => l.id === labelId);
+    return label?.name || '-';
   };
 
   if (isLoading) {
