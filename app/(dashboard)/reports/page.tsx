@@ -20,6 +20,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { getTimeReportUrl, getExportTimeReportCsvUrl } from '@/lib/utils/functions';
+import { formatDuration } from '@/lib/utils/timer';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'normal' | 'brg'>('normal');
@@ -82,7 +83,7 @@ export default function ReportsPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  const totalDurationMin = reportData?.totalDurationMin || 0;
+  const totalDurationSec = reportData?.totalDurationSec || 0;
 
   return (
     <Box>
@@ -168,18 +169,28 @@ export default function ReportsPage() {
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
                   <TableCell>タイトル</TableCell>
-                  <TableCell>時間（分）</TableCell>
+                  <TableCell>時間</TableCell>
                   <TableCell>3時間超過理由</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {reportData?.items?.map((item: any) => (
-                  <TableRow key={item.title || Math.random()}>
-                    <TableCell>{item.title}</TableCell>
-                    <TableCell>{item.durationMin}</TableCell>
-                    <TableCell>{item.over3hours || '-'}</TableCell>
+                {reportData?.items && reportData.items.length > 0 ? (
+                  reportData.items.map((item: any) => (
+                    <TableRow key={item.title || Math.random()}>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell>{formatDuration(item.durationSec || 0)}</TableCell>
+                      <TableCell>{item.over3hours || '-'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        該当するデータがありません
+                      </Typography>
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -192,10 +203,7 @@ export default function ReportsPage() {
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
-              合計時間: {totalDurationMin}分 ({Math.floor(totalDurationMin / 60)}
-              時間
-              {totalDurationMin % 60}
-              分)
+              合計時間: {formatDuration(totalDurationSec)}
             </Typography>
           </Box>
         </Box>

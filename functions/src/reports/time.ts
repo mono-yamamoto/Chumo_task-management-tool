@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { PROJECT_TYPES, isBRGREGProject } from './projectTypes';
 
 const db = getFirestore();
 
@@ -34,31 +35,46 @@ export const getTimeReport = onRequest(
       // toDateをその日の終了時刻（23:59:59.999）まで含める
       toDate.setHours(23, 59, 59, 999);
 
-      // 全プロジェクトからタスクとセッションを取得
-      const projectsSnapshot = await db.collection('projects').get();
+      // 「運用」区分ラベルのIDを取得
+      const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
+      const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
+      if (!unyoLabel) {
+        res.status(200).json({
+          items: [],
+          totalDurationSec: 0,
+        });
+        return;
+      }
+      const unyoLabelId = unyoLabel.id;
+
+      // 全プロジェクトタイプからタスクとセッションを取得
       const items: Array<{
         title: string;
-        durationMin: number;
+        durationSec: number;
         over3hours?: string;
       }> = [];
-      let totalDurationMin = 0;
+      let totalDurationSec = 0;
 
-      for (const projectDoc of projectsSnapshot.docs) {
-        const projectId = projectDoc.id;
+      for (const projectType of PROJECT_TYPES) {
         const tasksSnapshot = await db
           .collection('projects')
-          .doc(projectId)
+          .doc(projectType)
           .collection('tasks')
           .get();
 
         for (const taskDoc of tasksSnapshot.docs) {
           const task = taskDoc.data();
 
-          // BRGフィルタ
-          if (type === 'brg' && !task.external?.issueKey?.includes('BRGREG')) {
+          // 区分が「運用」のタスクのみを集計
+          if (task.kubunLabelId !== unyoLabelId) {
             continue;
           }
-          if (type === 'normal' && task.external?.issueKey?.includes('BRGREG')) {
+
+          // BRGフィルタ（プロジェクト名で判定）
+          if (type === 'brg' && !isBRGREGProject(projectType)) {
+            continue;
+          }
+          if (type === 'normal' && isBRGREGProject(projectType)) {
             continue;
           }
 
@@ -68,7 +84,7 @@ export const getTimeReport = onRequest(
           try {
             sessionsSnapshot = await db
               .collection('projects')
-              .doc(projectId)
+              .doc(projectType)
               .collection('taskSessions')
               .where('taskId', '==', taskDoc.id)
               .where('startedAt', '>=', fromDate)
@@ -82,7 +98,7 @@ export const getTimeReport = onRequest(
             ) {
               const allSessionsSnapshot = await db
                 .collection('projects')
-                .doc(projectId)
+                .doc(projectType)
                 .collection('taskSessions')
                 .where('taskId', '==', taskDoc.id)
                 .get();
@@ -108,28 +124,45 @@ export const getTimeReport = onRequest(
             }
           }
 
-          let taskDurationMin = 0;
+          let taskDurationSec = 0;
           for (const sessionDoc of sessionsSnapshot.docs) {
             const session = sessionDoc.data();
             if (session.endedAt) {
-              taskDurationMin += Math.floor(session.durationSec / 60);
+              // durationSecが存在する場合はそれを使用、ない場合は開始時刻と終了時刻から計算
+              if (session.durationSec && session.durationSec > 0) {
+                taskDurationSec += session.durationSec;
+              } else if (session.startedAt && session.endedAt) {
+                const startedAtDate =
+                  session.startedAt instanceof Timestamp
+                    ? session.startedAt.toDate()
+                    : (session.startedAt as any).toDate
+                      ? (session.startedAt as any).toDate()
+                      : new Date(session.startedAt);
+                const endedAtDate =
+                  session.endedAt instanceof Timestamp
+                    ? session.endedAt.toDate()
+                    : (session.endedAt as any).toDate
+                      ? (session.endedAt as any).toDate()
+                      : new Date(session.endedAt);
+                taskDurationSec += Math.floor((endedAtDate.getTime() - startedAtDate.getTime()) / 1000);
+              }
             }
           }
 
-          if (taskDurationMin > 0) {
+          if (taskDurationSec > 0) {
             items.push({
               title: task.title,
-              durationMin: taskDurationMin,
-              over3hours: taskDurationMin > 180 ? task.over3Reason : undefined,
+              durationSec: taskDurationSec,
+              over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
             });
-            totalDurationMin += taskDurationMin;
+            totalDurationSec += taskDurationSec;
           }
         }
       }
 
       res.status(200).json({
         items,
-        totalDurationMin,
+        totalDurationSec,
       });
     } catch (error) {
       console.error('Get time report error:', error);
@@ -173,29 +206,42 @@ export const exportTimeReportCSV = onRequest(
       // toDateをその日の終了時刻（23:59:59.999）まで含める
       toDate.setHours(23, 59, 59, 999);
 
+      // 「運用」区分ラベルのIDを取得
+      const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
+      const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
+      if (!unyoLabel) {
+        res.status(200).send('');
+        return;
+      }
+      const unyoLabelId = unyoLabel.id;
+
       // データ取得（getTimeReportと同じロジック）
-      const projectsSnapshot = await db.collection('projects').get();
       const items: Array<{
         title: string;
-        durationMin: number;
+        durationSec: number;
         over3hours?: string;
       }> = [];
 
-      for (const projectDoc of projectsSnapshot.docs) {
-        const projectId = projectDoc.id;
+      for (const projectType of PROJECT_TYPES) {
         const tasksSnapshot = await db
           .collection('projects')
-          .doc(projectId)
+          .doc(projectType)
           .collection('tasks')
           .get();
 
         for (const taskDoc of tasksSnapshot.docs) {
           const task = taskDoc.data();
 
-          if (type === 'brg' && !task.external?.issueKey?.includes('BRGREG')) {
+          // 区分が「運用」のタスクのみを集計
+          if (task.kubunLabelId !== unyoLabelId) {
             continue;
           }
-          if (type === 'normal' && task.external?.issueKey?.includes('BRGREG')) {
+
+          // BRGフィルタ（プロジェクト名で判定）
+          if (type === 'brg' && !isBRGREGProject(projectType)) {
+            continue;
+          }
+          if (type === 'normal' && isBRGREGProject(projectType)) {
             continue;
           }
 
@@ -205,7 +251,7 @@ export const exportTimeReportCSV = onRequest(
           try {
             sessionsSnapshot = await db
               .collection('projects')
-              .doc(projectId)
+              .doc(projectType)
               .collection('taskSessions')
               .where('taskId', '==', taskDoc.id)
               .where('startedAt', '>=', fromDate)
@@ -219,7 +265,7 @@ export const exportTimeReportCSV = onRequest(
             ) {
               const allSessionsSnapshot = await db
                 .collection('projects')
-                .doc(projectId)
+                .doc(projectType)
                 .collection('taskSessions')
                 .where('taskId', '==', taskDoc.id)
                 .get();
@@ -245,19 +291,36 @@ export const exportTimeReportCSV = onRequest(
             }
           }
 
-          let taskDurationMin = 0;
+          let taskDurationSec = 0;
           for (const sessionDoc of sessionsSnapshot.docs) {
             const session = sessionDoc.data();
             if (session.endedAt) {
-              taskDurationMin += Math.floor(session.durationSec / 60);
+              // durationSecが存在する場合はそれを使用、ない場合は開始時刻と終了時刻から計算
+              if (session.durationSec && session.durationSec > 0) {
+                taskDurationSec += session.durationSec;
+              } else if (session.startedAt && session.endedAt) {
+                const startedAtDate =
+                  session.startedAt instanceof Timestamp
+                    ? session.startedAt.toDate()
+                    : (session.startedAt as any).toDate
+                      ? (session.startedAt as any).toDate()
+                      : new Date(session.startedAt);
+                const endedAtDate =
+                  session.endedAt instanceof Timestamp
+                    ? session.endedAt.toDate()
+                    : (session.endedAt as any).toDate
+                      ? (session.endedAt as any).toDate()
+                      : new Date(session.endedAt);
+                taskDurationSec += Math.floor((endedAtDate.getTime() - startedAtDate.getTime()) / 1000);
+              }
             }
           }
 
-          if (taskDurationMin > 0) {
+          if (taskDurationSec > 0) {
             items.push({
               title: task.title,
-              durationMin: taskDurationMin,
-              over3hours: taskDurationMin > 180 ? task.over3Reason : undefined,
+              durationSec: taskDurationSec,
+              over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
             });
           }
         }
@@ -266,10 +329,10 @@ export const exportTimeReportCSV = onRequest(
       // CSV生成（UTF-8+BOM/CRLF）
       const BOM = '\uFEFF';
       const csvRows = [
-        ['title', 'durationMin', 'over3hours'],
+        ['title', 'durationSec', 'over3hours'],
         ...items.map((item) => [
           `"${item.title.replace(/"/g, '""')}"`,
-          item.durationMin.toString(),
+          item.durationSec.toString(),
           item.over3hours ? `"${item.over3hours.replace(/"/g, '""')}"` : '',
         ]),
       ];
