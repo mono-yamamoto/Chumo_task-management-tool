@@ -1,5 +1,13 @@
+import { config } from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+
+// .env.localを読み込む
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: resolve(__dirname, '../.env.local') });
 
 // 区分ラベル作成スクリプト
 // 実行方法: npx ts-node scripts/create-kubun-labels.ts
