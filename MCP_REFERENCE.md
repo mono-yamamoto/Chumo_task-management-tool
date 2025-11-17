@@ -1,8 +1,17 @@
 # MCP詳細コマンドリファレンス
 
-このファイルは、Next.js MCP、Chrome DevTools MCP、Browser Eval MCPの詳細なコマンドとパラメータを記載したリファレンスです。
+このファイルは、Cursorで使用するMCPツール（Kiri MCP、Serena MCP、Next.js MCP、Chrome DevTools MCP、Browser Eval MCP）の詳細なコマンドとパラメータを記載したリファレンスです。
 
-[CLAUDE.md](./CLAUDE.md) の Phase 9 で使用する詳細なコマンドを参照する際に使用してください。
+[`.cursor/rules/main.mdc`](.cursor/rules/main.mdc) の Phase 9 で使用する詳細なコマンドを参照する際に使用してください。
+
+## Cursorでの使用方法
+
+Cursorでは、MCPツールは自動的に利用可能です。AIアシスタント（Composer）が自動的に適切なツールを選択して使用します。
+
+**ツール名の形式**: `mcp__<server-name>__<tool-name>`
+- 例: `mcp__kiri__context_bundle`, `mcp__serena__find_symbol`
+
+**設定ファイル**: `.cursor/mcp.json` にMCPサーバーの設定が記載されています。
 
 ---
 
@@ -192,6 +201,8 @@ limit: 20
 
 **使用タイミング**: Phase 1（調査フェーズ）で積極的に活用してください。
 
+**Cursorでの呼び出し**: AIアシスタントが自動的に使用します。手動で指定する場合は、ツール名を明示的に指定できます。
+
 ---
 
 ## Serena MCP
@@ -208,7 +219,15 @@ limit: 20
 
 **使用タイミング**: Phase 5（実装フェーズ）でコード編集が必要な場合。
 
-詳細は元々のSerena MCPドキュメントを参照してください。
+**Cursorでの呼び出し**: AIアシスタントが自動的に使用します。シンボルベースの編集が必要な場合に自動的に選択されます。
+
+**主なツール**:
+- `mcp__serena__find_symbol`: シンボルを検索
+- `mcp__serena__replace_symbol_body`: シンボルの本体を置換
+- `mcp__serena__insert_after_symbol`: シンボルの後に挿入
+- `mcp__serena__insert_before_symbol`: シンボルの前に挿入
+- `mcp__serena__rename_symbol`: シンボルをリネーム
+- `mcp__serena__find_referencing_symbols`: 参照を検索
 
 ---
 
@@ -248,6 +267,15 @@ toolName: 'get-errors'
 **説明**: 現在のビルドエラーやランタイムエラーを取得します。
 
 **使用タイミング**: Phase 9Aで必須。エラーがゼロであることを確認します。
+
+**Cursorでの呼び出し**:
+```typescript
+mcp_next-devtools_nextjs_runtime({
+  action: 'call_tool',
+  port: '<ポート番号>',
+  toolName: 'get-errors'
+})
+```
 
 #### ログを取得
 ```
@@ -554,6 +582,18 @@ includePreservedMessages: false  # 過去3ナビゲーション分も含める�
 
 **使用タイミング**: Phase 9Bでコンソールエラー・警告がないか確認する際。
 
+**Cursorでの呼び出し**:
+```typescript
+mcp_cursor-browser-extension_browser_console_messages()
+```
+または
+```typescript
+mcp_chrome-devtools_list_console_messages({
+  types: ['error', 'warn'],
+  pageSize: 50
+})
+```
+
 #### 特定のコンソールメッセージ詳細
 ```
 mcp__chrome-devtools__get_console_message
@@ -579,6 +619,18 @@ includePreservedRequests: false
 **説明**: ネットワークリクエスト一覧を取得します。
 
 **使用タイミング**: Phase 9BでAPIリクエストが正常か確認する際。
+
+**Cursorでの呼び出し**:
+```typescript
+mcp_cursor-browser-extension_browser_network_requests()
+```
+または
+```typescript
+mcp_chrome-devtools_list_network_requests({
+  resourceTypes: ['xhr', 'fetch'],
+  pageSize: 50
+})
+```
 
 #### 特定のリクエスト詳細
 ```
@@ -670,6 +722,14 @@ height: 667
 - Desktop: 1920 x 1080
 
 **使用タイミング**: Phase 9Bでレスポンシブデザインを確認する際。
+
+**Cursorでの呼び出し**:
+```typescript
+mcp_chrome-devtools_resize_page({
+  width: 375,
+  height: 667
+})
+```
 
 ---
 
@@ -788,4 +848,16 @@ action: 'close'
 
 ---
 
-詳細な使用例やトラブルシューティングについては [CLAUDE.md](./CLAUDE.md) を参照してください。
+詳細な使用例やトラブルシューティングについては [`.cursor/rules/main.mdc`](.cursor/rules/main.mdc) を参照してください。
+
+## CursorでのMCP設定
+
+MCPサーバーの設定は `.cursor/mcp.json` に記載されています。以下のサーバーが設定済みです：
+
+- **kiri**: コードベース検索とコンテキスト抽出
+- **serena**: シンボルベースのコード編集
+- **next-devtools**: Next.js開発サーバーのランタイム情報
+- **chrome-devtools**: ブラウザの詳細な動作確認
+- **context7**: ライブラリドキュメント取得
+
+設定の変更が必要な場合は、`.cursor/mcp.json` を編集してください。

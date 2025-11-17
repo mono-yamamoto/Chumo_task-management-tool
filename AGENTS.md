@@ -29,6 +29,13 @@ Before starting any task, read the relevant rule files to understand:
 - Testing and verification requirements
 - Project-specific conventions
 
+**⚠️ MCP Tools Reference**: Before using MCP tools, **MUST** refer to [MCP_REFERENCE.md](./MCP_REFERENCE.md) for detailed command syntax and usage examples. This reference contains comprehensive information about:
+- Kiri MCP (codebase search and context extraction)
+- Serena MCP (symbol-based code editing)
+- Next.js Runtime MCP (runtime error checking, route information)
+- Chrome DevTools MCP (browser verification and testing)
+- Browser Eval MCP (advanced browser automation)
+
 **⚠️ MANDATORY: Report Rule Check and Change Type**
 
 **After checking the rules, AI agents MUST report the following at the very beginning of their response:**
@@ -170,6 +177,8 @@ This command automatically groups changes by relevance and splits each group int
 
 ### MCP Tools Setup (Recommended)
 
+**⚠️ IMPORTANT**: Before using MCP tools, refer to [MCP_REFERENCE.md](./MCP_REFERENCE.md) for detailed command syntax and usage examples.
+
 To improve development efficiency, we recommend setting up the following MCP tools:
 
 #### Serena MCP
@@ -228,6 +237,8 @@ npm run lint
 ## Development Rules
 
 ### MCP Tools Usage Rules
+
+**⚠️ IMPORTANT**: For detailed command syntax and usage examples, refer to [MCP_REFERENCE.md](./MCP_REFERENCE.md).
 
 #### Serena MCP Usage
 
@@ -462,6 +473,10 @@ For agents other than Cursor or when committing manually, follow the commit mess
 
 ## Reference Documentation
 
+- **[MCP_REFERENCE.md](./MCP_REFERENCE.md)**: **MCP Tools詳細コマンドリファレンス（実装前に必ず参照）**
+  - Kiri MCP、Serena MCP、Next.js MCP、Chrome DevTools MCP、Browser Eval MCPの詳細なコマンドとパラメータ
+  - 各ツールの使用方法、使用タイミング、Cursorでの呼び出し方法
+  - Phase 9（動作確認フェーズ）で使用する詳細なコマンドを参照
 - `docs/setup/INITIAL_SETUP.md`: Initial setup instructions (detailed)
 - `docs/setup/FIREBASE.md`: Firebase setup instructions
 - `docs/setup/ENV.md`: Environment variable setup instructions
