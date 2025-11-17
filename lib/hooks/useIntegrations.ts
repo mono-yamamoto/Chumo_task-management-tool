@@ -9,14 +9,14 @@ export function useDriveIntegration() {
   const { user } = useAuth();
 
   const createDriveFolder = useMutation({
-    mutationFn: async ({ projectId, taskId }: { projectId: string; taskId: string }) => {
+    mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
       if (!user) {
         throw new Error('ユーザーがログインしていません');
       }
 
       const driveUrl = getCreateDriveFolderUrl();
-      console.debug('Creating drive folder with:', { projectId, taskId, userId: user.id });
-      const response = await fetch(`${driveUrl}/projects/${projectId}/tasks/${taskId}`, {
+      console.debug('Creating drive folder with:', { projectType, taskId, userId: user.id });
+      const response = await fetch(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,9 +55,9 @@ export function useFireIntegration() {
   const queryClient = useQueryClient();
 
   const createFireIssue = useMutation({
-    mutationFn: async ({ projectId, taskId }: { projectId: string; taskId: string }) => {
+    mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
       const fireUrl = getCreateFireIssueUrl();
-      const response = await fetch(`${fireUrl}/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`${fireUrl}/projects/${projectType}/tasks/${taskId}`, {
         method: 'POST',
       });
 

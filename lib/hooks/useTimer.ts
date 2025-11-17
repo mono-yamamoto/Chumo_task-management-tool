@@ -8,16 +8,16 @@ export function useTimer() {
 
   const startTimer = useMutation({
     mutationFn: async ({
-      projectId,
+      projectType,
       taskId,
       userId,
     }: {
-      projectId: string;
+      projectType: string;
       taskId: string;
       userId: string;
     }) => {
       const timerUrl = getStartTimerUrl();
-      const response = await fetch(`${timerUrl}/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`${timerUrl}/projects/${projectType}/tasks/${taskId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -26,8 +26,15 @@ export function useTimer() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'タイマーの開始に失敗しました');
+        let errorMessage = 'タイマーの開始に失敗しました';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        } catch {
+          // JSONパースに失敗した場合、ステータステキストを使用
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();
@@ -39,9 +46,9 @@ export function useTimer() {
   });
 
   const stopTimer = useMutation({
-    mutationFn: async ({ projectId, sessionId }: { projectId: string; sessionId: string }) => {
+    mutationFn: async ({ projectType, sessionId }: { projectType: string; sessionId: string }) => {
       const timerUrl = getStopTimerUrl();
-      const response = await fetch(`${timerUrl}/projects/${projectId}/tasks`, {
+      const response = await fetch(`${timerUrl}/projects/${projectType}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,8 +57,15 @@ export function useTimer() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'タイマーの停止に失敗しました');
+        let errorMessage = 'タイマーの停止に失敗しました';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        } catch {
+          // JSONパースに失敗した場合、ステータステキストを使用
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();
