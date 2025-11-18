@@ -562,17 +562,15 @@ function TasksPageContent() {
                 <TableCell>タイトル</TableCell>
                 <TableCell>アサイン</TableCell>
                 <TableCell>ITアップ</TableCell>
-                <TableCell>リリース</TableCell>
                 <TableCell>ステータス</TableCell>
                 <TableCell>区分</TableCell>
-                <TableCell>ロールアップ</TableCell>
                 <TableCell>タイマー</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredTasks && filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       {(() => {
                         if (tasks && tasks.length === 0) {
@@ -595,8 +593,17 @@ function TasksPageContent() {
                       onClick={() => handleTaskSelect(task.id)}
                       sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                     >
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 'medium' }}>{task.title}</Typography>
+                      <TableCell sx={{ maxWidth: '400px' }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 'medium',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {task.title}
+                        </Typography>
                         {selectedProjectType === 'all' && (
                           <Typography
                             variant="caption"
@@ -614,14 +621,8 @@ function TasksPageContent() {
                       <TableCell>
                         {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
                       </TableCell>
-                      <TableCell>
-                        {task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : '-'}
-                      </TableCell>
                       <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                       <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
-                      <TableCell>
-                        {isActive && <Chip label="稼働中" color="success" size="small" />}
-                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {task.kubunLabelId === kobetsuLabelId ? (
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
