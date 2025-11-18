@@ -1,21 +1,18 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
   getDocs,
-  query,
-  where,
-  doc,
-  updateDoc,
-  deleteDoc,
-  orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User } from '@/types';
+import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
+import { useUsers } from '@/hooks/useUsers';
+import { useUpdateTask } from '@/hooks/useTasks';
+import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTimer } from '@/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
@@ -44,30 +41,6 @@ import {
 import { PlayArrow, Stop } from '@mui/icons-material';
 import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
 import { format } from 'date-fns';
-
-// const flowStatusOptions: FlowStatus[] = [
-//   '未着手',
-//   'ディレクション',
-//   'コーディング',
-//   'デザイン',
-//   '待ち',
-//   '対応中',
-//   '週次報告',
-//   '月次報告',
-//   '完了',
-// ];
-
-const flowStatusLabels: Record<FlowStatus, string> = {
-  未着手: '未着手',
-  ディレクション: 'ディレクション',
-  コーディング: 'コーディング',
-  デザイン: 'デザイン',
-  待ち: '待ち',
-  対応中: '対応中',
-  週次報告: '週次報告',
-  月次報告: '月次報告',
-  完了: '完了',
-};
 
 function DashboardPageContent() {
   const { user } = useAuth();
@@ -126,65 +99,13 @@ function DashboardPageContent() {
   });
 
   // すべてのユーザーを取得（アサイン表示用）
-  const { data: allUsers } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: async () => {
-      if (!db) return [];
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as User[];
-    },
-    enabled: !!db,
-  });
+  const { data: allUsers } = useUsers();
 
   // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
   // アクティブなセッションを取得（すべてのプロジェクトタイプから）
-  useQuery({
-    queryKey: ['activeSession', user?.id],
-    queryFn: async () => {
-      if (!user || !db) return null;
-      const allSessions: any[] = [];
-
-      // すべてのプロジェクトタイプからアクティブセッションを取得
-      for (const projectType of PROJECT_TYPES) {
-        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-        const q = query(
-          sessionsRef,
-          where('userId', '==', user.id),
-          where('endedAt', '==', null),
-        );
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((docItem) => {
-          allSessions.push({
-            id: docItem.id,
-            projectType,
-            taskId: docItem.data().taskId,
-            ...docItem.data(),
-          });
-        });
-      }
-
-      if (allSessions.length > 0) {
-        const session = allSessions[0];
-        setActiveSession({
-          projectType: session.projectType,
-          taskId: session.taskId,
-          sessionId: session.id,
-        });
-        return session;
-      } else {
-        setActiveSession(null);
-        return null;
-      }
-    },
-    enabled: !!user && !!db,
-    refetchInterval: 5000, // 5秒ごとに再取得して、リアルタイムで状態を更新
-  });
+  useActiveSession(user?.id || null, setActiveSession);
 
   // 時間計測中のタスクを最優先でソート
   const sortedTasks = useMemo(() => {
@@ -213,22 +134,25 @@ function DashboardPageContent() {
 
   // 選択されたタスクが変更されたらフォームデータを初期化
   useEffect(() => {
-    if (selectedTask && selectedTaskId) {
-      if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
-        setTaskFormData({
-          title: selectedTask.title,
-          description: selectedTask.description || '',
-          flowStatus: selectedTask.flowStatus,
-          kubunLabelId: selectedTask.kubunLabelId,
-          assigneeIds: selectedTask.assigneeIds,
-          itUpDate: selectedTask.itUpDate,
-          releaseDate: selectedTask.releaseDate,
-          dueDate: selectedTask.dueDate,
-        });
+    // 次のレンダリングサイクルでsetStateを実行
+    setTimeout(() => {
+      if (selectedTask && selectedTaskId) {
+        if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
+          setTaskFormData({
+            title: selectedTask.title,
+            description: selectedTask.description || '',
+            flowStatus: selectedTask.flowStatus,
+            kubunLabelId: selectedTask.kubunLabelId,
+            assigneeIds: selectedTask.assigneeIds,
+            itUpDate: selectedTask.itUpDate,
+            releaseDate: selectedTask.releaseDate,
+            dueDate: selectedTask.dueDate,
+          });
+        }
+      } else if (!selectedTaskId) {
+        setTaskFormData(null);
       }
-    } else if (!selectedTaskId) {
-      setTaskFormData(null);
-    }
+    }, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTask?.id, selectedTaskId]);
 
@@ -241,81 +165,10 @@ function DashboardPageContent() {
   }, [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
-  const { data: taskSessions } = useQuery({
-    queryKey: ['taskSessions', selectedTaskId],
-    queryFn: async () => {
-      const projectType = (selectedTask as any)?.projectType;
-      if (!projectType || !db || !selectedTaskId) return [];
-      try {
-        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-        const q = query(
-          sessionsRef,
-          where('taskId', '==', selectedTaskId),
-          orderBy('startedAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map((docItem) => {
-          const data = docItem.data();
-          return {
-            id: docItem.id,
-            ...data,
-            startedAt: data.startedAt?.toDate(),
-            endedAt: data.endedAt?.toDate() || null,
-            durationSec: data.durationSec ?? 0,
-          };
-        });
-      } catch (error: any) {
-        // インデックスエラーの場合、orderByなしで再試行
-        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
-          try {
-            const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-            const q = query(sessionsRef, where('taskId', '==', selectedTaskId));
-            const snapshot = await getDocs(q);
-            const taskSessionsData = snapshot.docs.map((docItem) => {
-              const data = docItem.data();
-              return {
-                id: docItem.id,
-                ...data,
-                startedAt: data.startedAt?.toDate(),
-                endedAt: data.endedAt?.toDate() || null,
-                durationSec: data.durationSec ?? 0,
-              };
-            });
-            // クライアント側でソート
-            return taskSessionsData.sort((a, b) => {
-              const aTime = a.startedAt?.getTime() || 0;
-              const bTime = b.startedAt?.getTime() || 0;
-              return bTime - aTime;
-            });
-          } catch (retryError) {
-            console.error('Error fetching sessions:', retryError);
-            return [];
-          }
-        }
-        console.error('Error fetching sessions:', error);
-        return [];
-      }
-    },
-    enabled: !!selectedTask && !!selectedTaskId,
-  });
+  const selectedTaskProjectType = (selectedTask as any)?.projectType;
+  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
 
-  const updateTask = useMutation({
-    mutationFn: async (updates: Partial<Task>) => {
-      if (!selectedTask || !db) throw new Error('Task not found');
-      const projectType = (selectedTask as any)?.projectType;
-      if (!projectType) throw new Error('Project type not found');
-      const taskRef = doc(db, 'projects', projectType, 'tasks', selectedTask.id);
-      await updateDoc(taskRef, {
-        ...updates,
-        updatedAt: new Date(),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
-    },
-  });
+  const updateTask = useUpdateTask();
 
   const handleTaskSelect = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -334,7 +187,13 @@ function DashboardPageContent() {
 
   const handleSave = () => {
     if (!taskFormData || !selectedTask) return;
-    updateTask.mutate(taskFormData);
+    const projectType = (selectedTask as any)?.projectType;
+    if (!projectType) return;
+    updateTask.mutate({
+      projectType,
+      taskId: selectedTask.id,
+      updates: taskFormData,
+    });
   };
 
   const formatDuration = (
@@ -369,10 +228,10 @@ function DashboardPageContent() {
     } catch (error: any) {
       console.error('Timer start error:', error);
       if (error.message?.includes('稼働中')) {
-        // eslint-disable-next-line no-alert
+
         alert('他のタイマーが稼働中です。停止してから開始してください。');
       } else {
-        // eslint-disable-next-line no-alert
+
         alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
       }
     }
@@ -391,7 +250,7 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
     } catch (error: any) {
       console.error('Timer stop error:', error);
-      // eslint-disable-next-line no-alert
+
       alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
@@ -407,7 +266,7 @@ function DashboardPageContent() {
 
       if (result.warning) {
         // チェックシート作成エラーがある場合（警告として表示）
-        // eslint-disable-next-line no-alert
+
         alert(
           `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
         );
@@ -416,7 +275,7 @@ function DashboardPageContent() {
     } catch (error: any) {
       console.error('Drive create error:', error);
       const errorMessage = error?.message || '不明なエラー';
-      // eslint-disable-next-line no-alert
+
       alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
     }
   };
@@ -430,7 +289,7 @@ function DashboardPageContent() {
       queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
     } catch (error: any) {
       console.error('Fire create error:', error);
-      // eslint-disable-next-line no-alert
+
       alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
@@ -447,14 +306,14 @@ function DashboardPageContent() {
 
     const taskToDelete = sortedTasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
-      // eslint-disable-next-line no-alert
+
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
       return;
     }
 
     if (deleteConfirmTitle !== taskToDelete.title) {
-      // eslint-disable-next-line no-alert
+
       alert('タイトルが一致しません。削除をキャンセルしました。');
       setDeleteDialogOpen(false);
       setDeleteConfirmTitle('');
@@ -474,11 +333,11 @@ function DashboardPageContent() {
         setTaskFormData(null);
       }
 
-      // eslint-disable-next-line no-alert
+
       alert('タスクを削除しました');
     } catch (error: any) {
       console.error('Delete task error:', error);
-      // eslint-disable-next-line no-alert
+
       alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
     } finally {
       setDeleteDialogOpen(false);
@@ -576,7 +435,7 @@ function DashboardPageContent() {
                           ? format(task.releaseDate, 'yyyy-MM-dd')
                           : '-'}
                       </TableCell>
-                      <TableCell>{flowStatusLabels[task.flowStatus]}</TableCell>
+                      <TableCell>{task.flowStatus}</TableCell>
                       <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                       <TableCell>
                         {isActive && <Chip label="稼働中" color="success" size="small" />}

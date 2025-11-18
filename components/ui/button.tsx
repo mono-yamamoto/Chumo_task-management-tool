@@ -9,7 +9,7 @@ export interface ButtonProps extends Omit<MUIButtonProps, 'variant' | 'size' | '
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'default', size = 'default', ...props }, ref) => {
-    // eslint-disable-next-line react/require-default-props
+     
     let muiVariant: 'contained' | 'outlined' | 'text';
     if (variant === 'default' || variant === 'destructive' || variant === 'secondary') {
       muiVariant = 'contained';
@@ -43,7 +43,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         variant={muiVariant}
         color={muiColor}
         size={muiSize}
-        // eslint-disable-next-line react/jsx-props-no-spreading
+         
         {...props}
       />
     );

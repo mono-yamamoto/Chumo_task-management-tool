@@ -24,10 +24,10 @@ import { formatDuration } from '@/utils/timer';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'normal' | 'brg'>('normal');
-  const [fromDate, setFromDate] = useState(
+  const [fromDate, setFromDate] = useState(() =>
     format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
   );
-  const [toDate, setToDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [toDate, setToDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const {
     data: reportData,
@@ -175,8 +175,8 @@ export default function ReportsPage() {
               </TableHead>
               <TableBody>
                 {reportData?.items && reportData.items.length > 0 ? (
-                  reportData.items.map((item: any) => (
-                    <TableRow key={item.title || Math.random()}>
+                  reportData.items.map((item: any, index: number) => (
+                    <TableRow key={item.title || `item-${index}`}>
                       <TableCell>{item.title}</TableCell>
                       <TableCell>{formatDuration(item.durationSec || 0)}</TableCell>
                       <TableCell>{item.over3hours || '-'}</TableCell>

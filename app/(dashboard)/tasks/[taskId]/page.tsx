@@ -1,28 +1,24 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  Timestamp,
-} from 'firebase/firestore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task, FlowStatus, User } from '@/types';
+import { FlowStatus } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
+import { useUsers } from '@/hooks/useUsers';
+import { useTask, useUpdateTask } from '@/hooks/useTasks';
+import {
+  useTaskSessions,
+  useAddSession,
+  useUpdateSession,
+  useDeleteSession,
+} from '@/hooks/useTaskSessions';
 import { useParams } from 'next/navigation';
 import { useTimer } from '@/hooks/useTimer';
 import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
-import { PROJECT_TYPES } from '@/constants/projectTypes';
+import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
@@ -55,18 +51,6 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 
-const flowStatusOptions: FlowStatus[] = [
-  '未着手',
-  'ディレクション',
-  'コーディング',
-  'デザイン',
-  '待ち',
-  '対応中',
-  '週次報告',
-  '月次報告',
-  '完了',
-];
-
 export default function TaskDetailPage() {
   const { user } = useAuth();
   const params = useParams();
@@ -95,31 +79,8 @@ export default function TaskDetailPage() {
     note: '',
   });
 
-  const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ['task', taskId],
-    queryFn: async () => {
-      if (!db) return null;
-      // 全プロジェクトタイプから検索
-      for (const projectType of PROJECT_TYPES) {
-        const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
-        const taskDoc = await getDoc(taskRef);
-        if (taskDoc.exists()) {
-          return {
-            id: taskDoc.id,
-            ...taskDoc.data(),
-            createdAt: taskDoc.data().createdAt?.toDate(),
-            updatedAt: taskDoc.data().updatedAt?.toDate(),
-            itUpDate: taskDoc.data().itUpDate?.toDate() || null,
-            releaseDate: taskDoc.data().releaseDate?.toDate() || null,
-            dueDate: taskDoc.data().dueDate?.toDate() || null,
-            completedAt: taskDoc.data().completedAt?.toDate() || null,
-          } as Task;
-        }
-      }
-      return null;
-    },
-    enabled: !!taskId,
-  });
+  // タスク詳細を取得
+  const { data: task, isLoading: taskLoading } = useTask(taskId);
 
   // 区分ラベルは全プロジェクト共通
   const { data: labels } = useKubunLabels();
@@ -130,36 +91,26 @@ export default function TaskDetailPage() {
   }, [labels]);
 
   // すべてのユーザーを取得（セッション履歴のユーザー表示用）
-  const { data: allUsers } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: async () => {
-      if (!db) return [];
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as User[];
-    },
-    enabled: !!db,
-  });
+  const { data: allUsers } = useUsers();
 
   // アクティブなセッション（未終了）を取得
+  // タスク固有のアクティブセッションを取得するため、カスタムクエリを使用
   useQuery({
     queryKey: ['activeSession', taskId, user?.id],
     queryFn: async () => {
       if (!task?.projectType || !db || !user) return null;
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
       const sessionsRef = collection(
         db,
         'projects',
         task.projectType,
-        'taskSessions',
+        'taskSessions'
       );
       const q = query(
         sessionsRef,
         where('taskId', '==', taskId),
         where('userId', '==', user.id),
-        where('endedAt', '==', null),
+        where('endedAt', '==', null)
       );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
@@ -183,60 +134,13 @@ export default function TaskDetailPage() {
     refetchInterval: 5000, // 5秒ごとに再取得して、リアルタイムで状態を更新
   });
 
-  // セッション履歴（すべてのユーザーの終了したセッションを含む）を取得
-  const { data: sessions } = useQuery({
-    queryKey: ['sessionHistory', taskId],
-    queryFn: async () => {
-      if (!task?.projectType || !db) return [];
-      try {
-        const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
-        const q = query(sessionsRef, where('taskId', '==', taskId), orderBy('startedAt', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map((docItem) => {
-          const data = docItem.data();
-          return {
-            id: docItem.id,
-            ...data,
-            startedAt: data.startedAt?.toDate(),
-            endedAt: data.endedAt?.toDate() || null,
-            durationSec: data.durationSec ?? 0,
-          };
-        });
-      } catch (error: any) {
-        // インデックスエラーの場合、orderByなしで再試行
-        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
-          try {
-            const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
-            const q = query(sessionsRef, where('taskId', '==', taskId));
-            const snapshot = await getDocs(q);
-            const taskSessionsData = snapshot.docs.map((docItem) => {
-              const data = docItem.data();
-              return {
-                id: docItem.id,
-                ...data,
-                startedAt: data.startedAt?.toDate(),
-                endedAt: data.endedAt?.toDate() || null,
-                durationSec: data.durationSec ?? 0,
-              };
-            });
-            // クライアント側でソート
-            return taskSessionsData.sort((a, b) => {
-              if (!a.startedAt || !b.startedAt) return 0;
-              return b.startedAt.getTime() - a.startedAt.getTime();
-            });
-          } catch (retryError) {
-            console.error('Failed to fetch sessions after retry:', retryError);
-            return [];
-          }
-        }
-        // エラーが発生した場合でも空配列を返してUIを壊さない
-        console.error('Failed to fetch sessions:', error);
-        return [];
-      }
-    },
-    enabled: !!task && !!task.projectType && !!taskId && !taskLoading,
-    retry: false, // エラー時に自動リトライしない（フォールバック処理で対応済み）
-  });
+  // セッション履歴を取得
+  const { data: sessions } = useTaskSessions(task?.projectType || null, taskId);
+
+  // セッション関連のmutation
+  const addSession = useAddSession();
+  const updateSession = useUpdateSession();
+  const deleteSession = useDeleteSession();
 
   const handleStartTimer = async () => {
     if (!user || !task) return;
@@ -353,102 +257,6 @@ export default function TaskDetailPage() {
   //   }
   // };
 
-  // セッション更新
-  const updateSession = useMutation({
-    mutationFn: async ({ sessionId, updates }: { sessionId: string; updates: Partial<any> }) => {
-      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionRef = doc(db, 'projects', task.projectType, 'taskSessions', sessionId);
-
-      // startedAtとendedAtを更新する場合、durationSecも再計算
-      const updateData: any = {};
-      if (updates.startedAt) {
-        updateData.startedAt = updates.startedAt;
-      }
-      if (updates.endedAt !== undefined) {
-        updateData.endedAt = updates.endedAt;
-      }
-      if (updates.userId) {
-        updateData.userId = updates.userId;
-      }
-      if (updates.note !== undefined) {
-        updateData.note = updates.note;
-      }
-
-      // durationSecを再計算
-      let startedAt: Date | undefined;
-      if (updates.startedAt) {
-        startedAt =
-          updates.startedAt instanceof Date ? updates.startedAt : updates.startedAt.toDate();
-      } else {
-        startedAt = editingSession?.startedAt;
-      }
-
-      let endedAt: Date | null | undefined;
-      if (updates.endedAt !== null && updates.endedAt !== undefined) {
-        endedAt = updates.endedAt instanceof Date ? updates.endedAt : updates.endedAt.toDate();
-      } else {
-        endedAt = editingSession?.endedAt;
-      }
-      if (startedAt && endedAt) {
-        updateData.durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
-      }
-
-      await updateDoc(sessionRef, updateData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
-      setSessionEditDialogOpen(false);
-      setEditingSession(null);
-    },
-  });
-
-  // セッション削除
-  const deleteSession = useMutation({
-    mutationFn: async (sessionId: string) => {
-      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionRef = doc(db, 'projects', task.projectType, 'taskSessions', sessionId);
-      await deleteDoc(sessionRef);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
-    },
-  });
-
-  // セッション追加
-  const addSession = useMutation({
-    mutationFn: async (sessionData: any) => {
-      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
-      const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
-
-      // startedAtとendedAtからdurationSecを計算
-      let durationSec = 0;
-      if (sessionData.startedAt && sessionData.endedAt) {
-        durationSec = Math.floor(
-          (sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000
-        );
-      }
-
-      await addDoc(sessionsRef, {
-        ...sessionData,
-        taskId: task.id,
-        durationSec,
-        startedAt: Timestamp.fromDate(sessionData.startedAt),
-        endedAt: sessionData.endedAt ? Timestamp.fromDate(sessionData.endedAt) : null,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
-      setSessionAddDialogOpen(false);
-      setSessionFormData({
-        startedAt: '',
-        startedAtTime: '',
-        endedAt: '',
-        endedAtTime: '',
-        userId: '',
-        note: '',
-      });
-    },
-  });
 
   const handleEditSession = (session: any) => {
     setEditingSession(session);
@@ -497,9 +305,15 @@ export default function TaskDetailPage() {
       return;
     }
 
+    if (!task?.projectType) {
+      alert('タスク情報が取得できませんでした');
+      return;
+    }
+
     if (editingSession) {
       // 更新
       await updateSession.mutateAsync({
+        projectType: task.projectType,
         sessionId: editingSession.id,
         updates: {
           startedAt: Timestamp.fromDate(startedAt),
@@ -507,42 +321,45 @@ export default function TaskDetailPage() {
           userId: sessionFormData.userId,
           note: sessionFormData.note || null,
         },
+        existingSession: editingSession,
       });
+      setSessionEditDialogOpen(false);
+      setEditingSession(null);
     } else {
       // 追加
       await addSession.mutateAsync({
-        startedAt,
-        endedAt,
-        userId: sessionFormData.userId,
-        note: sessionFormData.note || null,
+        projectType: task.projectType,
+        sessionData: {
+          taskId: task.id,
+          startedAt,
+          endedAt,
+          userId: sessionFormData.userId,
+          note: sessionFormData.note || null,
+        },
+      });
+      setSessionAddDialogOpen(false);
+      setSessionFormData({
+        startedAt: '',
+        startedAtTime: '',
+        endedAt: '',
+        endedAtTime: '',
+        userId: '',
+        note: '',
       });
     }
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    // eslint-disable-next-line no-alert
+
     if (!window.confirm('このセッションを削除しますか？')) return;
-    await deleteSession.mutateAsync(sessionId);
+    if (!task?.projectType) return;
+    await deleteSession.mutateAsync({
+      projectType: task.projectType,
+      sessionId,
+    });
   };
 
-  const updateTask = useMutation({
-    mutationFn: async (updates: Partial<Task>) => {
-      if (!task?.projectType || !db) throw new Error('Task not found or Firestore not initialized');
-      const taskRef = doc(db, 'projects', task.projectType, 'tasks', taskId);
-      await updateDoc(taskRef, {
-        ...updates,
-        updatedAt: new Date(),
-      });
-    },
-    onSuccess: () => {
-      // クエリを無効化して即座に再取得
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
-      // タスク一覧も更新
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      setEditing(false);
-    },
-  });
+  const updateTask = useUpdateTask();
 
   if (taskLoading) {
     return (
@@ -613,14 +430,19 @@ export default function TaskDetailPage() {
                   {editing ? (
                     <Select
                       value={task.flowStatus}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (!task?.projectType) return;
                         updateTask.mutate({
-                          flowStatus: e.target.value as FlowStatus,
-                        })
-                      }
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            flowStatus: e.target.value as FlowStatus,
+                          },
+                        });
+                      }}
                       label="ステータス"
                     >
-                      {flowStatusOptions.map((status) => (
+                      {FLOW_STATUS_OPTIONS.map((status) => (
                         <MenuItem key={status} value={status}>
                           {status}
                         </MenuItem>
@@ -634,11 +456,16 @@ export default function TaskDetailPage() {
                   label="ITアップ日"
                   type="date"
                   value={task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    if (!task?.projectType) return;
                     updateTask.mutate({
-                      itUpDate: e.target.value ? new Date(e.target.value) : null,
-                    })
-                  }
+                      projectType: task.projectType,
+                      taskId: task.id,
+                      updates: {
+                        itUpDate: e.target.value ? new Date(e.target.value) : null,
+                      },
+                    });
+                  }}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -647,11 +474,16 @@ export default function TaskDetailPage() {
                   label="リリース日"
                   type="date"
                   value={task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    if (!task?.projectType) return;
                     updateTask.mutate({
-                      releaseDate: e.target.value ? new Date(e.target.value) : null,
-                    })
-                  }
+                      projectType: task.projectType,
+                      taskId: task.id,
+                      updates: {
+                        releaseDate: e.target.value ? new Date(e.target.value) : null,
+                      },
+                    });
+                  }}
                   InputLabelProps={{ shrink: true }}
                   disabled={!editing}
                   fullWidth
@@ -661,7 +493,14 @@ export default function TaskDetailPage() {
                   {editing ? (
                     <Select
                       value={task.kubunLabelId || ''}
-                      onChange={(e) => updateTask.mutate({ kubunLabelId: e.target.value })}
+                      onChange={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: { kubunLabelId: e.target.value },
+                        });
+                      }}
                       label="区分"
                       disabled={!labels || labels.length === 0}
                     >

@@ -145,16 +145,19 @@ export default function ContactPage() {
   // 種類が変更されたときにエラー報告の詳細情報をリセット
   useEffect(() => {
     if (type !== 'error') {
-      setErrorIssue('');
-      setErrorReproductionSteps('');
-      setErrorDevice('');
-      setErrorOS('');
-      setErrorBrowser('');
-      setErrorOSVersion('');
-      setErrorBrowserVersion('');
-      setErrorScreenshotUrl('');
-      setErrorScreenshotFile(null);
-      setErrorScreenshotPreview(null);
+      // 次のレンダリングサイクルでsetStateを実行
+      setTimeout(() => {
+        setErrorIssue('');
+        setErrorReproductionSteps('');
+        setErrorDevice('');
+        setErrorOS('');
+        setErrorBrowser('');
+        setErrorOSVersion('');
+        setErrorBrowserVersion('');
+        setErrorScreenshotUrl('');
+        setErrorScreenshotFile(null);
+        setErrorScreenshotPreview(null);
+      }, 0);
     }
   }, [type]);
 

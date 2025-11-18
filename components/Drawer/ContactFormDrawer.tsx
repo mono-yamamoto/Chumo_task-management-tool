@@ -26,60 +26,60 @@ import { ContactType, DeviceType, PCOSType, SPOSType, BrowserType, SmartphoneTyp
 interface ContactFormDrawerProps {
   open: boolean;
   onClose: () => void;
-  // eslint-disable-next-line no-unused-vars
+
   type: ContactType;
-  // eslint-disable-next-line no-unused-vars
+
   onTypeChange: (type: ContactType) => void;
-  // eslint-disable-next-line no-unused-vars
+
   title: string;
-  // eslint-disable-next-line no-unused-vars
+
   onTitleChange: (title: string) => void;
-  // eslint-disable-next-line no-unused-vars
+
   content: string;
-  // eslint-disable-next-line no-unused-vars
+
   onContentChange: (content: string) => void;
   message: { type: 'success' | 'error'; text: string } | null;
   onMessageClose: () => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorIssue: string;
-  // eslint-disable-next-line no-unused-vars
+
   onErrorIssueChange: (issue: string) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorReproductionSteps: string;
-  // eslint-disable-next-line no-unused-vars
+
   onErrorReproductionStepsChange: (steps: string) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorDevice: DeviceType | '';
-  // eslint-disable-next-line no-unused-vars
+
   onErrorDeviceChange: (device: DeviceType) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorOS: PCOSType | SPOSType | SmartphoneType | '';
-  // eslint-disable-next-line no-unused-vars
+
   onErrorOSChange: (os: PCOSType | SPOSType | SmartphoneType) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorOSVersion: string;
-  // eslint-disable-next-line no-unused-vars
+
   onErrorOSVersionChange: (version: string) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorBrowser: BrowserType | '';
-  // eslint-disable-next-line no-unused-vars
+
   onErrorBrowserChange: (browser: BrowserType) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorBrowserVersion: string;
-  // eslint-disable-next-line no-unused-vars
+
   onErrorBrowserVersionChange: (version: string) => void;
-  // eslint-disable-next-line no-unused-vars
+
   errorScreenshotUrl: string;
-  // eslint-disable-next-line no-unused-vars
+
   onErrorScreenshotUrlChange: (url: string) => void;
   errorScreenshotFile: File | null;
   errorScreenshotPreview: string | null;
-  // eslint-disable-next-line no-unused-vars
+
   onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onImageUpload: () => void;
   imageUploading: boolean;
   progress: number;
-  // eslint-disable-next-line no-unused-vars
+
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting: boolean;
 }
@@ -111,7 +111,7 @@ export function ContactFormDrawer({
   onErrorBrowserVersionChange,
   errorScreenshotUrl,
   onErrorScreenshotUrlChange,
-  // eslint-disable-next-line no-unused-vars
+
   errorScreenshotFile: _errorScreenshotFile,
   errorScreenshotPreview,
   onImageSelect,
@@ -318,7 +318,7 @@ export function ContactFormDrawer({
                       type="file"
                       onChange={onImageSelect}
                     />
-                    {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                    { }
                     <label htmlFor="screenshot-upload-drawer">
                       <Button
                         component="span"

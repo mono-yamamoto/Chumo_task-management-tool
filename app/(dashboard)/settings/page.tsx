@@ -54,7 +54,10 @@ export default function SettingsPage() {
         tokenLength: currentUser.googleRefreshToken?.length || 0,
         allFields: Object.keys(currentUser),
       });
-      setOauthStatus(hasToken ? 'connected' : 'disconnected');
+      // 次のレンダリングサイクルでsetStateを実行
+      setTimeout(() => {
+        setOauthStatus(hasToken ? 'connected' : 'disconnected');
+      }, 0);
     }
   }, [currentUser]);
 
@@ -64,16 +67,19 @@ export default function SettingsPage() {
     const error = searchParams.get('error');
     const errorMessage = searchParams.get('message');
 
-    if (success === 'oauth_connected') {
-      setMessage('Google Drive認証が完了しました');
-      setOauthStatus('connected');
-      // URLからパラメータを削除
-      router.replace('/settings');
-    } else if (error) {
-      setMessage(`エラー: ${errorMessage || error}`);
-      // URLからパラメータを削除
-      router.replace('/settings');
-    }
+    // 次のレンダリングサイクルでsetStateを実行
+    setTimeout(() => {
+      if (success === 'oauth_connected') {
+        setMessage('Google Drive認証が完了しました');
+        setOauthStatus('connected');
+        // URLからパラメータを削除
+        router.replace('/settings');
+      } else if (error) {
+        setMessage(`エラー: ${errorMessage || error}`);
+        // URLからパラメータを削除
+        router.replace('/settings');
+      }
+    }, 0);
   }, [searchParams, router]);
 
   const { data: users, isLoading } = useQuery({

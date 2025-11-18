@@ -109,6 +109,16 @@ export const createDriveFolder = onRequest(
         return;
       }
 
+      // 既にDriveフォルダが作成されている場合はスキップ（冪等性対策）
+      if (task.googleDriveUrl) {
+        res.status(200).json({
+          success: true,
+          url: task.googleDriveUrl,
+          alreadyExists: true,
+        });
+        return;
+      }
+
       // 既存フォルダを検索
       // フォルダ名の構成: issueKey + タイトル（backlogProjectKeyは使用しない）
       const parts: string[] = [];

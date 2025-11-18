@@ -25,55 +25,44 @@ import {
   LocalFireDepartment,
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
+import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { Task, FlowStatus, User, Label } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
-
-const flowStatusOptions: FlowStatus[] = [
-  '未着手',
-  'ディレクション',
-  'コーディング',
-  'デザイン',
-  '待ち',
-  '対応中',
-  '週次報告',
-  '月次報告',
-  '完了',
-];
 
 interface TaskDetailDrawerProps {
   open: boolean;
   onClose: () => void;
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
-  // eslint-disable-next-line no-unused-vars
+   
   onTaskFormDataChange: (data: Partial<Task>) => void;
   onSave: () => void;
-  // eslint-disable-next-line no-unused-vars
+   
   onDelete: (taskId: string, projectId: string) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
   activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-  // eslint-disable-next-line no-unused-vars
+   
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
   isStartingTimer: boolean;
   isStoppingTimer: boolean;
-  // eslint-disable-next-line no-unused-vars
+   
   onDriveCreate: (projectId: string, taskId: string) => void;
   isCreatingDrive: boolean;
-  // eslint-disable-next-line no-unused-vars
+   
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
   taskSessions: any[];
-  // eslint-disable-next-line no-unused-vars, max-len
+   
   formatDuration: (
-    // eslint-disable-next-line no-unused-vars
+     
     durationSec: number | undefined | null,
-    // eslint-disable-next-line no-unused-vars
+     
     startedAt?: Date,
-    // eslint-disable-next-line no-unused-vars
+     
     endedAt?: Date | null
   ) => string;
 }
@@ -99,7 +88,7 @@ export function TaskDetailDrawer({
   onFireCreate,
   isCreatingFire,
   taskSessions,
-  // eslint-disable-next-line no-unused-vars
+   
   formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
   if (!selectedTask || !taskFormData) return null;
@@ -197,7 +186,7 @@ export function TaskDetailDrawer({
               }}
               label="ステータス"
             >
-              {flowStatusOptions.map((status) => (
+              {FLOW_STATUS_OPTIONS.map((status) => (
                 <MenuItem key={status} value={status}>
                   {status}
                 </MenuItem>

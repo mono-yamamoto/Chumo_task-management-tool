@@ -11,12 +11,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // 次のレンダリングサイクルでsetStateを実行
+    setTimeout(() => {
+      setMounted(true);
+    }, 0);
   }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      // 次のレンダリングサイクルでsetStateを実行
+      setTimeout(() => {
+        router.push('/login');
+      }, 0);
     }
   }, [user, loading, router]);
 

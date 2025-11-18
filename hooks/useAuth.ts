@@ -22,7 +22,10 @@ export function useAuth() {
   useEffect(() => {
     if (!auth) {
       console.error('Firebase Auth is not initialized');
-      setLoading(false);
+      // 次のレンダリングサイクルでsetStateを実行
+      setTimeout(() => {
+        setLoading(false);
+      }, 0);
       return undefined;
     }
 

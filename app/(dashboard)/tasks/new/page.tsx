@@ -1,14 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { FlowStatus, Priority, User } from '@/types';
+import { FlowStatus, Priority } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
+import { useUsers } from '@/hooks/useUsers';
+import { useCreateTask } from '@/hooks/useTasks';
 import { useRouter } from 'next/navigation';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
+import {
+  FLOW_STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+  PRIORITY_LABELS,
+} from '@/constants/taskConstants';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -27,31 +31,9 @@ import {
   ListItemText,
 } from '@mui/material';
 
-const flowStatusOptions: FlowStatus[] = [
-  '未着手',
-  'ディレクション',
-  'コーディング',
-  'デザイン',
-  '待ち',
-  '対応中',
-  '週次報告',
-  '月次報告',
-  '完了',
-];
-
-const priorityOptions: Priority[] = ['low', 'medium', 'high', 'urgent'];
-
-const priorityLabels: Record<Priority, string> = {
-  low: '低',
-  medium: '中',
-  high: '高',
-  urgent: '緊急',
-};
-
 export default function NewTaskPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [projectType, setProjectType] = useState<ProjectType | ''>('');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -67,77 +49,60 @@ export default function NewTaskPage() {
   const { data: labels, isLoading: labelsLoading } = useKubunLabels();
 
   // すべてのユーザーを取得（アサイン表示用）
-  const { data: allUsers } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: async () => {
-      if (!db) return [];
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as User[];
-    },
-    enabled: !!db,
-  });
+  const { data: allUsers } = useUsers();
 
-  const createTask = useMutation({
-    mutationFn: async () => {
-      if (!user || !projectType || !db || !title.trim()) {
-        throw new Error('必須項目が入力されていません');
-      }
-      if (!kubunLabelId) {
-        throw new Error('区分を選択してください');
-      }
-
-      const taskData = {
-        projectType: projectType as ProjectType,
-        title: title.trim(),
-        description: description.trim() || '',
-        flowStatus,
-        assigneeIds,
-        itUpDate: itUpDate ? new Date(itUpDate) : null,
-        releaseDate: releaseDate ? new Date(releaseDate) : null,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        kubunLabelId,
-        priority: priority ? (priority as Priority) : null,
-        order: Date.now(),
-        createdBy: user.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // TODO: データ構造の変更が必要（現在は後方互換性のためprojects/{projectType}/tasksに保存）
-      // 将来的にはtasksコレクションに統合する
-      const docRef = await addDoc(collection(db, 'projects', projectType, 'tasks'), taskData);
-      return docRef.id;
-    },
-    onSuccess: () => {
-      // すべてのプロジェクトのタスククエリを無効化して即座に再取得
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-      // タスク一覧に遷移（「すべて」が選択された状態）
-      router.push('/tasks');
-    },
-    onError: (error: Error) => {
-      console.error('Error creating task:', error);
-      console.error('Error details:', {
-        user: !!user,
-        userId: user?.id,
-        projectType,
-        projectTypeValid: PROJECT_TYPES.includes(projectType as ProjectType),
-        title,
-        kubunLabelId,
-        error: error.message,
-        stack: error.stack,
-      });
-      // eslint-disable-next-line no-alert
-      alert(`タスクの作成に失敗しました: ${error.message}`);
-    },
-  });
+  const createTask = useCreateTask();
 
   const handleSubmit = () => {
-    createTask.mutate();
+    if (!user || !projectType || !title.trim()) {
+      alert('必須項目が入力されていません');
+      return;
+    }
+    if (!kubunLabelId) {
+      alert('区分を選択してください');
+      return;
+    }
+
+    createTask.mutate(
+      {
+        projectType: projectType as ProjectType,
+        taskData: {
+          projectType: projectType as ProjectType,
+          title: title.trim(),
+          description: description.trim() || '',
+          flowStatus,
+          assigneeIds,
+          itUpDate: itUpDate ? new Date(itUpDate) : null,
+          releaseDate: releaseDate ? new Date(releaseDate) : null,
+          dueDate: dueDate ? new Date(dueDate) : null,
+          kubunLabelId,
+          priority: priority ? (priority as Priority) : null,
+          order: Date.now(),
+          createdBy: user.id,
+        },
+      },
+      {
+        onSuccess: () => {
+          // タスク一覧に遷移（「すべて」が選択された状態）
+          router.push('/tasks');
+        },
+        onError: (error: Error) => {
+          console.error('Error creating task:', error);
+          console.error('Error details:', {
+            user: !!user,
+            userId: user?.id,
+            projectType,
+            projectTypeValid: PROJECT_TYPES.includes(projectType as ProjectType),
+            title,
+            kubunLabelId,
+            error: error.message,
+            stack: error.stack,
+          });
+
+          alert(`タスクの作成に失敗しました: ${error.message}`);
+        },
+      }
+    );
   };
 
   return (
@@ -211,11 +176,11 @@ export default function NewTaskPage() {
                     onChange={(e) => setFlowStatus(e.target.value as FlowStatus)}
                     label="ステータス"
                   >
-                    {flowStatusOptions.map((status) => (
-                      <MenuItem key={status} value={status}>
-                        {status}
-                      </MenuItem>
-                    ))}
+                {FLOW_STATUS_OPTIONS.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -339,9 +304,9 @@ export default function NewTaskPage() {
                     <MenuItem value="">
                       <em>選択しない</em>
                     </MenuItem>
-                    {priorityOptions.map((p) => (
+                    {PRIORITY_OPTIONS.map((p) => (
                       <MenuItem key={p} value={p}>
-                        {priorityLabels[p]}
+                        {PRIORITY_LABELS[p]}
                       </MenuItem>
                     ))}
                   </Select>

@@ -18,7 +18,10 @@ function LoginContent() {
       const params = new URLSearchParams(window.location.search);
       const errorParam = params.get('error');
       if (errorParam === 'not_allowed') {
-        setError('このアカウントは許可されていません。管理者に連絡してください。');
+        // 次のレンダリングサイクルでsetStateを実行
+        setTimeout(() => {
+          setError('このアカウントは許可されていません。管理者に連絡してください。');
+        }, 0);
       }
     }
   }, []);
