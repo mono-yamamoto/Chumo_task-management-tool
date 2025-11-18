@@ -532,6 +532,26 @@ export default function TaskDetailPage() {
                     </Typography>
                   )}
                 </FormControl>
+                <TextField
+                  label="3時間超過理由"
+                  value={task.over3Reason || ''}
+                  onChange={(e) => {
+                    if (!task?.projectType) return;
+                    updateTask.mutate({
+                      projectType: task.projectType,
+                      taskId: task.id,
+                      updates: {
+                        over3Reason: e.target.value || undefined,
+                      },
+                    });
+                  }}
+                  variant="outlined"
+                  multiline
+                  rows={3}
+                  disabled={!editing}
+                  fullWidth
+                  helperText="タスクの作業時間が3時間を超過する場合の理由を記入してください"
+                />
               </Box>
             </CardContent>
           </Card>
