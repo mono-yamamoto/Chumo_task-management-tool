@@ -52,6 +52,8 @@ export const getTimeReport = onRequest(
         title: string;
         durationSec: number;
         over3hours?: string;
+        taskId: string;
+        projectType: string;
       }> = [];
       let totalDurationSec = 0;
 
@@ -154,6 +156,8 @@ export const getTimeReport = onRequest(
               title: task.title,
               durationSec: taskDurationSec,
               over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
+              taskId: taskDoc.id,
+              projectType: projectType,
             });
             totalDurationSec += taskDurationSec;
           }
@@ -220,6 +224,8 @@ export const exportTimeReportCSV = onRequest(
         title: string;
         durationSec: number;
         over3hours?: string;
+        taskId: string;
+        projectType: string;
       }> = [];
 
       for (const projectType of PROJECT_TYPES) {
@@ -321,6 +327,8 @@ export const exportTimeReportCSV = onRequest(
               title: task.title,
               durationSec: taskDurationSec,
               over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
+              taskId: taskDoc.id,
+              projectType: projectType,
             });
           }
         }
