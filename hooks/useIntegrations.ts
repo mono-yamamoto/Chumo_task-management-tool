@@ -98,22 +98,52 @@ export function useGoogleChatIntegration() {
       taskUrl: string;
     }) => {
       const chatUrl = getCreateGoogleChatThreadUrl();
-      const response = await fetch(`${chatUrl}/projects/${projectType}/tasks/${taskId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ taskUrl }),
+      const requestUrl = `${chatUrl}/projects/${projectType}/tasks/${taskId}`;
+
+      console.debug('Creating Google Chat thread:', {
+        chatUrl,
+        requestUrl,
+        projectType,
+        taskId,
+        taskUrl,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
+      try {
+        const response = await fetch(requestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ taskUrl }),
+        });
 
-      return response.json();
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage =
+            errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+          console.error('Google Chat thread creation failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+            requestUrl,
+          });
+          throw new Error(errorMessage);
+        }
+
+        return response.json();
+      } catch (error) {
+        // fetch自体が失敗した場合（ネットワークエラー、CORSエラーなど）
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          console.error('Google Chat thread creation network error:', {
+            requestUrl,
+            error,
+          });
+          throw new Error(
+            `ネットワークエラーが発生しました。Cloud FunctionのURLを確認してください: ${requestUrl}`
+          );
+        }
+        throw error;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
