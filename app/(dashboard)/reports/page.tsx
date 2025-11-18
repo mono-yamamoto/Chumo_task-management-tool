@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -175,13 +176,48 @@ export default function ReportsPage() {
               </TableHead>
               <TableBody>
                 {reportData?.items && reportData.items.length > 0 ? (
-                  reportData.items.map((item: any, index: number) => (
-                    <TableRow key={item.title || `item-${index}`}>
-                      <TableCell>{item.title}</TableCell>
-                      <TableCell>{formatDuration(item.durationSec || 0)}</TableCell>
-                      <TableCell>{item.over3hours || '-'}</TableCell>
-                    </TableRow>
-                  ))
+                  reportData.items.map((item: any, index: number) => {
+                    const hasTaskId = item.taskId && typeof item.taskId === 'string' && item.taskId.trim() !== '';
+                    return (
+                      <TableRow key={item.taskId || item.title || `item-${index}`}>
+                        <TableCell>
+                          {hasTaskId ? (
+                            <Link
+                              href={`/tasks/${item.taskId}`}
+                              style={{
+                                color: 'inherit',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <Typography
+                                component="span"
+                                sx={{
+                                  cursor: 'pointer',
+                                  '&:hover': {
+                                    textDecoration: 'underline',
+                                    color: 'primary.main',
+                                  },
+                                }}
+                              >
+                                {item.title}
+                              </Typography>
+                            </Link>
+                          ) : (
+                            <Box>
+                              {item.title}
+                              {process.env.NODE_ENV === 'development' && (
+                                <Typography variant="caption" sx={{ color: 'error.main', ml: 1 }}>
+                                  (taskIdなし)
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatDuration(item.durationSec || 0)}</TableCell>
+                        <TableCell>{item.over3hours || '-'}</TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} sx={{ textAlign: 'center', py: 4 }}>
