@@ -142,12 +142,14 @@ export function TaskDetailDrawer({
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          p: 3,
+          pt: 4,
+          overflowY: 'auto',
         },
       }}
     >
       <Box
         sx={{
-          p: 3,
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -205,7 +207,6 @@ export function TaskDetailDrawer({
             value={formData.title || ''}
             onChange={(e) => onTaskFormDataChange({ ...formData, title: e.target.value })}
             onPaste={handleTitlePaste}
-            helperText="バックログからコピーした内容を貼り付けると、タイトルとURLが自動的に反映されます"
           />
 
           <TextField
