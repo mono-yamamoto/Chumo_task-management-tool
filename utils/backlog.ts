@@ -2,6 +2,8 @@
  * バックログ関連のユーティリティ関数
  */
 
+import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
+
 /**
  * タイトルから課題番号を抽出する
  * 例: "BRGREG-2905 【井坂】SA-net用情報資材アップの依頼について_自動車" → "BRGREG-2905"
@@ -95,5 +97,39 @@ export function parseBacklogClipboard(clipboardText: string): {
   }
 
   return { title, url };
+}
+
+/**
+ * タイトルからプロジェクトタイプを抽出する
+ * 課題番号のパターンからプロジェクト名を抽出し、PROJECT_TYPESに一致するものを返す
+ * 最初の半角スペースまでを対象とする
+ * 例: "BRGREG-2905 【井坂】..." → "BRGREG"
+ * 例: "REG2017-2229 【鴨志田】..." → "REG2017"
+ *
+ * @param title タスクのタイトル
+ * @returns プロジェクトタイプ（見つからない場合はnull）
+ */
+export function extractProjectTypeFromTitle(title: string): ProjectType | null {
+  if (!title) return null;
+
+  // 最初の半角スペースまでの部分を取得
+  const firstSpaceIndex = title.indexOf(' ');
+  const targetText = firstSpaceIndex > 0 ? title.substring(0, firstSpaceIndex) : title;
+
+  // 課題番号のパターンからプロジェクト名を抽出
+  // 例: BRGREG-2905 → BRGREG, REG2017-2229 → REG2017
+  const issueKeyPattern = /^([A-Z0-9_]+)-\d+/;
+  const match = targetText.match(issueKeyPattern);
+
+  if (!match) return null;
+
+  const projectName = match[1];
+
+  // PROJECT_TYPESに一致するか確認
+  if (PROJECT_TYPES.includes(projectName as ProjectType)) {
+    return projectName as ProjectType;
+  }
+
+  return null;
 }
 
