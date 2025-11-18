@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint . --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "create-user": "ts-node scripts/create-user.ts",
@@ -32,7 +32,8 @@
     "next": "^16.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^3.22.0"
+    "zod": "^3.22.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^20.19.24",
