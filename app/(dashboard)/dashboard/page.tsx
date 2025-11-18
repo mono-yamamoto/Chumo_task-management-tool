@@ -134,25 +134,26 @@ function DashboardPageContent() {
 
   // 選択されたタスクが変更されたらフォームデータを初期化
   useEffect(() => {
-    // 次のレンダリングサイクルでsetStateを実行
-    setTimeout(() => {
-      if (selectedTask && selectedTaskId) {
-        if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
-          setTaskFormData({
-            title: selectedTask.title,
-            description: selectedTask.description || '',
-            flowStatus: selectedTask.flowStatus,
-            kubunLabelId: selectedTask.kubunLabelId,
-            assigneeIds: selectedTask.assigneeIds,
-            itUpDate: selectedTask.itUpDate,
-            releaseDate: selectedTask.releaseDate,
-            dueDate: selectedTask.dueDate,
-          });
-        }
-      } else if (!selectedTaskId) {
-        setTaskFormData(null);
+    if (selectedTask && selectedTaskId) {
+      if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
+        setTaskFormData({
+          title: selectedTask.title,
+          description: selectedTask.description || '',
+          flowStatus: selectedTask.flowStatus,
+          kubunLabelId: selectedTask.kubunLabelId,
+          assigneeIds: selectedTask.assigneeIds,
+          itUpDate: selectedTask.itUpDate,
+          releaseDate: selectedTask.releaseDate,
+          dueDate: selectedTask.dueDate,
+        });
       }
-    }, 0);
+    } else if (!selectedTaskId) {
+      setTaskFormData(null);
+    }
+    // selectedTask, setTaskFormData, taskFormDataは意図的に依存配列から除外
+    // - selectedTask: オブジェクト全体を依存配列に入れると、参照が変わるたびに再実行される
+    // - setTaskFormData: Zustandのsetterは安定しているため不要
+    // - taskFormData: 依存配列に入れると無限ループになる可能性がある
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTask?.id, selectedTaskId]);
 

@@ -35,34 +35,34 @@ interface TaskDetailDrawerProps {
   onClose: () => void;
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
-   
+
   onTaskFormDataChange: (data: Partial<Task>) => void;
   onSave: () => void;
-   
+
   onDelete: (taskId: string, projectId: string) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
   activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-   
+
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
   isStartingTimer: boolean;
   isStoppingTimer: boolean;
-   
+
   onDriveCreate: (projectId: string, taskId: string) => void;
   isCreatingDrive: boolean;
-   
+
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
   taskSessions: any[];
-   
+
   formatDuration: (
-     
+
     durationSec: number | undefined | null,
-     
+
     startedAt?: Date,
-     
+
     endedAt?: Date | null
   ) => string;
 }
@@ -88,10 +88,22 @@ export function TaskDetailDrawer({
   onFireCreate,
   isCreatingFire,
   taskSessions,
-   
+
   formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
-  if (!selectedTask || !taskFormData) return null;
+  // taskFormDataがnullの場合はローディング状態を表示
+  if (!selectedTask) return null;
+
+  const formData = taskFormData || {
+    title: selectedTask.title || '',
+    description: selectedTask.description || '',
+    flowStatus: selectedTask.flowStatus || '未着手',
+    kubunLabelId: selectedTask.kubunLabelId || '',
+    assigneeIds: selectedTask.assigneeIds || [],
+    itUpDate: selectedTask.itUpDate || null,
+    releaseDate: selectedTask.releaseDate || null,
+    dueDate: selectedTask.dueDate || null,
+  };
 
   return (
     <Drawer
@@ -164,15 +176,15 @@ export function TaskDetailDrawer({
           <TextField
             fullWidth
             label="タイトル"
-            value={taskFormData.title || ''}
-            onChange={(e) => onTaskFormDataChange({ ...taskFormData, title: e.target.value })}
+            value={formData.title || ''}
+            onChange={(e) => onTaskFormDataChange({ ...formData, title: e.target.value })}
           />
 
           <TextField
             fullWidth
             label="説明"
-            value={taskFormData.description || ''}
-            onChange={(e) => onTaskFormDataChange({ ...taskFormData, description: e.target.value })}
+            value={formData.description || ''}
+            onChange={(e) => onTaskFormDataChange({ ...formData, description: e.target.value })}
             multiline
             rows={4}
           />
@@ -180,9 +192,9 @@ export function TaskDetailDrawer({
           <FormControl fullWidth>
             <InputLabel>ステータス</InputLabel>
             <Select
-              value={taskFormData.flowStatus || '未着手'}
+              value={formData.flowStatus || '未着手'}
               onChange={(e) => {
-                onTaskFormDataChange({ ...taskFormData, flowStatus: e.target.value as FlowStatus });
+                onTaskFormDataChange({ ...formData, flowStatus: e.target.value as FlowStatus });
               }}
               label="ステータス"
             >
@@ -197,9 +209,9 @@ export function TaskDetailDrawer({
           <FormControl fullWidth>
             <InputLabel>区分</InputLabel>
             <Select
-              value={taskFormData.kubunLabelId || ''}
+              value={formData.kubunLabelId || ''}
               onChange={(e) => {
-                onTaskFormDataChange({ ...taskFormData, kubunLabelId: e.target.value });
+                onTaskFormDataChange({ ...formData, kubunLabelId: e.target.value });
               }}
               label="区分"
               disabled={taskLabels.length === 0}
@@ -232,10 +244,10 @@ export function TaskDetailDrawer({
             fullWidth
             label="ITアップ日"
             type="date"
-            value={taskFormData.itUpDate ? format(taskFormData.itUpDate, 'yyyy-MM-dd') : ''}
+            value={formData.itUpDate ? format(formData.itUpDate, 'yyyy-MM-dd') : ''}
             onChange={(e) =>
               onTaskFormDataChange({
-                ...taskFormData,
+                ...formData,
                 itUpDate: e.target.value ? new Date(e.target.value) : null,
               })
             }
@@ -246,10 +258,10 @@ export function TaskDetailDrawer({
             fullWidth
             label="リリース日"
             type="date"
-            value={taskFormData.releaseDate ? format(taskFormData.releaseDate, 'yyyy-MM-dd') : ''}
+            value={formData.releaseDate ? format(formData.releaseDate, 'yyyy-MM-dd') : ''}
             onChange={(e) =>
               onTaskFormDataChange({
-                ...taskFormData,
+                ...formData,
                 releaseDate: e.target.value ? new Date(e.target.value) : null,
               })
             }
@@ -260,11 +272,11 @@ export function TaskDetailDrawer({
             <InputLabel>アサイン</InputLabel>
             <Select
               multiple
-              value={taskFormData.assigneeIds || selectedTask.assigneeIds || []}
+              value={formData.assigneeIds || selectedTask.assigneeIds || []}
               onChange={(e) => {
                 const value =
                   typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
-                onTaskFormDataChange({ ...taskFormData, assigneeIds: value });
+                onTaskFormDataChange({ ...formData, assigneeIds: value });
               }}
               input={<OutlinedInput label="アサイン" />}
               renderValue={(selected) => {
@@ -278,7 +290,7 @@ export function TaskDetailDrawer({
               {allUsers?.map((user) => (
                 <MenuItem key={user.id} value={user.id}>
                   <Checkbox
-                    checked={(taskFormData.assigneeIds || selectedTask.assigneeIds || []).includes(
+                    checked={(formData.assigneeIds || selectedTask.assigneeIds || []).includes(
                       user.id
                     )}
                   />

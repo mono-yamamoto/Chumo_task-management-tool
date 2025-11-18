@@ -54,25 +54,22 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
 
   // 初期データが変更されたらフォームデータを更新
   useEffect(() => {
-    // 次のレンダリングサイクルでsetStateを実行
-    setTimeout(() => {
-      if (initialData) {
-        setFormData({
-          projectType: (initialData as any)?.projectType || '',
-          title: initialData.title || '',
-          description: initialData.description || '',
-          flowStatus: initialData.flowStatus || '未着手',
-          assigneeIds: initialData.assigneeIds || [],
-          itUpDate: initialData.itUpDate || null,
-          releaseDate: initialData.releaseDate || null,
-          dueDate: initialData.dueDate || null,
-          kubunLabelId: initialData.kubunLabelId || '',
-          priority: initialData.priority || null,
-        });
-      } else {
-        setFormData(initialFormData);
-      }
-    }, 0);
+    if (initialData) {
+      setFormData({
+        projectType: (initialData as any)?.projectType || '',
+        title: initialData.title || '',
+        description: initialData.description || '',
+        flowStatus: initialData.flowStatus || '未着手',
+        assigneeIds: initialData.assigneeIds || [],
+        itUpDate: initialData.itUpDate || null,
+        releaseDate: initialData.releaseDate || null,
+        dueDate: initialData.dueDate || null,
+        kubunLabelId: initialData.kubunLabelId || '',
+        priority: initialData.priority || null,
+      });
+    } else {
+      setFormData(initialFormData);
+    }
     // initialData全体を依存配列に入れると、オブジェクトの参照が変わるたびに再実行される
     // タスクIDが変更されたときのみ更新する意図的な制限
     // eslint-disable-next-line react-hooks/exhaustive-deps
