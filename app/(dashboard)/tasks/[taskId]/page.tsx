@@ -21,6 +21,7 @@ import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
+import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import {
   Button,
   Box,
@@ -399,23 +400,74 @@ export default function TaskDetailPage() {
         </Box>
       </Box>
 
-      {task.external && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 1 }}>
-              Backlog情報
-            </Typography>
-            <MUILink
-              href={task.external.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
-            >
-              {task.external.issueKey}
-            </MUILink>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
+            Backlog情報
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {(() => {
+              // バックログURLを取得（優先順位: backlogUrl > external.url > タイトルから生成）
+              const backlogUrl =
+                task.backlogUrl ||
+                task.external?.url ||
+                generateBacklogUrlFromTitle(task.title);
+              const issueKey = task.external?.issueKey || null;
+
+              if (backlogUrl) {
+                return (
+                  <MUILink
+                    href={backlogUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    {issueKey || backlogUrl}
+                  </MUILink>
+                );
+              }
+              return null;
+            })()}
+            {editing && (
+              <TextField
+                fullWidth
+                label="バックログURL"
+                value={task.backlogUrl || ''}
+                onChange={(e) => {
+                  if (!task?.projectType) return;
+                  updateTask.mutate({
+                    projectType: task.projectType,
+                    taskId: task.id,
+                    updates: {
+                      backlogUrl: e.target.value || null,
+                    },
+                  });
+                }}
+                placeholder="https://ss-pj.jp/backlog/view/REG2017-2229"
+                helperText="バックログのURLを手動で入力できます。バックログからコピーした内容を貼り付けることもできます。"
+                size="small"
+                onPaste={async (e) => {
+                  const clipboardText = e.clipboardData.getData('text');
+                  const parsed = parseBacklogClipboard(clipboardText);
+
+                  if (parsed && task?.projectType) {
+                    e.preventDefault();
+                    // タイトルとURLを自動的に反映
+                    updateTask.mutate({
+                      projectType: task.projectType,
+                      taskId: task.id,
+                      updates: {
+                        title: parsed.title,
+                        backlogUrl: parsed.url,
+                      },
+                    });
+                  }
+                }}
+              />
+            )}
+          </Box>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>

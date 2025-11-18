@@ -23,12 +23,14 @@ import {
   Stop,
   FolderOpen,
   LocalFireDepartment,
+  BugReport,
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { Task, FlowStatus, User, Label } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 
 interface TaskDetailDrawerProps {
   open: boolean;
@@ -103,6 +105,30 @@ export function TaskDetailDrawer({
     itUpDate: selectedTask.itUpDate || null,
     releaseDate: selectedTask.releaseDate || null,
     dueDate: selectedTask.dueDate || null,
+    backlogUrl: selectedTask.backlogUrl || null,
+  };
+
+  // バックログURLを取得（優先順位: backlogUrl > external.url > タイトルから生成）
+  const backlogUrl =
+    formData.backlogUrl ||
+    selectedTask.backlogUrl ||
+    selectedTask.external?.url ||
+    generateBacklogUrlFromTitle(formData.title || selectedTask.title);
+
+  // タイトルフィールドに貼り付け時のハンドラー
+  const handleTitlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const clipboardText = e.clipboardData.getData('text');
+    const parsed = parseBacklogClipboard(clipboardText);
+
+    if (parsed) {
+      e.preventDefault();
+      // タイトルとURLを自動的に反映
+      onTaskFormDataChange({
+        ...formData,
+        title: parsed.title,
+        backlogUrl: parsed.url,
+      });
+    }
   };
 
   return (
@@ -178,6 +204,8 @@ export function TaskDetailDrawer({
             label="タイトル"
             value={formData.title || ''}
             onChange={(e) => onTaskFormDataChange({ ...formData, title: e.target.value })}
+            onPaste={handleTitlePaste}
+            helperText="バックログからコピーした内容を貼り付けると、タイトルとURLが自動的に反映されます"
           />
 
           <TextField
@@ -429,6 +457,19 @@ export function TaskDetailDrawer({
                 </CustomButton>
               )}
             </Box>
+            {backlogUrl && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  onClick={() => window.open(backlogUrl, '_blank')}
+                >
+                  <BugReport fontSize="small" sx={{ mr: 1 }} />
+                  Backlogを開く
+                </Button>
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ mt: 2 }}>

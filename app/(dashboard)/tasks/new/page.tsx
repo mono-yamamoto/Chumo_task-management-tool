@@ -14,6 +14,7 @@ import {
   PRIORITY_LABELS,
 } from '@/constants/taskConstants';
 import { Button } from '@/components/ui/button';
+import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import {
   Box,
   Typography,
@@ -44,6 +45,7 @@ export default function NewTaskPage() {
   const [dueDate, setDueDate] = useState<string>('');
   const [kubunLabelId, setKubunLabelId] = useState<string>('');
   const [priority, setPriority] = useState<Priority | ''>('');
+  const [backlogUrl, setBacklogUrl] = useState<string>('');
 
   // 区分ラベルは全プロジェクト共通
   const { data: labels, isLoading: labelsLoading } = useKubunLabels();
@@ -77,6 +79,7 @@ export default function NewTaskPage() {
           dueDate: dueDate ? new Date(dueDate) : null,
           kubunLabelId,
           priority: priority ? (priority as Priority) : null,
+          backlogUrl: backlogUrl.trim() || null,
           order: Date.now(),
           createdBy: user.id,
         },
@@ -151,10 +154,33 @@ export default function NewTaskPage() {
               required
               label="タイトル"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                const newTitle = e.target.value;
+                setTitle(newTitle);
+                // チケット番号が入力されたらURLを自動生成
+                const generatedUrl = generateBacklogUrlFromTitle(newTitle);
+                if (generatedUrl) {
+                  setBacklogUrl(generatedUrl);
+                }
+              }}
+              onPaste={async (e) => {
+                const clipboardText = e.clipboardData.getData('text');
+                const parsed = parseBacklogClipboard(clipboardText);
+
+                if (parsed) {
+                  e.preventDefault();
+                  // タイトルとURLを自動的に反映
+                  setTitle(parsed.title);
+                  setBacklogUrl(parsed.url);
+                }
+              }}
               variant="outlined"
               error={!title.trim() && title !== ''}
-              helperText={!title.trim() && title !== '' ? 'タイトルを入力してください' : ''}
+              helperText={
+                !title.trim() && title !== ''
+                  ? 'タイトルを入力してください'
+                  : 'バックログからコピーした内容を貼り付けると、タイトルとURLが自動的に反映されます'
+              }
             />
 
             <TextField
@@ -165,6 +191,16 @@ export default function NewTaskPage() {
               variant="outlined"
               multiline
               rows={4}
+            />
+
+            <TextField
+              fullWidth
+              label="バックログURL"
+              value={backlogUrl}
+              onChange={(e) => setBacklogUrl(e.target.value)}
+              variant="outlined"
+              placeholder="https://ss-pj.jp/backlog/view/REG2017-2229"
+              helperText="バックログのURLを手動で入力できます。タイトルにチケット番号を入力すると自動的に生成されます。"
             />
 
             <Grid container spacing={2}>
