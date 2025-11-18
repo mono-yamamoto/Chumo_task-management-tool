@@ -40,3 +40,6 @@ functions/node_modules
 
 # Kiri MCP index database
 .kiri/
+
+# Serena MCP memories
+.serena/
