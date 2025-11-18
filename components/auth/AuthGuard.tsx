@@ -26,8 +26,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  // クライアントサイドでのみレンダリングするまで、ローディング状態を表示
-  if (!mounted || loading) {
+  // サーバーサイドレンダリング時は何も表示しない（Hydrationエラーを防ぐ）
+  if (!mounted) {
+    return null;
+  }
+
+  // クライアントサイドでローディング中はローディング状態を表示
+  if (loading) {
     return (
       <Box
         sx={{
