@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useMemo, useEffect } from 'react';
+import { useState, Suspense, useMemo, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { FlowStatus } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
@@ -75,8 +75,33 @@ function TasksPageContent() {
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
-  // タスク一覧を取得
-  const { data: tasks, isLoading } = useTasks(selectedProjectType);
+  // タスク一覧を取得（無限スクロール対応）
+  const tasksQuery = useTasks(selectedProjectType);
+
+  // useInfiniteQueryの場合はpagesをフラット化、useQueryの場合はそのまま使用
+  const tasks = useMemo(() => {
+    if (!tasksQuery.data) return [];
+
+    // useInfiniteQueryの場合
+    if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
+      return tasksQuery.data.pages.flatMap((page: any) => {
+        if (!page || !page.tasks) return [];
+        return page.tasks;
+      });
+    }
+
+    // useQueryの場合（'all'の時）
+    if (Array.isArray(tasksQuery.data)) {
+      return tasksQuery.data;
+    }
+
+    return [];
+  }, [tasksQuery.data]);
+
+  const isLoading = tasksQuery.isLoading;
+  const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
+  const isFetchingNextPage = 'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
+  const fetchNextPage = 'fetchNextPage' in tasksQuery ? tasksQuery.fetchNextPage : undefined;
 
   // すべてのユーザーを取得（アサイン表示用）
   const { data: allUsers } = useUsers();
@@ -90,7 +115,10 @@ function TasksPageContent() {
 
     return tasks.filter((task) => {
       // ステータスフィルタ
-      if (filterStatus !== 'all' && task.flowStatus !== filterStatus) {
+      if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
+        return false;
+      }
+      if (filterStatus !== 'all' && filterStatus !== 'not-completed' && task.flowStatus !== filterStatus) {
         return false;
       }
 
@@ -207,6 +235,31 @@ function TasksPageContent() {
 
   // アクティブなセッションを取得（すべてのプロジェクトタイプから）
   useActiveSession(user?.id || null, setActiveSession);
+
+  // 無限スクロール: スクロール検知用のref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // スクロール検知で自動読み込み
+  useEffect(() => {
+    if (!scrollContainerRef.current || !fetchNextPage || !hasNextPage || isFetchingNextPage) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // スクロール位置が80%以上に達したら次のページを読み込む
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+      if (scrollPercentage > 0.8 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const updateTask = useUpdateTask();
 
@@ -451,10 +504,11 @@ function TasksPageContent() {
                 <InputLabel>ステータス</InputLabel>
                 <Select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | 'all')}
+                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | 'all' | 'not-completed')}
                   label="ステータス"
                 >
                   <MenuItem value="all">すべて</MenuItem>
+                  <MenuItem value="not-completed">完了以外</MenuItem>
                   {FLOW_STATUS_OPTIONS.map((status) => (
                     <MenuItem key={status} value={status}>
                       {FLOW_STATUS_LABELS[status]}
@@ -546,26 +600,33 @@ function TasksPageContent() {
           </Grid>
         </Box>
 
-        <TaskListTable
-          tasks={filteredTasks || []}
-          onTaskSelect={handleTaskSelect}
-          selectedProjectType={selectedProjectType}
-          allUsers={allUsers}
-          allLabels={allLabels}
-          activeSession={activeSession}
-          onStartTimer={handleStartTimer}
-          onStopTimer={handleStopTimer}
-          isStartingTimer={startTimer.isPending}
-          isStoppingTimer={stopTimer.isPending}
-          kobetsuLabelId={kobetsuLabelId}
-          emptyMessage={
-            tasks && tasks.length === 0
-              ? selectedProjectType === 'all'
-                ? 'タスクがありません'
-                : 'このプロジェクトにタスクがありません'
-              : 'フィルタ条件に一致するタスクがありません'
-          }
-        />
+        <Box ref={scrollContainerRef} sx={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+          <TaskListTable
+            tasks={filteredTasks || []}
+            onTaskSelect={handleTaskSelect}
+            selectedProjectType={selectedProjectType}
+            allUsers={allUsers}
+            allLabels={allLabels}
+            activeSession={activeSession}
+            onStartTimer={handleStartTimer}
+            onStopTimer={handleStopTimer}
+            isStartingTimer={startTimer.isPending}
+            isStoppingTimer={stopTimer.isPending}
+            kobetsuLabelId={kobetsuLabelId}
+            emptyMessage={
+              tasks && tasks.length === 0
+                ? selectedProjectType === 'all'
+                  ? 'タスクがありません'
+                  : 'このプロジェクトにタスクがありません'
+                : 'フィルタ条件に一致するタスクがありません'
+            }
+          />
+          {isFetchingNextPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+        </Box>
       </Box>
 
       {/* サイドバー */}

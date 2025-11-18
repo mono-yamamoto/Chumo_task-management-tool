@@ -15,8 +15,8 @@ interface TaskStore {
   setTaskFormData: (_formData: Partial<Task> | null) => void;
 
   // フィルタ状態
-  filterStatus: FlowStatus | 'all';
-  setFilterStatus: (_status: FlowStatus | 'all') => void;
+  filterStatus: FlowStatus | 'all' | 'not-completed';
+  setFilterStatus: (_status: FlowStatus | 'all' | 'not-completed') => void;
   filterAssignee: string;
   setFilterAssignee: (_assignee: string) => void;
   filterLabel: string;
@@ -56,7 +56,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
   taskFormData: null,
   setTaskFormData: (formData) => set({ taskFormData: formData }),
 
-  filterStatus: 'all',
+  filterStatus: 'not-completed',
   setFilterStatus: (status) => set({ filterStatus: status }),
   filterAssignee: 'all',
   setFilterAssignee: (assignee) => set({ filterAssignee: assignee }),
@@ -77,7 +77,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
   resetFilters: () =>
     set({
       selectedProjectType: 'all',
-      filterStatus: 'all',
+      filterStatus: 'not-completed',
       filterAssignee: 'all',
       filterLabel: 'all',
       filterTimerActive: 'all',
