@@ -17,11 +17,12 @@ import {
 } from '@/hooks/useTaskSessions';
 import { useParams } from 'next/navigation';
 import { useTimer } from '@/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
+import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
+import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import {
   Button,
   Box,
@@ -46,6 +47,7 @@ import {
   Stop,
   FolderOpen,
   LocalFireDepartment,
+  ChatBubbleOutline,
   Delete,
   Edit,
   Add,
@@ -61,6 +63,7 @@ export default function TaskDetailPage() {
   const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
+  const { createGoogleChatThread } = useGoogleChatIntegration();
   const [activeSession, setActiveSession] = useState<{
     projectType: string;
     taskId: string;
@@ -226,6 +229,28 @@ export default function TaskDetailPage() {
     } catch (error: any) {
       console.error('Fire create error:', error);
       alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
+    }
+  };
+
+  const handleChatThreadCreate = async () => {
+    if (!task) return;
+    try {
+      const taskUrl = buildTaskDetailUrl(task.id);
+      if (!taskUrl) {
+        alert('タスクのURLを生成できませんでした。');
+        return;
+      }
+
+      await createGoogleChatThread.mutateAsync({
+        projectType: task.projectType,
+        taskId: task.id,
+        taskUrl,
+      });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+    } catch (error: any) {
+      console.error('Chat thread create error:', error);
+      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
     }
   };
 
@@ -671,7 +696,13 @@ export default function TaskDetailPage() {
                     )}
                   </Box>
                 )}
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 1,
+                    flexWrap: 'wrap',
+                  }}
+                >
                   {task.googleDriveUrl ? (
                     <Button
                       fullWidth
@@ -716,6 +747,29 @@ export default function TaskDetailPage() {
                     >
                       <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
                       Issue作成
+                    </CustomButton>
+                  )}
+                  {task.googleChatThreadUrl ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      onClick={() => window.open(task.googleChatThreadUrl!, '_blank')}
+                      sx={{ flex: 1 }}
+                    >
+                      <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                      Chatを開く
+                    </Button>
+                  ) : (
+                    <CustomButton
+                      fullWidth
+                      variant="outline"
+                      onClick={handleChatThreadCreate}
+                      disabled={createGoogleChatThread.isPending}
+                      sx={{ flex: 1 }}
+                    >
+                      <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                      Chatスレッド作成
                     </CustomButton>
                   )}
                 </Box>

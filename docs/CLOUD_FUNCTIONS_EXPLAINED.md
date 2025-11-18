@@ -39,6 +39,16 @@ Cloud Functions（クラウドファンクション）は、Google Cloud Platfor
   - 外部APIとの連携処理
   - 冪等性の保証（重複実行を防ぐ）
 
+### 6. **Google Chat連携** (`createGoogleChatThread`)
+- **何をしているか**: タスク詳細ページやドロワーからGoogle Chatスペースにスレッド（メッセージ）を投稿し、そのURLをタスクに保存
+- **なぜ必要か**:
+  - プロジェクトの会話をChatで始める作業をボタン1つで完結させる
+  - Webhook URLやスペースURLなどの機密値をフロントエンドに露出させずに済む
+  - 既にスレッドがある場合は再利用し、重複投稿を防ぐ
+- **セットアップ**:
+  - Chatスペース（例: https://mail.google.com/mail/u/1/#chat/space/AAQApGRYb9c）でIncoming Webhookを作成し、Secret Managerに `GOOGLE_CHAT_WEBHOOK_URL` として保存
+  - 同じスペースのベースURLを `GOOGLE_CHAT_SPACE_URL` としてSecret Managerに登録し、Cloud Functionが戻り値としてクリック可能なリンクを作れるようにする
+
 ## デプロイが必要なタイミング
 
 ### ✅ **必ずデプロイが必要な場合**

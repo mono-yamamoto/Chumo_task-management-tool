@@ -9,7 +9,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTimer } from '@/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration } from '@/hooks/useIntegrations';
+import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
 import { useTaskStore } from '@/stores/taskStore';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
+import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import {
   Box,
   Typography,
@@ -70,6 +71,7 @@ function TasksPageContent() {
   const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
+  const { createGoogleChatThread } = useGoogleChatIntegration();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -383,6 +385,25 @@ function TasksPageContent() {
     }
   };
 
+  const handleChatThreadCreate = async (projectType: string, taskId: string) => {
+    try {
+      const taskUrl = buildTaskDetailUrl(taskId);
+      if (!taskUrl) {
+        alert('タスクのURLを生成できませんでした。');
+        return;
+      }
+
+      await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+    } catch (error: any) {
+      console.error('Chat thread create error:', error);
+      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
+    }
+  };
+
   const handleDeleteClick = (taskId: string, projectType: string) => {
     setDeleteTaskId(taskId);
     setDeleteProjectType(projectType);
@@ -653,6 +674,8 @@ function TasksPageContent() {
         isCreatingDrive={createDriveFolder.isPending}
         onFireCreate={handleFireCreate}
         isCreatingFire={createFireIssue.isPending}
+        onChatThreadCreate={handleChatThreadCreate}
+        isCreatingChatThread={createGoogleChatThread.isPending}
         taskSessions={taskSessions || []}
         formatDuration={formatDuration}
       />

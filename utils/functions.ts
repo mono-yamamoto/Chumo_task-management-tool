@@ -46,6 +46,16 @@ export function getCreateFireIssueUrl(): string {
 }
 
 /**
+ * Google Chatスレッド作成関数のURLを取得
+ */
+export function getCreateGoogleChatThreadUrl(): string {
+  return getFunctionUrl(
+    'createGoogleChatThread',
+    'https://creategooglechatthread-zbk3yr5vta-uc.a.run.app'
+  );
+}
+
+/**
  * タイムレポート取得関数のURLを取得
  */
 export function getTimeReportUrl(): string {

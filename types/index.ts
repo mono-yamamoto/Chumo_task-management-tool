@@ -74,6 +74,7 @@ export interface Task {
   kubunLabelId: string;
   googleDriveUrl?: string | null;
   fireIssueUrl?: string | null;
+  googleChatThreadUrl?: string | null;
   backlogUrl?: string | null; // 手動入力用のバックログURL
   dueDate?: Date | null;
   priority?: Priority | null;
