@@ -37,6 +37,7 @@ import {
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
+import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
 function TasksPageContent() {
   const { user } = useAuth();
@@ -60,6 +61,8 @@ function TasksPageContent() {
     setFilterItUpDateMonth,
     filterReleaseDateMonth,
     setFilterReleaseDateMonth,
+    filterTitle,
+    setFilterTitle,
     activeSession,
     setActiveSession,
     resetFilters,
@@ -98,6 +101,11 @@ function TasksPageContent() {
 
       // 区分フィルタ
       if (filterLabel !== 'all' && task.kubunLabelId !== filterLabel) {
+        return false;
+      }
+
+      // タイトル検索フィルタ
+      if (filterTitle && !task.title.toLowerCase().includes(filterTitle.toLowerCase())) {
         return false;
       }
 
@@ -146,6 +154,7 @@ function TasksPageContent() {
     filterStatus,
     filterAssignee,
     filterLabel,
+    filterTitle,
     filterTimerActive,
     filterItUpDateMonth,
     filterReleaseDateMonth,
@@ -410,6 +419,16 @@ function TasksPageContent() {
 
         <Box sx={{ mb: 3 }}>
           <Grid container spacing={2}>
+            <Grid size={{ xs: 12 }}>
+              <TaskSearchForm
+                value={filterTitle}
+                onChange={setFilterTitle}
+                placeholder="タイトルで検索..."
+                label="タイトル検索"
+              />
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>プロジェクト</InputLabel>

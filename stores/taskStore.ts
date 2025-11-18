@@ -27,6 +27,8 @@ interface TaskStore {
   setFilterItUpDateMonth: (_month: string) => void;
   filterReleaseDateMonth: string;
   setFilterReleaseDateMonth: (_month: string) => void;
+  filterTitle: string;
+  setFilterTitle: (_title: string) => void;
 
   // アクティブセッション
   activeSession: {
@@ -66,6 +68,8 @@ export const useTaskStore = create<TaskStore>((set) => ({
   setFilterItUpDateMonth: (month) => set({ filterItUpDateMonth: month }),
   filterReleaseDateMonth: '',
   setFilterReleaseDateMonth: (month) => set({ filterReleaseDateMonth: month }),
+  filterTitle: '',
+  setFilterTitle: (title) => set({ filterTitle: title }),
 
   activeSession: null,
   setActiveSession: (session) => set({ activeSession: session }),
@@ -79,6 +83,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
       filterTimerActive: 'all',
       filterItUpDateMonth: '',
       filterReleaseDateMonth: '',
+      filterTitle: '',
     }),
 }));
 
