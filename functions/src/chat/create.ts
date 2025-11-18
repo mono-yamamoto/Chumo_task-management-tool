@@ -31,8 +31,10 @@ export const createGoogleChatThread = onRequest(
   {
     cors: true,
     maxInstances: 10,
+    region: 'asia-northeast1',
   },
   async (req, res) => {
+    // CORSヘッダーを設定
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
