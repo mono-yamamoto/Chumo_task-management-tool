@@ -51,7 +51,7 @@ export function getCreateFireIssueUrl(): string {
 export function getCreateGoogleChatThreadUrl(): string {
   return getFunctionUrl(
     'createGoogleChatThread',
-    'https://creategooglechatthread-zbk3yr5vta-uc.a.run.app'
+    'https://asia-northeast1-chumo-3506a.cloudfunctions.net/createGoogleChatThread'
   );
 }
 
