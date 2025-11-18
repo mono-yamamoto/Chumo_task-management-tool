@@ -14,7 +14,11 @@ import {
   PRIORITY_LABELS,
 } from '@/constants/taskConstants';
 import { Button } from '@/components/ui/button';
-import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
+import {
+  generateBacklogUrlFromTitle,
+  parseBacklogClipboard,
+  extractProjectTypeFromTitle,
+} from '@/utils/backlog';
 import {
   Box,
   Typography,
@@ -129,6 +133,49 @@ export default function NewTaskPage() {
       <Card>
         <CardContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <TextField
+              fullWidth
+              required
+              label="タイトル"
+              value={title}
+              onChange={(e) => {
+                const newTitle = e.target.value;
+                setTitle(newTitle);
+                // チケット番号が入力されたらURLを自動生成
+                const generatedUrl = generateBacklogUrlFromTitle(newTitle);
+                if (generatedUrl) {
+                  setBacklogUrl(generatedUrl);
+                }
+                // プロジェクトが未設定の場合、タイトルからプロジェクトタイプを自動抽出
+                if (!projectType) {
+                  const extractedProjectType = extractProjectTypeFromTitle(newTitle);
+                  if (extractedProjectType) {
+                    setProjectType(extractedProjectType);
+                  }
+                }
+              }}
+              onPaste={async (e) => {
+                const clipboardText = e.clipboardData.getData('text');
+                const parsed = parseBacklogClipboard(clipboardText);
+
+                if (parsed) {
+                  e.preventDefault();
+                  // タイトルとURLを自動的に反映
+                  setTitle(parsed.title);
+                  setBacklogUrl(parsed.url);
+                  // プロジェクトが未設定の場合、タイトルからプロジェクトタイプを自動抽出
+                  if (!projectType) {
+                    const extractedProjectType = extractProjectTypeFromTitle(parsed.title);
+                    if (extractedProjectType) {
+                      setProjectType(extractedProjectType);
+                    }
+                  }
+                }
+              }}
+              variant="outlined"
+              error={!title.trim() && title !== ''}
+            />
+
             <FormControl fullWidth required>
               <InputLabel>プロジェクト</InputLabel>
               <Select
@@ -148,40 +195,6 @@ export default function NewTaskPage() {
                 ))}
               </Select>
             </FormControl>
-
-            <TextField
-              fullWidth
-              required
-              label="タイトル"
-              value={title}
-              onChange={(e) => {
-                const newTitle = e.target.value;
-                setTitle(newTitle);
-                // チケット番号が入力されたらURLを自動生成
-                const generatedUrl = generateBacklogUrlFromTitle(newTitle);
-                if (generatedUrl) {
-                  setBacklogUrl(generatedUrl);
-                }
-              }}
-              onPaste={async (e) => {
-                const clipboardText = e.clipboardData.getData('text');
-                const parsed = parseBacklogClipboard(clipboardText);
-
-                if (parsed) {
-                  e.preventDefault();
-                  // タイトルとURLを自動的に反映
-                  setTitle(parsed.title);
-                  setBacklogUrl(parsed.url);
-                }
-              }}
-              variant="outlined"
-              error={!title.trim() && title !== ''}
-              helperText={
-                !title.trim() && title !== ''
-                  ? 'タイトルを入力してください'
-                  : 'バックログからコピーした内容を貼り付けると、タイトルとURLが自動的に反映されます'
-              }
-            />
 
             <TextField
               fullWidth
