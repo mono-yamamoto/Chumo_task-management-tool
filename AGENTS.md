@@ -165,7 +165,30 @@ npm run dev
 
 **Tell the user in Japanese**: ブラウザで `http://localhost:3000` にアクセスしてください。
 
-#### 6. Cursor Users: Commit Command
+#### 6. Serena MCP Onboarding (For AI Agents)
+
+**⚠️ IMPORTANT: This step should be performed by AI agents when first working on this project.**
+
+Serena MCPを使用するAIエージェントは、プロジェクトで初めて作業を開始する際に、オンボーディングを実行してプロジェクト情報をメモリに保存する必要があります。
+
+**Tell the user in Japanese**: AIエージェントが初めてこのプロジェクトで作業する際は、Serena MCPのオンボーディングを実行してください。これにより、プロジェクトの構造、技術スタック、コーディング規約などの情報がメモリに保存され、今後の作業効率が向上します。
+
+**Onboarding steps** (performed by AI agents):
+
+1. **Check if onboarding is needed**: Use `mcp_serena_check_onboarding_performed` to check if onboarding has already been done
+2. **Perform onboarding**: If not done, use `mcp_serena_onboarding` to start the onboarding process
+3. **Collect project information**: The agent will automatically collect:
+   - Project purpose and overview
+   - Tech stack and dependencies
+   - Code style and conventions
+   - Directory structure
+   - Commands for testing, formatting, linting
+   - Development workflow and patterns
+4. **Save to memory**: The collected information will be saved to `.serena/memories/` directory (this directory is ignored by git)
+
+**Note**: Onboarding only needs to be performed once per project. The saved memories help AI agents understand the project context more quickly in future sessions.
+
+#### 7. Cursor Users: Commit Command
 
 **For Cursor users**: After setup is complete, the `/commit` command is available for committing changes.
 
