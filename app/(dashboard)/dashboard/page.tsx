@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
   getDocs,
+  doc,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
@@ -19,18 +21,9 @@ import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
-  Button,
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   CircularProgress,
-  Chip,
   TextField,
   Dialog,
   DialogTitle,
@@ -38,9 +31,8 @@ import {
   DialogActions,
   DialogContentText,
 } from '@mui/material';
-import { PlayArrow, Stop } from '@mui/icons-material';
 import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
-import { format } from 'date-fns';
+import { TaskListTable } from '@/components/tasks/TaskListTable';
 
 function DashboardPageContent() {
   const { user } = useAuth();
@@ -348,21 +340,6 @@ function DashboardPageContent() {
     }
   };
 
-  const getAssigneeNames = (assigneeIds: string[]) => {
-    if (!allUsers || assigneeIds.length === 0) return '-';
-    return (
-      assigneeIds
-        .map((id) => allUsers.find((u) => u.id === id)?.displayName)
-        .filter(Boolean)
-        .join(', ') || '-'
-    );
-  };
-
-  const getLabelName = (labelId: string) => {
-    if (!allLabels || !labelId) return '-';
-    const label = allLabels.find((l) => l.id === labelId);
-    return label?.name || '-';
-  };
 
   if (isLoading) {
     return (
@@ -381,129 +358,27 @@ function DashboardPageContent() {
           </Typography>
         </Box>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell>タイトル</TableCell>
-                <TableCell>プロジェクト</TableCell>
-                <TableCell>アサイン</TableCell>
-                <TableCell>ITアップ</TableCell>
-                <TableCell>リリース</TableCell>
-                <TableCell>ステータス</TableCell>
-                <TableCell>区分</TableCell>
-                <TableCell>ロールアップ</TableCell>
-                <TableCell>タイマー</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedTasks && sortedTasks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      自分のタスクがありません
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                sortedTasks?.map((task) => {
-                  const isActive = activeSession?.taskId === task.id;
-                  return (
-                    <TableRow
-                      key={task.id}
-                      onClick={() => handleTaskSelect(task.id)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
-                        ...(isActive && {
-                          bgcolor: 'rgba(76, 175, 80, 0.08)',
-                          '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
-                        }),
-                      }}
-                    >
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 'medium' }}>{task.title}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        {(task as any).projectType || '-'}
-                      </TableCell>
-                      <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
-                      <TableCell>
-                        {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {task.releaseDate
-                          ? format(task.releaseDate, 'yyyy-MM-dd')
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{task.flowStatus}</TableCell>
-                      <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
-                      <TableCell>
-                        {isActive && <Chip label="稼働中" color="success" size="small" />}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {task.kubunLabelId === kobetsuLabelId ? (
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            -
-                          </Typography>
-                        ) : isActive ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStopTimer();
-                            }}
-                            disabled={stopTimer.isPending}
-                            sx={{
-                              animation: stopTimer.isPending
-                                ? 'none'
-                                : 'pulse 2s ease-in-out infinite',
-                              '@keyframes pulse': {
-                                '0%, 100%': {
-                                  opacity: 1,
-                                },
-                                '50%': {
-                                  opacity: 0.8,
-                                },
-                              },
-                            }}
-                          >
-                            {stopTimer.isPending ? (
-                              <CircularProgress size={16} sx={{ color: 'inherit' }} />
-                            ) : (
-                              <Stop fontSize="small" />
-                            )}
-                          </Button>
-                        ) : (
-                          <CustomButton
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartTimer((task as any).projectType, task.id);
-                            }}
-                            disabled={
-                              (!!activeSession && activeSession.taskId !== task.id) ||
-                              startTimer.isPending
-                            }
-                          >
-                            {startTimer.isPending ? (
-                              <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                            ) : (
-                              <PlayArrow fontSize="small" />
-                            )}
-                          </CustomButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <TaskListTable
+          tasks={sortedTasks || []}
+          onTaskSelect={handleTaskSelect}
+          allUsers={allUsers}
+          allLabels={allLabels}
+          activeSession={activeSession}
+          onStartTimer={handleStartTimer}
+          onStopTimer={handleStopTimer}
+          isStartingTimer={startTimer.isPending}
+          isStoppingTimer={stopTimer.isPending}
+          kobetsuLabelId={kobetsuLabelId}
+          emptyMessage="自分のタスクがありません"
+          rowSx={(task, isActive) =>
+            isActive
+              ? {
+                  bgcolor: 'rgba(76, 175, 80, 0.08)',
+                  '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
+                }
+              : {}
+          }
+        />
       </Box>
 
       {/* サイドバー */}

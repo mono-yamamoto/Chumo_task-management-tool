@@ -19,22 +19,13 @@ import {
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
-  Button,
   Box,
   Typography,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   CircularProgress,
-  Chip,
   TextField,
   Dialog,
   DialogTitle,
@@ -43,10 +34,9 @@ import {
   DialogContentText,
   Grid,
 } from '@mui/material';
-import { PlayArrow, Stop } from '@mui/icons-material';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
+import { TaskListTable } from '@/components/tasks/TaskListTable';
 
 function TasksPageContent() {
   const { user } = useAuth();
@@ -386,24 +376,6 @@ function TasksPageContent() {
     );
   };
 
-  // アサインの表示名を取得
-  const getAssigneeNames = (assigneeIds: string[]) => {
-    if (!allUsers || assigneeIds.length === 0) return '-';
-    return (
-      assigneeIds
-        .map((id) => allUsers.find((u) => u.id === id)?.displayName)
-        .filter(Boolean)
-        .join(', ') || '-'
-    );
-  };
-
-  // 区分の表示名を取得
-  const getLabelName = (labelId: string) => {
-    if (!allLabels || !labelId) return '-';
-    const label = allLabels.find((l) => l.id === labelId);
-    return label?.name || '-';
-  };
-
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -555,138 +527,26 @@ function TasksPageContent() {
           </Grid>
         </Box>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell>タイトル</TableCell>
-                <TableCell>アサイン</TableCell>
-                <TableCell>ITアップ</TableCell>
-                <TableCell>ステータス</TableCell>
-                <TableCell>区分</TableCell>
-                <TableCell>タイマー</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredTasks && filteredTasks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {(() => {
-                        if (tasks && tasks.length === 0) {
-                          if (selectedProjectType === 'all') {
-                            return 'タスクがありません';
-                          }
-                          return 'このプロジェクトにタスクがありません';
-                        }
-                        return 'フィルタ条件に一致するタスクがありません';
-                      })()}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTasks?.map((task) => {
-                  const isActive = activeSession?.taskId === task.id;
-                  return (
-                    <TableRow
-                      key={task.id}
-                      onClick={() => handleTaskSelect(task.id)}
-                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                    >
-                      <TableCell sx={{ maxWidth: '400px' }}>
-                        <Typography
-                          sx={{
-                            fontWeight: 'medium',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {task.title}
-                        </Typography>
-                        {selectedProjectType === 'all' && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: 'block',
-                              color: 'text.secondary',
-                              mt: 0.5,
-                            }}
-                          >
-                            {(task as any).projectType || ''}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
-                      <TableCell>
-                        {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
-                      </TableCell>
-                      <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
-                      <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {task.kubunLabelId === kobetsuLabelId ? (
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            -
-                          </Typography>
-                        ) : isActive ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStopTimer();
-                            }}
-                            disabled={stopTimer.isPending}
-                            sx={{
-                              animation: stopTimer.isPending
-                                ? 'none'
-                                : 'pulse 2s ease-in-out infinite',
-                              '@keyframes pulse': {
-                                '0%, 100%': {
-                                  opacity: 1,
-                                },
-                                '50%': {
-                                  opacity: 0.8,
-                                },
-                              },
-                            }}
-                          >
-                            {stopTimer.isPending ? (
-                              <CircularProgress size={16} sx={{ color: 'inherit' }} />
-                            ) : (
-                              <Stop fontSize="small" />
-                            )}
-                          </Button>
-                        ) : (
-                          <CustomButton
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const { projectType } = (task as any);
-                              handleStartTimer(projectType, task.id);
-                            }}
-                            disabled={
-                              (!!activeSession && activeSession.taskId !== task.id) ||
-                              startTimer.isPending
-                            }
-                          >
-                            {startTimer.isPending ? (
-                              <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                            ) : (
-                              <PlayArrow fontSize="small" />
-                            )}
-                          </CustomButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <TaskListTable
+          tasks={filteredTasks || []}
+          onTaskSelect={handleTaskSelect}
+          selectedProjectType={selectedProjectType}
+          allUsers={allUsers}
+          allLabels={allLabels}
+          activeSession={activeSession}
+          onStartTimer={handleStartTimer}
+          onStopTimer={handleStopTimer}
+          isStartingTimer={startTimer.isPending}
+          isStoppingTimer={stopTimer.isPending}
+          kobetsuLabelId={kobetsuLabelId}
+          emptyMessage={
+            tasks && tasks.length === 0
+              ? selectedProjectType === 'all'
+                ? 'タスクがありません'
+                : 'このプロジェクトにタスクがありません'
+              : 'フィルタ条件に一致するタスクがありません'
+          }
+        />
       </Box>
 
       {/* サイドバー */}
