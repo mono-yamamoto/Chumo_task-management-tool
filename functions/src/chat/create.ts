@@ -12,19 +12,71 @@ async function getSecret(secretName: string): Promise<string> {
   return version.payload?.data?.toString() || '';
 }
 
-function buildThreadUrl(spaceBaseUrl: string, messageName?: string | null): string {
+/**
+ * Google ChatのメッセージURLを構築
+ * 実際のURL形式: https://chat.google.com/room/{spaceId}/{threadId}/{messageId}?cls=10
+ *
+ * @param spaceBaseUrl スペースのベースURL（例: https://chat.google.com/room/AAQApGRYb9c）
+ * @param messageName メッセージ名（形式: spaces/{spaceId}/messages/{messageId}）
+ * @param threadName スレッド名（形式: spaces/{spaceId}/threads/{threadId}、オプション）
+ */
+function buildThreadUrl(
+  spaceBaseUrl: string,
+  messageName?: string | null,
+  threadName?: string | null
+): string {
   const sanitizedBase = spaceBaseUrl.replace(/\/+$/, '');
+
   if (!messageName) {
+    console.warn('No messageName provided, returning base URL');
     return sanitizedBase;
   }
 
-  const parts = messageName.split('/');
-  const messageId = parts[parts.length - 1];
-  if (!messageId) {
+  // messageNameの形式: spaces/{spaceId}/messages/{messageId}
+  const messageNameMatch = messageName.match(/spaces\/([^/]+)\/messages\/([^?]+)/);
+
+  if (!messageNameMatch) {
+    console.warn('Invalid messageName format:', messageName);
     return sanitizedBase;
   }
 
-  return `${sanitizedBase}/${encodeURIComponent(messageId)}`;
+  const [, spaceId, messageId] = messageNameMatch;
+
+  // スレッドIDを取得（threadNameから、またはmessageIdをスレッドIDとして使用）
+  let threadId = messageId; // デフォルトはメッセージIDと同じ
+  if (threadName) {
+    const threadNameMatch = threadName.match(/spaces\/[^/]+\/threads\/([^?]+)/);
+    if (threadNameMatch) {
+      threadId = threadNameMatch[1];
+    }
+  }
+
+  // spaceBaseUrlからspaceIdを抽出（既に含まれている場合）
+  // または、messageNameから取得したspaceIdを使用
+  let finalSpaceId = spaceId;
+  if (sanitizedBase.includes('chat.google.com/room/')) {
+    // URLからspaceIdを抽出
+    const spaceIdMatch = sanitizedBase.match(/chat\.google\.com\/room\/([^/]+)/);
+    if (spaceIdMatch) {
+      finalSpaceId = spaceIdMatch[1];
+    }
+  }
+
+  // Google ChatのWeb UI形式: https://chat.google.com/room/{spaceId}/{threadId}/{messageId}?cls=10
+  if (sanitizedBase.includes('chat.google.com')) {
+    return `https://chat.google.com/room/${finalSpaceId}/${threadId}/${messageId}?cls=10`;
+  }
+
+  // GmailのChatスペース形式の場合
+  // https://mail.google.com/mail/u/1/#chat/space/{spaceId}
+  if (sanitizedBase.includes('mail.google.com')) {
+    // GmailのChatスペースURLにスレッドIDとメッセージIDを追加
+    // 形式: https://mail.google.com/mail/u/1/#chat/space/{spaceId}/{threadId}/{messageId}
+    return `${sanitizedBase}/${threadId}/${messageId}`;
+  }
+
+  // その他の形式の場合、スレッドIDとメッセージIDを追加
+  return `${sanitizedBase}/${threadId}/${messageId}`;
 }
 
 export const createGoogleChatThread = onRequest(
@@ -69,12 +121,6 @@ export const createGoogleChatThread = onRequest(
         return;
       }
 
-      const taskUrl: unknown = req.body?.taskUrl;
-      if (typeof taskUrl !== 'string' || taskUrl.trim().length === 0) {
-        res.status(400).json({ error: 'taskUrl is required in request body' });
-        return;
-      }
-
       const taskDoc = await db
         .collection('projects')
         .doc(projectId)
@@ -108,22 +154,33 @@ export const createGoogleChatThread = onRequest(
         return;
       }
 
-      const assigneeIds: string[] = Array.isArray(task.assigneeIds) ? task.assigneeIds : [];
-      const assignees: string[] = [];
+      // BacklogのURLを取得（優先順位: backlogUrl > external.url）
+      const backlogUrl = task.backlogUrl || task.external?.url || null;
 
+      const assigneeIds: string[] = Array.isArray(task.assigneeIds) ? task.assigneeIds : [];
+      const mentions: string[] = [];
+
+      // メンション用にchatIdを取得（Google ChatのユーザーID）
       for (const userId of assigneeIds) {
         const userDoc = await db.collection('users').doc(userId).get();
         if (userDoc.exists) {
           const userData = userDoc.data();
-          if (userData?.displayName) {
-            assignees.push(userData.displayName);
+          const chatId = userData?.chatId;
+          if (chatId && typeof chatId === 'string' && chatId.trim().length > 0) {
+            // Google Chatのメンション形式: <users/chatId>
+            mentions.push(`<users/${chatId.trim()}>`);
           }
         }
       }
 
-      const assigneeText = assignees.length > 0 ? assignees.join(', ') : '担当者未設定';
       const messageTitle = typeof task.title === 'string' ? task.title : 'タスク';
-      const messageText = `[${messageTitle}](${taskUrl})\n${assigneeText}`;
+
+      // メンションがある場合はメンションを追加
+      const mentionText = mentions.length > 0 ? mentions.join(' ') : '';
+      const urlText = backlogUrl || '';
+      const messageText = mentionText
+        ? `${messageTitle}\n${urlText}\n${mentionText}`
+        : `${messageTitle}\n${urlText}`;
 
       const webhookResponse = await fetch(webhookUrl, {
         method: 'POST',
@@ -138,10 +195,18 @@ export const createGoogleChatThread = onRequest(
       }
 
       const webhookJson = (await webhookResponse.json().catch(() => null)) as
-        | { name?: string }
+        | { name?: string; thread?: { name?: string }; space?: { name?: string } }
         | null;
+
+      // Webhookレスポンスをログに出力（デバッグ用）
+      console.info('Webhook response:', JSON.stringify(webhookJson, null, 2));
+      console.info('Space base URL:', spaceBaseUrl);
+
       const messageName = webhookJson?.name || null;
-      const threadUrl = buildThreadUrl(spaceBaseUrl, messageName);
+      const threadName = webhookJson?.thread?.name || null;
+      const threadUrl = buildThreadUrl(spaceBaseUrl, messageName, threadName);
+
+      console.info('Built thread URL:', threadUrl);
 
       await db
         .collection('projects')
