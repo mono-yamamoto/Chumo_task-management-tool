@@ -23,6 +23,7 @@ export const userSchema = z.object({
   role: userRoleSchema,
   isAllowed: z.boolean(),
   githubUsername: z.string().optional(),
+  chatId: z.string().optional(), // Google ChatのユーザーID（メンション用）
 });
 
 export const projectSchema = z.object({

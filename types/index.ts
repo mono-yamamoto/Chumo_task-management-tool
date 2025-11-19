@@ -27,6 +27,7 @@ export interface User {
   githubUsername?: string;
   googleRefreshToken?: string;
   googleOAuthUpdatedAt?: Date;
+  chatId?: string; // Google ChatのユーザーID（メンション用）
   createdAt: Date;
   updatedAt: Date;
 }
