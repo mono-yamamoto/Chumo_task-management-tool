@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // プロジェクトタイプ（固定値）のリスト
+    function isValidProjectType(projectId) {
+      return projectId == 'REG2017' ||
+             projectId == 'BRGREG' ||
+             projectId == 'MONO' ||
+             projectId == 'MONO_ADMIN' ||
+             projectId == 'DES_FIRE' ||
+             projectId == 'DesignSystem';
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // プロジェクトタイプ（固定値）のドキュメント
+    // プロジェクトタイプは固定値なので、認証済みユーザー全員がアクセス可能
+    match /projects/{projectId} {
+      // プロジェクトタイプのドキュメントは読み取り可能（存在確認用）
+      allow read: if isSignedIn() && isValidProjectType(projectId);
+      allow list: if isSignedIn(); // リスト読み取りは認証済みユーザー全員に許可
+      // プロジェクトタイプのドキュメントは作成・更新・削除不可（固定値のため）
+      allow create, update, delete: if false;
+
+      // タスク（サブコレクション）
+      match /tasks/{taskId} {
+        allow read, list: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId);
+        allow update, delete: if isSignedIn() && isValidProjectType(projectId);
+      }
+
+      // タスクセッション（サブコレクション）
+      match /taskSessions/{sessionId} {
+        allow read: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == request.resource.data.userId;
+        allow update: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == resource.data.userId;
+        allow delete: if isSignedIn() && isValidProjectType(projectId) && request.auth.uid == resource.data.userId;
+      }
+
+      // タスクアクティビティ（サブコレクション）
+      match /taskActivities/{activityId} {
+        allow read: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId);
+      }
+    }
+
+    match /labels/{labelId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId;
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
+    match /contacts/{contactId} {
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow read, list: if isSignedIn(); // 全員が閲覧可能
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
+

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "Error: gitleaks is not installed. 機密情報チェックを実行できません。"
+  echo "コミットを中止します。gitleaksをインストールしてください："
+  echo "  macOS: brew install gitleaks"
+  echo "  Windows: https://github.com/gitleaks/gitleaks/releases からダウンロード"
+  exit 1
+fi
+
+echo "Running gitleaks..."
+gitleaks protect --staged
+if [ $? -ne 0 ]; then
+  echo "gitleaks: 機密情報が含まれています。コミットを中止します。"
+  exit 1
+fi
+
