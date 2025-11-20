@@ -263,8 +263,9 @@ function TasksPageContent() {
   // 選択されたタスクが変更されたらフォームデータを初期化
   useEffect(() => {
     if (selectedTask && selectedTaskId) {
-      // フォームデータが存在しない場合、または選択されたタスクIDが変更された場合のみ初期化
-      if (!taskFormData || (taskFormData && selectedTask.id !== selectedTaskId)) {
+      // フォームデータが存在しない場合のみ初期化
+      // （毎回再初期化すると、handleTaskSelectで設定したassigneeIdsなどが上書きされて消えるため）
+      if (!taskFormData) {
         setTaskFormData({
           title: selectedTask.title,
           description: selectedTask.description || '',
@@ -273,6 +274,7 @@ function TasksPageContent() {
           itUpDate: selectedTask.itUpDate,
           releaseDate: selectedTask.releaseDate,
           dueDate: selectedTask.dueDate,
+          assigneeIds: selectedTask.assigneeIds || [],
         });
       }
     } else if (!selectedTaskId) {
