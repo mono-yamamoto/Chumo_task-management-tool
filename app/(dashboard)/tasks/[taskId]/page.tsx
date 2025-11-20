@@ -458,7 +458,7 @@ export default function TaskDetailPage() {
                 fullWidth
                 label="バックログURL"
                 value={task.backlogUrl || ''}
-                onChange={(e) => {
+                onBlur={(e) => {
                   if (!task?.projectType) return;
                   updateTask.mutate({
                     projectType: task.projectType,
@@ -612,7 +612,7 @@ export default function TaskDetailPage() {
                 <TextField
                   label="3時間超過理由"
                   value={task.over3Reason || ''}
-                  onChange={(e) => {
+                  onBlur={(e) => {
                     if (!task?.projectType) return;
                     updateTask.mutate({
                       projectType: task.projectType,
