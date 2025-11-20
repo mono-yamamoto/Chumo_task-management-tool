@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
+// 環境変数の検証
+if (!process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
+  throw new Error(
+    'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in environment variables'
+  );
+}
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_OAUTH_CLIENT_ID,
   process.env.GOOGLE_OAUTH_CLIENT_SECRET,
