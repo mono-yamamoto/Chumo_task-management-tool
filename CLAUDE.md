@@ -634,7 +634,7 @@ gh pr create --title "PR title" --body "PR description"
 4. Phase 8 を再実行
 
 ### Phase 9Aでランタイムエラーが発生
-1. Next.js MCPで詳細確認（`get-errors`, `get-logs`）
+1. Next.js MCPで詳細確認（`get_errors`, `get_logs`）
 2. エラーの原因を特定
 3. Phase 5 に戻って修正
 4. Phase 8, 9A を再実行

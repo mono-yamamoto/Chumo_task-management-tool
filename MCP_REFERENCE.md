@@ -261,7 +261,7 @@ port: <検出したポート番号>
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-errors'
+toolName: 'get_errors'
 ```
 
 **説明**: 現在のビルドエラーやランタイムエラーを取得します。
@@ -273,7 +273,7 @@ toolName: 'get-errors'
 mcp_next-devtools_nextjs_runtime({
   action: 'call_tool',
   port: '<ポート番号>',
-  toolName: 'get-errors'
+  toolName: 'get_errors'
 })
 ```
 
@@ -282,7 +282,7 @@ mcp_next-devtools_nextjs_runtime({
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-logs'
+toolName: 'get_logs'
 ```
 
 **説明**: Next.js開発サーバーのログを取得します。
@@ -292,7 +292,7 @@ toolName: 'get-logs'
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-diagnostics'
+toolName: 'get_diagnostics'
 ```
 
 **説明**: システムの診断情報（メモリ使用量、CPU使用率など）を取得します。
@@ -304,7 +304,7 @@ toolName: 'get-diagnostics'
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-routes'
+toolName: 'get_routes'
 ```
 
 **説明**: アプリケーション内のすべてのルート（App Router）を一覧表示します。
@@ -316,7 +316,7 @@ toolName: 'get-routes'
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-route-info'
+toolName: 'get_route_info'
 args: {path: '/your-route'}
 ```
 
@@ -331,7 +331,7 @@ args: {path: '/your-route'}
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'get-cache-info'
+toolName: 'get_cache_info'
 ```
 
 **説明**: Next.jsのキャッシュ状態を取得します。
@@ -341,7 +341,7 @@ toolName: 'get-cache-info'
 mcp__next-devtools__nextjs_runtime
 action: 'call_tool'
 port: <ポート番号>
-toolName: 'clear-cache'
+toolName: 'clear_cache'
 ```
 
 **説明**: Next.jsのキャッシュをクリアします。
