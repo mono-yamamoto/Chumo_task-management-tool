@@ -162,15 +162,20 @@ export async function POST(request: NextRequest) {
       adminDbExists: !!adminDb,
     });
 
+    // adminDbをそのまま使用（lib/firebase/admin.tsで既に初期化済み）
+    // リクエストごとの削除・再初期化は高コストでレースコンディションの原因となるため避ける
     let db = adminDb;
 
-    // adminDbが既に初期化されている場合は、再初期化をスキップ
-    // リクエストごとの削除・再初期化は高コストでレースコンディションの原因となるため
-    if (!db && getApps().length === 0) {
-      // アプリが未初期化の場合のみ初期化
-      if (clientEmail && privateKey) {
+    // adminDbが未初期化の場合のみ、フォールバック処理
+    if (!db) {
+      // 既にアプリが初期化されている場合は、そこからFirestoreを取得
+      if (getApps().length > 0) {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        db = getFirestore();
+      } else if (clientEmail && privateKey) {
+        // アプリが未初期化で認証情報がある場合のみ初期化
         try {
-          console.debug('Initializing Firebase Admin with credentials');
+          console.debug('Initializing Firebase Admin with credentials (fallback)');
           initializeApp({
             credential: cert({
               projectId,
@@ -180,62 +185,39 @@ export async function POST(request: NextRequest) {
           });
           const { getFirestore } = await import('firebase-admin/firestore');
           db = getFirestore();
-          console.info('Firebase Admin initialized successfully');
+          console.info('Firebase Admin initialized successfully (fallback)');
         } catch (initError: any) {
           console.error('Failed to initialize Firebase Admin:', initError);
           if (initError.code === 'app/duplicate-app') {
             // 既に初期化されている場合は既存のアプリを使用
             const { getFirestore } = await import('firebase-admin/firestore');
             db = getFirestore();
+          } else {
+            return NextResponse.json(
+              {
+                error:
+                  'Firebase Admin SDKの初期化に失敗しました。環境変数FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが設定されているか確認してください。',
+              },
+              { status: 500 }
+            );
           }
         }
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              'Firebase Admin SDKの初期化に失敗しました。環境変数FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが設定されているか確認してください。',
+          },
+          { status: 500 }
+        );
       }
-    } else if (!db && getApps().length > 0) {
-      // アプリは初期化されているが、dbが未取得の場合
-      const { getFirestore } = await import('firebase-admin/firestore');
-      db = getFirestore();
     }
 
     if (!db) {
-      console.error('adminDb is undefined - attempting to initialize');
-      // adminDbが未初期化の場合、再度初期化を試みる
-      if (getApps().length === 0) {
-        if (clientEmail && privateKey) {
-          console.debug('Initializing Firebase Admin with credentials');
-          initializeApp({
-            credential: cert({
-              projectId,
-              clientEmail,
-              privateKey,
-            }),
-          });
-        } else {
-          console.error('FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are not set.');
-          return NextResponse.json(
-            {
-              error:
-                'Firebase Admin SDKの初期化に失敗しました。環境変数FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが設定されているか確認してください。',
-            },
-            { status: 500 }
-          );
-        }
-      }
-
-      const { getFirestore } = await import('firebase-admin/firestore');
-      db = getFirestore();
-
-      if (!db) {
-        console.error('Failed to initialize Firestore');
-        return NextResponse.json({ error: 'データベースに接続できません' }, { status: 500 });
-      }
-    } else if (!clientEmail || !privateKey) {
-      // adminDbが既に初期化されている場合でも、認証情報が設定されているか確認
-      console.warn(
-        'adminDb is initialized but FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY is not set. This may cause permission errors.'
-      );
+      console.error('Failed to initialize Firestore');
+      return NextResponse.json({ error: 'データベースに接続できません' }, { status: 500 });
     }
 
-    // dbを使用するように変更
     const firestoreDb = db;
 
     // 認証情報の確認（デバッグ用）
