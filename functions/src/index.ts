@@ -2,6 +2,7 @@ import { syncBacklog } from './sync/backlog';
 import { startTimer, stopTimer } from './tasks/timer';
 import { createDriveFolder } from './drive/create';
 import { createFireIssue } from './github/create';
+import { createGoogleChatThread } from './chat/create';
 import { getTimeReport, exportTimeReportCSV } from './reports/time';
 import { createContactIssue } from './contact/createIssue';
 
@@ -11,6 +12,7 @@ export {
   stopTimer,
   createDriveFolder,
   createFireIssue,
+  createGoogleChatThread,
   getTimeReport,
   exportTimeReportCSV,
   createContactIssue,

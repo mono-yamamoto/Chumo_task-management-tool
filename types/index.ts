@@ -27,6 +27,7 @@ export interface User {
   githubUsername?: string;
   googleRefreshToken?: string;
   googleOAuthUpdatedAt?: Date;
+  chatId?: string; // Google ChatのユーザーID（メンション用）
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +75,7 @@ export interface Task {
   kubunLabelId: string;
   googleDriveUrl?: string | null;
   fireIssueUrl?: string | null;
+  googleChatThreadUrl?: string | null;
   backlogUrl?: string | null; // 手動入力用のバックログURL
   dueDate?: Date | null;
   priority?: Priority | null;

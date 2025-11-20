@@ -2,8 +2,8 @@
 
 import { FormControl, InputLabel, Select, MenuItem, TextField, Grid, Box } from '@mui/material';
 import { Button as CustomButton } from '@/components/ui/button';
-import { ProjectType, Priority } from '@/types';
-import { PROJECT_TYPES } from '@/constants/projectTypes';
+import { Priority } from '@/types';
+import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { PRIORITY_OPTIONS, PRIORITY_LABELS } from '@/constants/taskConstants';
 import { useTaskForm, TaskFormData } from '@/hooks/useTaskForm';
 import { TaskStatusSelect } from './TaskStatusSelect';
@@ -159,19 +159,17 @@ export function TaskForm({
         </Grid>
       </Grid>
 
-      {(onSubmit || onCancel) && (
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          {onCancel && (
-            <CustomButton onClick={onCancel} variant="outline">
-              {cancelLabel}
-            </CustomButton>
-          )}
-          {onSubmit && (
-            <CustomButton
-              onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
-                !formData.projectType ||
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        {onCancel && (
+          <CustomButton onClick={onCancel} variant="outline">
+            {cancelLabel}
+          </CustomButton>
+        )}
+        <CustomButton
+          onClick={handleSubmit}
+          disabled={
+            isSubmitting ||
+            !formData.projectType ||
                 !formData.title.trim() ||
                 !formData.kubunLabelId ||
                 labelsLoading
@@ -179,9 +177,7 @@ export function TaskForm({
             >
               {isSubmitting ? '保存中...' : submitLabel}
             </CustomButton>
-          )}
         </Box>
-      )}
     </Box>
   );
 }

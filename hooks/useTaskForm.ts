@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Task, FlowStatus, Priority, ProjectType } from '@/types';
+import { Task, FlowStatus, Priority } from '@/types';
+import { ProjectType } from '@/constants/projectTypes';
 
 export interface TaskFormData {
   projectType?: ProjectType | '';

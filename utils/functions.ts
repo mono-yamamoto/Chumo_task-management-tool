@@ -46,6 +46,16 @@ export function getCreateFireIssueUrl(): string {
 }
 
 /**
+ * Google Chatスレッド作成関数のURLを取得
+ */
+export function getCreateGoogleChatThreadUrl(): string {
+  return getFunctionUrl(
+    'createGoogleChatThread',
+    'https://asia-northeast1-chumo-3506a.cloudfunctions.net/createGoogleChatThread'
+  );
+}
+
+/**
  * タイムレポート取得関数のURLを取得
  */
 export function getTimeReportUrl(): string {

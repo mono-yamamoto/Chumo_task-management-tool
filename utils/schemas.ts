@@ -23,6 +23,7 @@ export const userSchema = z.object({
   role: userRoleSchema,
   isAllowed: z.boolean(),
   githubUsername: z.string().optional(),
+  chatId: z.string().optional(), // Google ChatのユーザーID（メンション用）
 });
 
 export const projectSchema = z.object({
@@ -62,6 +63,7 @@ export const taskSchema = z.object({
   kubunLabelId: z.string(),
   googleDriveUrl: z.string().url().nullable().optional(),
   fireIssueUrl: z.string().url().nullable().optional(),
+  googleChatThreadUrl: z.string().url().nullable().optional(),
   backlogUrl: z.string().url().nullable().optional(),
   dueDate: z.date().nullable().optional(),
   priority: prioritySchema.nullable().optional(),

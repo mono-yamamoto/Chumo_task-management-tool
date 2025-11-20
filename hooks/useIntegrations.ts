@@ -2,7 +2,11 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { getCreateDriveFolderUrl, getCreateFireIssueUrl } from '@/utils/functions';
+import {
+  getCreateDriveFolderUrl,
+  getCreateFireIssueUrl,
+  getCreateGoogleChatThreadUrl,
+} from '@/utils/functions';
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
@@ -77,6 +81,80 @@ export function useFireIntegration() {
 
   return {
     createFireIssue,
+  };
+}
+
+export function useGoogleChatIntegration() {
+  const queryClient = useQueryClient();
+
+  const createGoogleChatThread = useMutation({
+    mutationFn: async ({
+      projectType,
+      taskId,
+      taskUrl,
+    }: {
+      projectType: string;
+      taskId: string;
+      taskUrl: string;
+    }) => {
+      const chatUrl = getCreateGoogleChatThreadUrl();
+      const requestUrl = `${chatUrl}/projects/${projectType}/tasks/${taskId}`;
+
+      console.debug('Creating Google Chat thread:', {
+        chatUrl,
+        requestUrl,
+        projectType,
+        taskId,
+        taskUrl,
+      });
+
+      try {
+        const response = await fetch(requestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ taskUrl }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage =
+            errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+          console.error('Google Chat thread creation failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+            requestUrl,
+          });
+          throw new Error(errorMessage);
+        }
+
+        return response.json();
+      } catch (error) {
+        // fetch自体が失敗した場合（ネットワークエラー、CORSエラーなど）
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          console.error('Google Chat thread creation network error:', {
+            requestUrl,
+            error,
+          });
+          throw new Error(
+            `ネットワークエラーが発生しました。Cloud FunctionのURLを確認してください: ${requestUrl}`
+          );
+        }
+        throw error;
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (variables.taskId) {
+        queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+      }
+    },
+  });
+
+  return {
+    createGoogleChatThread,
   };
 }
 

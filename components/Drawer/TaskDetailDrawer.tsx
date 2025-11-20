@@ -24,6 +24,7 @@ import {
   FolderOpen,
   LocalFireDepartment,
   BugReport,
+  ChatBubbleOutline,
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
@@ -57,6 +58,9 @@ interface TaskDetailDrawerProps {
 
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
+
+  onChatThreadCreate: (projectId: string, taskId: string) => void;
+  isCreatingChatThread: boolean;
   taskSessions: any[];
 
   formatDuration: (
@@ -89,6 +93,8 @@ export function TaskDetailDrawer({
   isCreatingDrive,
   onFireCreate,
   isCreatingFire,
+  onChatThreadCreate,
+  isCreatingChatThread,
   taskSessions,
 
   formatDuration: _formatDuration, // 未使用だがpropsとして必要
@@ -404,7 +410,13 @@ export function TaskDetailDrawer({
                 </Box>
               );
             })()}
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+              }}
+            >
               {selectedTask.googleDriveUrl ? (
                 <Button
                   fullWidth
@@ -455,6 +467,29 @@ export function TaskDetailDrawer({
                 >
                   <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
                   Issue作成
+                </CustomButton>
+              )}
+              {selectedTask.googleChatThreadUrl ? (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  onClick={() => window.open(selectedTask.googleChatThreadUrl!, '_blank')}
+                  sx={{ flex: 1 }}
+                >
+                  <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                  Chatを開く
+                </Button>
+              ) : (
+                <CustomButton
+                  fullWidth
+                  variant="outline"
+                  onClick={() => onChatThreadCreate(selectedTask.projectType, selectedTask.id)}
+                  disabled={isCreatingChatThread}
+                  sx={{ flex: 1 }}
+                >
+                  <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                  Chatスレッド作成
                 </CustomButton>
               )}
             </Box>

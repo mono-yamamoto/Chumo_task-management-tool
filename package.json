@@ -18,6 +18,7 @@
     "functions:deploy:timer": "cd functions && npm run build && firebase deploy --only functions:startTimer,functions:stopTimer",
     "functions:deploy:drive": "cd functions && npm run build && firebase deploy --only functions:createDriveFolder",
     "functions:deploy:github": "cd functions && npm run build && firebase deploy --only functions:createFireIssue",
+    "functions:deploy:chat": "cd functions && npm run build && firebase deploy --only functions:createGoogleChatThread",
     "functions:deploy:reports": "cd functions && npm run build && firebase deploy --only functions:getTimeReport,functions:exportTimeReportCSV",
     "mcp:serena": "uvx --from git+https://github.com/oraios/serena serena start-mcp-server"
   },
