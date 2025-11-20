@@ -37,9 +37,18 @@ export default function ReportsPage() {
   } = useQuery({
     queryKey: ['reports', activeTab, fromDate, toDate],
     queryFn: async () => {
+      // 日付のバリデーション
+      const fromDateObj = fromDate ? new Date(fromDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const toDateObj = toDate ? new Date(toDate) : new Date();
+
+      // 無効な日付の場合はエラーをスロー
+      if (isNaN(fromDateObj.getTime()) || isNaN(toDateObj.getTime())) {
+        throw new Error('無効な日付が指定されています');
+      }
+
       const params = new URLSearchParams({
-        from: new Date(fromDate).toISOString(),
-        to: new Date(toDate).toISOString(),
+        from: fromDateObj.toISOString(),
+        to: toDateObj.toISOString(),
         type: activeTab,
       });
 
@@ -60,9 +69,19 @@ export default function ReportsPage() {
   });
 
   const handleExportCSV = async () => {
+    // 日付のバリデーション
+    const fromDateObj = fromDate ? new Date(fromDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const toDateObj = toDate ? new Date(toDate) : new Date();
+
+    // 無効な日付の場合はエラーを表示
+    if (isNaN(fromDateObj.getTime()) || isNaN(toDateObj.getTime())) {
+      alert('無効な日付が指定されています');
+      return;
+    }
+
     const params = new URLSearchParams({
-      from: new Date(fromDate).toISOString(),
-      to: new Date(toDate).toISOString(),
+      from: fromDateObj.toISOString(),
+      to: toDateObj.toISOString(),
       type: activeTab,
     });
 
