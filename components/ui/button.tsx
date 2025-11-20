@@ -4,12 +4,11 @@ import { Button as MUIButton, ButtonProps as MUIButtonProps } from '@mui/materia
 export interface ButtonProps extends Omit<MUIButtonProps, 'variant' | 'size' | 'color'> {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
-  asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'default', size = 'default', ...props }, ref) => {
-     
+
     let muiVariant: 'contained' | 'outlined' | 'text';
     if (variant === 'default' || variant === 'destructive' || variant === 'secondary') {
       muiVariant = 'contained';
@@ -43,17 +42,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         variant={muiVariant}
         color={muiColor}
         size={muiSize}
-         
+
         {...props}
       />
     );
   }
 );
 Button.displayName = 'Button';
-Button.defaultProps = {
-  variant: 'default',
-  size: 'default',
-  asChild: false,
-};
 
 export { Button };
