@@ -30,7 +30,7 @@ function verifyStateToken(stateToken: string): string | null {
   try {
     const secret = process.env.OAUTH_STATE_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
     const decoded = Buffer.from(stateToken, 'base64url').toString('utf-8');
-    
+
     // 最後のコロンでペイロードと署名を分割
     const lastColonIndex = decoded.lastIndexOf(':');
     if (lastColonIndex === -1) {
@@ -58,7 +58,7 @@ function verifyStateToken(stateToken: string): string | null {
       return null;
     }
     const [userId, nonce, timestamp] = parts;
-    
+
     if (!userId || !nonce || !timestamp) {
       return null;
     }
