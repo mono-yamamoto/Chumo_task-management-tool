@@ -14,24 +14,33 @@ import {
   limit,
   startAfter,
   QueryDocumentSnapshot,
-  Query,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { useAuth } from '@/hooks/useAuth';
+type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
 
 /**
  * タスクデータをFirestoreから取得して変換する共通関数
  */
 function transformTaskData(
   docItem: any,
-  projectType: ProjectType
+  projectTypeOverride?: ProjectType
 ): Task & { projectType: ProjectType } {
   const taskData = docItem.data();
+  const resolvedProjectType =
+    projectTypeOverride ||
+    (taskData.projectType as ProjectType | undefined) ||
+    (docItem?.ref?.parent?.parent?.id as ProjectType | undefined);
+
+  if (!resolvedProjectType) {
+    throw new Error('projectType is required to transform task data');
+  }
+
   return {
     id: docItem.id,
-    projectType,
+    projectType: resolvedProjectType,
     ...taskData,
     createdAt: taskData.createdAt?.toDate(),
     updatedAt: taskData.updatedAt?.toDate(),
@@ -47,54 +56,22 @@ function transformTaskData(
  * @param projectType プロジェクトタイプ（'all'の場合は全プロジェクト、無限スクロール非対応）
  */
 export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
-  const { user } = useAuth();
   const INITIAL_LIMIT = 10;
   const LOAD_MORE_LIMIT = 10;
 
-  // projectTypeがundefined/nullの場合は'all'として扱う（明示的にチェック）
   const normalizedProjectType: ProjectType | 'all' =
     projectType === undefined || projectType === null ? 'all' : projectType;
+  const isAllProjects = normalizedProjectType === 'all';
 
-  const allQueryKey = ['tasks', 'all'] as const;
-  // 'all'の場合は従来通り全件取得（無限スクロール非対応）
-  const allQuery = useQuery({
-    queryKey: allQueryKey,
-    queryFn: async () => {
-      if (!db || !user || normalizedProjectType !== 'all') return [];
-
-      const allTasks: (Task & { projectType: ProjectType })[] = [];
-
-      // すべてのプロジェクトタイプからタスクを取得
-      if (!PROJECT_TYPES || !Array.isArray(PROJECT_TYPES)) {
-        return [];
-      }
-      for (const type of PROJECT_TYPES) {
-        const tasksRef = collection(db, 'projects', type, 'tasks');
-        const tasksSnapshot = await getDocs(tasksRef);
-
-        tasksSnapshot.docs.forEach((docItem) => {
-          allTasks.push(transformTaskData(docItem, type));
-        });
-      }
-
-      return allTasks.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() || 0;
-        const bTime = b.createdAt?.getTime() || 0;
-        return bTime - aTime;
-      });
-    },
-    enabled: !!user && !!db && normalizedProjectType === 'all',
-  });
-
-  // 単一プロジェクトタイプの場合は無限スクロール対応
-  // queryKeyを明示的に型安全に生成（undefinedチェック付き）
-  const safeProjectType: ProjectType | 'all' = normalizedProjectType ?? 'all';
-  // 全件取得用クエリとキーが衝突しないよう、projectセグメントを挟む
-  const infiniteQueryKey = ['tasks', 'project', safeProjectType] as const;
+  const infiniteQueryKey = ['tasks', isAllProjects ? 'all' : normalizedProjectType] as const;
   const infiniteQuery = useInfiniteQuery({
     queryKey: infiniteQueryKey,
-    queryFn: async ({ pageParam }: { pageParam: QueryDocumentSnapshot | null | undefined }) => {
-      if (!db || !user || normalizedProjectType === 'all') {
+    queryFn: async ({
+      pageParam,
+    }: {
+      pageParam: QueryDocumentSnapshot | ProjectCursorMap | null | undefined;
+    }) => {
+      if (!db) {
         return {
           tasks: [],
           lastDoc: null,
@@ -102,28 +79,74 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
         };
       }
 
-      const tasksRef = collection(db, 'projects', normalizedProjectType, 'tasks');
+      const limitValue = pageParam ? LOAD_MORE_LIMIT : INITIAL_LIMIT;
 
-      // クエリを構築（ページネーション対応）
-      let q: Query;
-      if (pageParam) {
-        q = query(
-          tasksRef,
-          orderBy('createdAt', 'desc'),
-          startAfter(pageParam),
-          limit(LOAD_MORE_LIMIT)
+      if (isAllProjects) {
+        const cursorMap = (pageParam as ProjectCursorMap | null) ?? {};
+        const perProjectSnapshots: Record<ProjectType, QueryDocumentSnapshot[]> = {} as Record<
+          ProjectType,
+          QueryDocumentSnapshot[]
+        >;
+        const perProjectTasks: Record<ProjectType, (Task & { projectType: ProjectType })[]> = {} as Record<
+          ProjectType,
+          (Task & { projectType: ProjectType })[]
+        >;
+
+        for (const projectType of PROJECT_TYPES) {
+          const cursor = cursorMap[projectType] || null;
+          const baseRef = collection(db, 'projects', projectType, 'tasks');
+          const constraints = cursor
+            ? [orderBy('createdAt', 'desc'), startAfter(cursor), limit(limitValue)]
+            : [orderBy('createdAt', 'desc'), limit(limitValue)];
+          const snapshot = await getDocs(query(baseRef, ...constraints));
+          perProjectSnapshots[projectType] = snapshot.docs;
+          perProjectTasks[projectType] = snapshot.docs.map((docItem) => transformTaskData(docItem, projectType));
+        }
+
+        const mergedTasks = PROJECT_TYPES.flatMap((type) => perProjectTasks[type]).sort((a, b) => {
+          const aTime = a.createdAt?.getTime() || 0;
+          const bTime = b.createdAt?.getTime() || 0;
+          return bTime - aTime;
+        });
+
+        const pageTasks = mergedTasks.slice(0, limitValue);
+        const consumedCounts = PROJECT_TYPES.reduce(
+          (acc, type) => ({ ...acc, [type]: 0 }),
+          {} as Record<ProjectType, number>
         );
-      } else {
-        q = query(
-          tasksRef,
-          orderBy('createdAt', 'desc'),
-          limit(INITIAL_LIMIT)
+        pageTasks.forEach((task) => {
+          consumedCounts[task.projectType] += 1;
+        });
+
+        const nextCursorMap: ProjectCursorMap = { ...cursorMap };
+        for (const projectType of PROJECT_TYPES) {
+          const consumed = consumedCounts[projectType];
+          if (consumed > 0) {
+            nextCursorMap[projectType] = perProjectSnapshots[projectType][consumed - 1] || null;
+          }
+        }
+
+        const totalFetched = mergedTasks.length;
+        const hasLeftoverWithinBatch = totalFetched > limitValue;
+        const projectMayHaveMore = PROJECT_TYPES.some(
+          (type) => perProjectSnapshots[type].length === limitValue
         );
+        const hasMore = hasLeftoverWithinBatch || projectMayHaveMore;
+
+        return {
+          tasks: pageTasks,
+          lastDoc: nextCursorMap,
+          hasMore,
+        };
       }
 
-      const snapshot = await getDocs(q);
+      const baseRef = collection(db, 'projects', normalizedProjectType, 'tasks');
+      const cursor = pageParam as QueryDocumentSnapshot | null | undefined;
+      const constraints = cursor
+        ? [orderBy('createdAt', 'desc'), startAfter(cursor), limit(limitValue)]
+        : [orderBy('createdAt', 'desc'), limit(limitValue)];
+      const snapshot = await getDocs(query(baseRef, ...constraints));
 
-      // snapshotがundefinedの場合のエラーハンドリング
       if (!snapshot || !snapshot.docs) {
         return {
           tasks: [],
@@ -132,10 +155,11 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
         };
       }
 
-      const tasks = snapshot.docs.map((docItem) => transformTaskData(docItem, normalizedProjectType as ProjectType));
+      const tasks = snapshot.docs.map((docItem) =>
+        transformTaskData(docItem, normalizedProjectType as ProjectType)
+      );
       const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-      const expectedLimit = pageParam ? LOAD_MORE_LIMIT : INITIAL_LIMIT;
-      const hasMore = snapshot.docs.length === expectedLimit;
+      const hasMore = snapshot.docs.length === limitValue;
 
       return {
         tasks,
@@ -149,14 +173,13 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
       }
       return lastPage.lastDoc;
     },
-    initialPageParam: null as QueryDocumentSnapshot | null,
-    enabled: !!user && !!db && normalizedProjectType !== 'all',
+    initialPageParam: (isAllProjects ? ({} as ProjectCursorMap) : null) as
+      | ProjectCursorMap
+      | QueryDocumentSnapshot
+      | null,
+    enabled: !!db,
   });
 
-  // projectTypeに応じて適切なクエリ結果を返す
-  if (normalizedProjectType === 'all') {
-    return allQuery as any;
-  }
   return infiniteQuery as any;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useMemo, useEffect, useRef } from 'react';
+import { useState, Suspense, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { FlowStatus, Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
@@ -40,6 +40,9 @@ import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
+const TASKS_PER_PAGE = 10;
+type ExtendedTask = Task & { projectType: ProjectType };
+
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -76,25 +79,26 @@ function TasksPageContent() {
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // タスク一覧を取得（無限スクロール対応）
+  // タスク一覧を取得（ページネーション対応）
   const tasksQuery = useTasks(selectedProjectType);
 
   // useInfiniteQueryの場合はpagesをフラット化、useQueryの場合はそのまま使用
-  const tasks = useMemo(() => {
+  const tasks = useMemo<ExtendedTask[]>(() => {
     if (!tasksQuery.data) return [];
 
     // useInfiniteQueryの場合
     if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
       return tasksQuery.data.pages.flatMap((page: { tasks?: Task[] }) => {
         if (!page || !page.tasks) return [];
-        return page.tasks;
+        return page.tasks as ExtendedTask[];
       });
     }
 
     // useQueryの場合（'all'の時）
     if (Array.isArray(tasksQuery.data)) {
-      return tasksQuery.data;
+      return tasksQuery.data as ExtendedTask[];
     }
 
     return [];
@@ -115,7 +119,7 @@ function TasksPageContent() {
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
 
-    return tasks.filter((task: Task) => {
+    return tasks.filter((task: ExtendedTask) => {
       // ステータスフィルタ
       if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
         return false;
@@ -191,9 +195,68 @@ function TasksPageContent() {
     activeSession,
   ]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedProjectType,
+    filterStatus,
+    filterAssignee,
+    filterLabel,
+    filterTitle,
+    filterTimerActive,
+    filterItUpDateMonth,
+    filterReleaseDateMonth,
+  ]);
+
+  const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
+  const shouldRequestMoreData = hasNextPage && filteredTasks.length < requiredItemsForCurrentPage;
+
+  useEffect(() => {
+    if (!fetchNextPage || !shouldRequestMoreData || isFetchingNextPage) {
+      return;
+    }
+    fetchNextPage();
+  }, [fetchNextPage, shouldRequestMoreData, isFetchingNextPage]);
+
+  const paginatedTasks = useMemo<ExtendedTask[]>(() => {
+    const start = (currentPage - 1) * TASKS_PER_PAGE;
+    return filteredTasks.slice(start, start + TASKS_PER_PAGE);
+  }, [filteredTasks, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+  const canGoPrev = currentPage > 1;
+  const canGoNext = hasNextPage || currentPage < totalPages;
+
+  const paginatedRangeStart =
+    paginatedTasks.length > 0 ? (currentPage - 1) * TASKS_PER_PAGE + 1 : 0;
+  const paginatedRangeEnd =
+    paginatedTasks.length > 0 ? paginatedRangeStart + paginatedTasks.length - 1 : 0;
+
+  const totalKnownCount = filteredTasks.length;
+  const rangeLabel =
+    paginatedTasks.length === 0
+      ? hasNextPage || isFetchingNextPage
+        ? '表示中: 読み込み中...'
+        : '表示中: 0件'
+      : `表示中: ${paginatedRangeStart}-${paginatedRangeEnd}件 / ${
+          hasNextPage ? `${totalKnownCount}+` : totalKnownCount
+        }件`;
+
+  const fallbackEmptyMessage =
+    tasks && tasks.length === 0
+      ? selectedProjectType === 'all'
+        ? 'タスクがありません'
+        : 'このプロジェクトにタスクがありません'
+      : 'フィルタ条件に一致するタスクがありません';
+
+  const effectiveEmptyMessage =
+    paginatedTasks.length === 0 && (shouldRequestMoreData || isFetchingNextPage)
+      ? '読み込み中...'
+      : fallbackEmptyMessage;
+
   // 選択されたタスクの詳細を取得
   const selectedTask = useMemo(
-    () => filteredTasks?.find((t) => t.id === selectedTaskId) || null,
+    () => filteredTasks?.find((t: ExtendedTask) => t.id === selectedTaskId) || null,
     [filteredTasks, selectedTaskId]
   );
 
@@ -238,37 +301,12 @@ function TasksPageContent() {
   // アクティブなセッションを取得（すべてのプロジェクトタイプから）
   useActiveSession(user?.id || null, setActiveSession);
 
-  // 無限スクロール: スクロール検知用のref
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // スクロール検知で自動読み込み
-  useEffect(() => {
-    if (!scrollContainerRef.current || !fetchNextPage || !hasNextPage || isFetchingNextPage) {
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      // スクロール位置が80%以上に達したら次のページを読み込む
-      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-
-      if (scrollPercentage > 0.8 && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
   const updateTask = useUpdateTask();
 
   // タスクが選択されたらフォームデータを初期化
   const handleTaskSelect = (taskId: string) => {
     setSelectedTaskId(taskId);
-    const task = filteredTasks?.find((t) => t.id === taskId);
+    const task = filteredTasks?.find((t: ExtendedTask) => t.id === taskId);
     if (task) {
       setTaskFormData({
         title: task.title,
@@ -416,7 +454,7 @@ function TasksPageContent() {
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectType) return;
 
-    const taskToDelete = tasks?.find((t) => t.id === deleteTaskId);
+    const taskToDelete = tasks?.find((t: ExtendedTask) => t.id === deleteTaskId);
     if (!taskToDelete) {
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
@@ -459,6 +497,21 @@ function TasksPageContent() {
     );
   };
 
+  const handleResetFilters = () => {
+    resetFilters();
+    setCurrentPage(1);
+  };
+
+  const handlePrevPage = () => {
+    if (!canGoPrev) return;
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    if (!canGoNext) return;
+    setCurrentPage((prev) => prev + 1);
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -482,7 +535,7 @@ function TasksPageContent() {
             タスク一覧
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <CustomButton variant="outline" onClick={resetFilters}>
+            <CustomButton variant="outline" onClick={handleResetFilters}>
               フィルタリセット
             </CustomButton>
             <Link href="/tasks/new" style={{ textDecoration: 'none' }}>
@@ -621,32 +674,54 @@ function TasksPageContent() {
           </Grid>
         </Box>
 
-        <Box ref={scrollContainerRef} sx={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
-          <TaskListTable
-            tasks={filteredTasks || []}
-            onTaskSelect={handleTaskSelect}
-            selectedProjectType={selectedProjectType}
-            allUsers={allUsers}
-            allLabels={allLabels}
-            activeSession={activeSession}
-            onStartTimer={handleStartTimer}
-            onStopTimer={handleStopTimer}
-            isStartingTimer={startTimer.isPending}
-            isStoppingTimer={stopTimer.isPending}
-            kobetsuLabelId={kobetsuLabelId}
-            emptyMessage={
-              tasks && tasks.length === 0
-                ? selectedProjectType === 'all'
-                  ? 'タスクがありません'
-                  : 'このプロジェクトにタスクがありません'
-                : 'フィルタ条件に一致するタスクがありません'
-            }
-          />
-          {isFetchingNextPage && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
+        <TaskListTable
+          tasks={paginatedTasks || []}
+          onTaskSelect={handleTaskSelect}
+          selectedProjectType={selectedProjectType}
+          allUsers={allUsers}
+          allLabels={allLabels}
+          activeSession={activeSession}
+          onStartTimer={handleStartTimer}
+          onStopTimer={handleStopTimer}
+          isStartingTimer={startTimer.isPending}
+          isStoppingTimer={stopTimer.isPending}
+          kobetsuLabelId={kobetsuLabelId}
+          emptyMessage={effectiveEmptyMessage}
+        />
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mt: 2,
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {rangeLabel}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CustomButton variant="outline" onClick={handlePrevPage} disabled={!canGoPrev}>
+              前へ
+            </CustomButton>
+            <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
+              ページ {currentPage}
+              {!hasNextPage && filteredTasks.length > 0 ? ` / ${totalPages}` : ''}
+            </Typography>
+            <CustomButton
+              variant="outline"
+              onClick={handleNextPage}
+              disabled={!canGoNext || isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <CircularProgress size={14} sx={{ color: 'inherit' }} />
+              ) : (
+                '次へ'
+              )}
+            </CustomButton>
+          </Box>
         </Box>
       </Box>
 
@@ -693,7 +768,7 @@ function TasksPageContent() {
             label="タイトルを入力"
             value={deleteConfirmTitle}
             onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-            placeholder={tasks?.find((t) => t.id === deleteTaskId)?.title || ''}
+            placeholder={tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title || ''}
             variant="outlined"
           />
         </DialogContent>
@@ -709,7 +784,7 @@ function TasksPageContent() {
           <CustomButton
             variant="destructive"
             onClick={handleDeleteTask}
-            disabled={deleteConfirmTitle !== tasks?.find((t) => t.id === deleteTaskId)?.title}
+            disabled={deleteConfirmTitle !== tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title}
           >
             削除
           </CustomButton>

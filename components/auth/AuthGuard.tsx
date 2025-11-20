@@ -11,20 +11,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // 次のレンダリングサイクルでsetStateを実行
-    setTimeout(() => {
-      setMounted(true);
-    }, 0);
+    // クライアントサイドでのみマウント状態を設定
+    setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      // 次のレンダリングサイクルでsetStateを実行
-      setTimeout(() => {
-        router.push('/login');
-      }, 0);
+    if (mounted && !loading && !user) {
+      router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [mounted, user, loading, router]);
 
   // サーバーサイドレンダリング時は何も表示しない（Hydrationエラーを防ぐ）
   if (!mounted) {

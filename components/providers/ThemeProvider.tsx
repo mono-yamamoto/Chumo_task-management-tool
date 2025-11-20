@@ -3,6 +3,7 @@
 import { ThemeProvider as MUIThemeProvider, createTheme } from '@mui/material/styles';
 import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { CssBaseline } from '@mui/material';
 import { ReactNode, useMemo } from 'react';
 
 // Emotionキャッシュを作成（SSRとクライアント側で同じキーを使用）
@@ -46,10 +47,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   if (emotionCache) {
     return (
       <CacheProvider value={emotionCache}>
-        <MUIThemeProvider theme={theme}>{children}</MUIThemeProvider>
+        <MUIThemeProvider theme={theme}>
+          <CssBaseline />
+          {children}
+        </MUIThemeProvider>
       </CacheProvider>
     );
   }
 
-  return <MUIThemeProvider theme={theme}>{children}</MUIThemeProvider>;
+  return (
+    <MUIThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </MUIThemeProvider>
+  );
 }
