@@ -53,13 +53,16 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/reviews/{REVIEW_ID}/comments --jq 
 
 ### 3. 未対応のレビューコメントを特定
 
-**新規対応の場合:**
-- 全てのレビューコメントを確認
-- 返信がないコメントを優先
+**対応すべきコメント:**
+- resolveされていないコメント
+- 返信がないコメント
+- 返信があるが、追加の修正が必要と明示されているコメント
 
-**継続対応の場合:**
-- resolveされていないコメントのみを確認
-- 既に返信があるが、追加の修正が必要なコメントを確認
+**対応しないコメント:**
+- **resolve済みのコメント**（`resolved: true`）
+- **返信で「意図的」「対応不要」というニュアンスが含まれているコメント**
+  - 例：「これは意図的です」「対応不要です」「現状のままで問題ありません」など
+  - 返信の内容を確認し、意図的に未対応であることが明示されている場合はスキップ
 
 ```bash
 # resolveされていないコメントを取得
@@ -67,6 +70,9 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_r
 
 # 返信がないコメントを取得
 gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id == null) | select((.replies | length) == 0)]'
+
+# 返信があるコメントの返信内容を確認（対応不要かどうか判断）
+gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id != null) | {reply_to: .in_reply_to_id, author: .user.login, body: .body[0:300]}]'
 ```
 
 ### 4. レビュー内容の分析と優先順位付け
@@ -84,8 +90,10 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_r
 1. **指摘内容を理解**
    - ファイルパスと行番号を確認
    - 指摘の意図を理解
+   - **返信がある場合は返信内容を確認し、「意図的」「対応不要」のニュアンスがないか確認**
 
 2. **修正方法を決定**
+   - 返信で「意図的」「対応不要」と明示されている場合は**修正をスキップ**
    - 指摘に従って修正する
    - 意図的に修正しない場合は理由を明確化
 
@@ -96,6 +104,7 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_r
 
 4. **修正内容を記録**
    - 修正したファイルと内容を記録
+   - スキップしたコメントとその理由を記録
    - 次のステップ（返信コメント）のために情報を保持
 
 ### 6. 修正後の確認
