@@ -57,7 +57,7 @@ Before starting any task, read the relevant rule files to understand:
 - Ensures consistent communication and transparency
 
 **Example response format:**
-```
+```text
 ✅ ルールを確認しました: `.cursor/rules/main.mdc`、`.cursor/rules/mcp-tools-rule.mdc`、`.cursor/rules/implementation-testing-rule.mdc`、`AGENTS.md`を確認済み
 
 実装タイプ: **新機能追加** (Phase 1-11) - 区分ラベルの共通化機能を追加

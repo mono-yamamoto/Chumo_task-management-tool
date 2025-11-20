@@ -23,7 +23,7 @@ docs/
 └── operations/     # 運用フェーズのドキュメント
     ├── GITHUB_TOKEN_RENEWAL.md       # GitHubトークン更新手順
     └── TROUBLESHOOTING.md            # 運用時のトラブルシューティング
-```
+```text
 
 ## ドキュメントの使い分け
 
