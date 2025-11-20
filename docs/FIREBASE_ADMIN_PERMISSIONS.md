@@ -13,7 +13,7 @@ Next.jsのAPIルートでFirebase Admin SDKを使用する際、`PERMISSION_DENI
 ### 方法1: サービスアカウントにFirestoreへの権限を付与（推奨）
 
 1. [GCP Console](https://console.cloud.google.com/) にアクセス
-2. プロジェクト `chumo-3506a` を選択
+2. プロジェクト `{PROJECT_ID}` を選択
 3. 「IAMと管理」→「IAM」を開く
 4. 使用しているサービスアカウント（`FIREBASE_CLIENT_EMAIL`の値）を検索
 5. サービスアカウントをクリックして「権限を編集」をクリック
@@ -54,7 +54,7 @@ Cloud Functionsと同じサービスアカウントを使用する場合：
 
 ```bash
 # サービスアカウントの権限を確認
-gcloud projects get-iam-policy chumo-3506a \
+gcloud projects get-iam-policy {PROJECT_ID} \
   --flatten="bindings[].members" \
   --filter="bindings.members:serviceAccount:YOUR_SERVICE_ACCOUNT_EMAIL"
 ```
