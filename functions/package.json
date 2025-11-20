@@ -11,7 +11,7 @@
     "deploy": "firebase deploy --only functions"
   },
   "engines": {
-    "node": "22"
+    "node": "20"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
