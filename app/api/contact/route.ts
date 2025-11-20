@@ -155,29 +155,13 @@ export async function POST(request: NextRequest) {
 
     let db = adminDb;
 
-    // 認証情報が設定されている場合、既存のアプリを削除して再初期化を試みる
-    // （認証情報なしで初期化されている可能性があるため）
-    if (clientEmail && privateKey && getApps().length > 0) {
-      // 既存のアプリを削除して再初期化
-      try {
-        const existingApps = getApps();
-        if (existingApps.length > 0) {
-          console.debug('Reinitializing Firebase Admin with credentials (existing app found)');
-          // 既存のアプリを削除（型アサーションを使用）
-          for (const app of existingApps) {
-            try {
-              (app as any).delete();
-            } catch {
-              // 削除エラーは無視
-            }
-          }
-          // 少し待ってから再初期化
-          await new Promise<void>((resolve) => {
-            setTimeout(() => {
-              resolve();
-            }, 100);
-          });
-          // 認証情報付きで再初期化
+    // adminDbが既に初期化されている場合は、再初期化をスキップ
+    // リクエストごとの削除・再初期化は高コストでレースコンディションの原因となるため
+    if (!db && getApps().length === 0) {
+      // アプリが未初期化の場合のみ初期化
+      if (clientEmail && privateKey) {
+        try {
+          console.debug('Initializing Firebase Admin with credentials');
           initializeApp({
             credential: cert({
               projectId,
@@ -187,18 +171,20 @@ export async function POST(request: NextRequest) {
           });
           const { getFirestore } = await import('firebase-admin/firestore');
           db = getFirestore();
-          console.info('Firebase Admin reinitialized successfully');
-        }
-      } catch (reinitError: any) {
-        console.error('Failed to reinitialize Firebase Admin:', reinitError);
-        // エラーが発生した場合、既存のadminDbを使用するか、新しく作成
-        if (reinitError.code === 'app/duplicate-app') {
-          console.debug('App already exists, using existing app');
-          // 既存のアプリを使用
-          const { getFirestore } = await import('firebase-admin/firestore');
-          db = getFirestore();
+          console.info('Firebase Admin initialized successfully');
+        } catch (initError: any) {
+          console.error('Failed to initialize Firebase Admin:', initError);
+          if (initError.code === 'app/duplicate-app') {
+            // 既に初期化されている場合は既存のアプリを使用
+            const { getFirestore } = await import('firebase-admin/firestore');
+            db = getFirestore();
+          }
         }
       }
+    } else if (!db && getApps().length > 0) {
+      // アプリは初期化されているが、dbが未取得の場合
+      const { getFirestore } = await import('firebase-admin/firestore');
+      db = getFirestore();
     }
 
     if (!db) {
@@ -417,7 +403,7 @@ export async function POST(request: NextRequest) {
             contactId,
             type,
             title,
-            content: content.substring(0, 100),
+            content: content && typeof content === 'string' ? content.substring(0, 100) : '',
             userName: contactData.userName,
             userEmail: contactData.userEmail,
             hasErrorReportDetails: !!contactData.errorReportDetails,
