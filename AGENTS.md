@@ -36,7 +36,7 @@ Before starting any task, read the relevant rule files to understand:
 - Chrome DevTools MCP (browser verification and testing)
 - Browser Eval MCP (advanced browser automation)
 
-**⚠️ MANDATORY: Report Rule Check and Change Type**
+### ⚠️ MANDATORY: Report Rule Check and Change Type
 
 **After checking the rules, AI agents MUST report the following at the very beginning of their response:**
 
