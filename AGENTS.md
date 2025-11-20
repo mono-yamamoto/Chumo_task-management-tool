@@ -231,6 +231,69 @@ An MCP tool for efficient browser-based verification.
 - Network request verification
 - UI behavior verification
 
+### GitHub CLI
+
+GitHub CLI (`gh`) can be used to check PR and Issue information.
+
+**Setup**:
+- Check if GitHub CLI is installed: `gh --version`
+- If not installed: `brew install gh` (macOS) or install from [official site](https://cli.github.com/)
+- Authentication: Login to GitHub with `gh auth login`
+
+**PR Commands**:
+```bash
+# List PRs
+gh pr list
+
+# View specific PR details
+gh pr view <PR_NUMBER>
+
+# View PR comments
+gh pr view <PR_NUMBER> --comments
+
+# Get PR review comments (via API)
+gh api repos/<owner>/<repo>/pulls/<PR_NUMBER>/comments --jq '.[] | {author: .user.login, body: .body[0:200], path: .path, line: .line}'
+
+# Get PR reviews
+gh api repos/<owner>/<repo>/pulls/<PR_NUMBER>/reviews --jq '.[] | {author: .user.login, state: .state, body: .body[0:200]}'
+
+# Open PR in browser
+gh pr view <PR_NUMBER> --web
+```
+
+**Issue Commands**:
+```bash
+# List issues
+gh issue list
+
+# View specific issue details
+gh issue view <ISSUE_NUMBER>
+
+# View issue comments
+gh issue view <ISSUE_NUMBER> --comments
+
+# Open issue in browser
+gh issue view <ISSUE_NUMBER> --web
+```
+
+**Examples**:
+```bash
+# View comments for PR #8
+gh pr view 8 --comments
+
+# Get review comments for PR #8 in JSON format
+gh api repos/mono-yamamoto/Chumo_task-management-tool/pulls/8/comments --jq '.[] | {author: .user.login, body: .body[0:300], path: .path}'
+
+# View details for Issue #5
+gh issue view 5
+```
+
+**Main Use Cases**:
+- Check PR review comments
+- Check issue status
+- Track review response status
+- Check latest PR status
+
 ## Code style
 
 - **TypeScript**: strict mode enabled
