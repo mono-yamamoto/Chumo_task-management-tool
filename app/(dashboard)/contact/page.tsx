@@ -413,7 +413,7 @@ export default function ContactPage() {
 
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
-      {/* 左側: お問い合わせ一覧（管理者のみ）または新規作成フォーム（一般ユーザー） */}
+      {/* 左側: お問い合わせ一覧（全ユーザー）または新規作成フォーム（一般ユーザー） */}
       <Box sx={{ flex: 1 }}>
         <Box
           sx={{
