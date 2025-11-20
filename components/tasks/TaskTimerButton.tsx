@@ -13,7 +13,7 @@ interface TaskTimerButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   size?: 'small' | 'medium' | 'large';
-  variant?: 'contained' | 'outlined' | 'text';
+  variant?: 'default' | 'outline' | 'ghost';
   kobetsuLabelId?: string | null;
   taskKubunLabelId?: string;
 }
@@ -27,7 +27,7 @@ export function TaskTimerButton({
   disabled = false,
   fullWidth = false,
   size = 'medium',
-  variant = 'outlined',
+  variant = 'outline',
   kobetsuLabelId,
   taskKubunLabelId,
 }: TaskTimerButtonProps) {

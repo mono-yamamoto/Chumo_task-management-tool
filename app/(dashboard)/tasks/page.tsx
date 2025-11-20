@@ -2,7 +2,7 @@
 
 import { useState, Suspense, useMemo, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { FlowStatus } from '@/types';
+import { FlowStatus, Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -86,7 +86,7 @@ function TasksPageContent() {
 
     // useInfiniteQueryの場合
     if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
-      return tasksQuery.data.pages.flatMap((page: any) => {
+      return tasksQuery.data.pages.flatMap((page: { tasks?: Task[] }) => {
         if (!page || !page.tasks) return [];
         return page.tasks;
       });
@@ -98,7 +98,7 @@ function TasksPageContent() {
     }
 
     return [];
-  }, [tasksQuery.data]);
+  }, [tasksQuery.data]) as Task[];
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
@@ -115,7 +115,7 @@ function TasksPageContent() {
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
 
-    return tasks.filter((task) => {
+    return tasks.filter((task: Task) => {
       // ステータスフィルタ
       if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
         return false;

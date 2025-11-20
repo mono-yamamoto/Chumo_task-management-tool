@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Task, ProjectType, FlowStatus } from '@/types';
+import { Task, FlowStatus } from '@/types';
+import { ProjectType } from '@/constants/projectTypes';
 
 interface TaskStore {
   // 選択中のタスクID
