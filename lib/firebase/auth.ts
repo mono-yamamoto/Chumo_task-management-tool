@@ -30,7 +30,15 @@ export async function getUser(userId: string): Promise<User | null> {
     if (!userDoc.exists()) {
       return null;
     }
-    return { id: userDoc.id, ...userDoc.data() } as User;
+    const userData = userDoc.data();
+    return {
+      id: userDoc.id,
+      ...userData,
+      // Firestore TimestampをDateに変換
+      createdAt: userData.createdAt?.toDate() || new Date(),
+      updatedAt: userData.updatedAt?.toDate() || new Date(),
+      googleOAuthUpdatedAt: userData.googleOAuthUpdatedAt?.toDate() || undefined,
+    } as User;
   } catch (error) {
     console.error('Error getting user:', error);
     return null;
