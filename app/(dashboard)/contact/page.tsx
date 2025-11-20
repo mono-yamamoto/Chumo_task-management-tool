@@ -238,7 +238,7 @@ export default function ContactPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'お問い合わせの送信に失敗しました');
+        throw new Error(error.error || error.message || 'お問い合わせの送信に失敗しました');
       }
 
       return response.json();

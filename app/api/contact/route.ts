@@ -102,6 +102,15 @@ export async function POST(request: NextRequest) {
 
     // エラー報告の場合、バリデーション
     if (type === 'error' && errorReportDetails) {
+      if (!errorReportDetails.issue || !errorReportDetails.issue.trim()) {
+        return NextResponse.json({ error: '事象は必須です' }, { status: 400 });
+      }
+      if (
+        !errorReportDetails.reproductionSteps ||
+        !errorReportDetails.reproductionSteps.trim()
+      ) {
+        return NextResponse.json({ error: '再現方法は必須です' }, { status: 400 });
+      }
       if (!errorReportDetails.environment) {
         return NextResponse.json({ error: '環境情報は必須です' }, { status: 400 });
       }
@@ -279,6 +288,15 @@ export async function POST(request: NextRequest) {
         );
 
         // errorReportDetailsを検証して、正しい形式に変換
+        if (!errorReportDetails.issue || !errorReportDetails.issue.trim()) {
+          return NextResponse.json({ error: '事象は必須です' }, { status: 400 });
+        }
+        if (
+          !errorReportDetails.reproductionSteps ||
+          !errorReportDetails.reproductionSteps.trim()
+        ) {
+          return NextResponse.json({ error: '再現方法は必須です' }, { status: 400 });
+        }
         if (!errorReportDetails.environment) {
           console.error('errorReportDetails.environment is missing');
           return NextResponse.json({ error: '環境情報が不足しています' }, { status: 400 });

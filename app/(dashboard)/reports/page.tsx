@@ -172,12 +172,12 @@ export default function ReportsPage() {
           <Typography variant="body2" sx={{ color: 'error.dark', mb: 2 }}>
             {error instanceof Error ? error.message : '不明なエラーが発生しました'}
           </Typography>
-          {error instanceof Error && error.message.includes('details') && (
+          {error instanceof Error && error.message.includes('詳細:') && (
             <Typography
               variant="body2"
-              sx={{ color: 'error.dark', fontFamily: 'monospace', fontSize: '0.875rem' }}
+              sx={{ color: 'error.dark', fontFamily: 'monospace', fontSize: '0.875rem', mt: 1 }}
             >
-              {JSON.stringify(error, null, 2)}
+              {error.message.split('詳細:')[1]?.trim()}
             </Typography>
           )}
         </Box>
