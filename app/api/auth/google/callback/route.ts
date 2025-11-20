@@ -30,7 +30,14 @@ function verifyStateToken(stateToken: string): string | null {
   try {
     const secret = process.env.OAUTH_STATE_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
     const decoded = Buffer.from(stateToken, 'base64url').toString('utf-8');
-    const [payload, signature] = decoded.split(':');
+    
+    // 最後のコロンでペイロードと署名を分割
+    const lastColonIndex = decoded.lastIndexOf(':');
+    if (lastColonIndex === -1) {
+      return null;
+    }
+    const payload = decoded.substring(0, lastColonIndex);
+    const signature = decoded.substring(lastColonIndex + 1);
 
     if (!payload || !signature) {
       return null;
@@ -45,11 +52,25 @@ function verifyStateToken(stateToken: string): string | null {
       return null; // 署名が一致しない
     }
 
-    // ペイロードからuserIdを抽出
-    const [userId, nonce, timestamp] = payload.split(':');
+    // ペイロードからuserId、nonce、timestampを抽出
+    const parts = payload.split(':');
+    if (parts.length < 3) {
+      return null;
+    }
+    const [userId, nonce, timestamp] = parts;
+    
+    if (!userId || !nonce || !timestamp) {
+      return null;
+    }
+
+    // タイムスタンプの検証
+    const timestampMs = parseInt(timestamp, 10);
+    if (Number.isNaN(timestampMs)) {
+      return null;
+    }
 
     // タイムスタンプの有効期限チェック（30分以内）
-    const tokenAge = Date.now() - parseInt(timestamp, 10);
+    const tokenAge = Date.now() - timestampMs;
     const maxAge = 30 * 60 * 1000; // 30分
     if (tokenAge > maxAge || tokenAge < 0) {
       return null; // トークンが期限切れ
@@ -96,8 +117,10 @@ export async function GET(request: NextRequest) {
     if (!adminDb) {
       throw new Error('Firestore Admin is not initialized');
     }
-    console.debug('Saving refresh token for userId:', userId);
-    console.debug('Refresh token length:', tokens.refresh_token?.length || 0);
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('Saving refresh token for userId:', userId);
+      console.debug('Refresh token length:', tokens.refresh_token?.length || 0);
+    }
 
     // ユーザードキュメントが存在するか確認
     const userDoc = await adminDb.collection('users').doc(userId).get();
