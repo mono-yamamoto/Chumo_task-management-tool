@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { createHmac, randomBytes } from 'crypto';
 
-// 環境変数の検証
-if (!process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
-  throw new Error(
-    'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in environment variables'
-  );
-}
-
 // リダイレクトURIの構築
 function getRedirectUri(): string {
   // 優先順位: GOOGLE_OAUTH_REDIRECT_URI > SERVER_URL > NEXT_PUBLIC_FUNCTIONS_URL > localhost
@@ -25,11 +18,19 @@ function getRedirectUri(): string {
   return `${baseUrl}/api/auth/google/callback`;
 }
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_OAUTH_CLIENT_ID,
-  process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-  getRedirectUri()
-);
+// OAuth2クライアントの取得（環境変数チェック付き）
+function getOAuth2Client() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in environment variables'
+    );
+  }
+
+  return new google.auth.OAuth2(clientId, clientSecret, getRedirectUri());
+}
 
 // stateトークンの生成（HMAC署名付き）
 function generateStateToken(userId: string): string {
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
     'https://www.googleapis.com/auth/spreadsheets',
   ];
 
+  const oauth2Client = getOAuth2Client();
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
