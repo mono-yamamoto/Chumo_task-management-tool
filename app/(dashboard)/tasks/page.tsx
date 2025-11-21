@@ -36,7 +36,7 @@ import {
   Grid,
 } from '@mui/material';
 import Link from 'next/link';
-import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
+import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 

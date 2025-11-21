@@ -32,7 +32,7 @@ import {
   DialogActions,
   DialogContentText,
 } from '@mui/material';
-import { TaskDetailDrawer } from '@/components/drawer/TaskDetailDrawer';
+import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 
 function DashboardPageContent() {

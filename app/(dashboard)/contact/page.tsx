@@ -29,7 +29,7 @@ import {
   Link as MUILink,
 } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
-import { ContactFormDrawer } from '@/components/drawer/ContactFormDrawer';
+import { ContactFormDrawer } from '@/components/Drawer/ContactFormDrawer';
 
 function getContactTypeLabel(type: ContactType): string {
   switch (type) {
