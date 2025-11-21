@@ -19,11 +19,19 @@ function getRedirectUri(): string {
   return `${baseUrl}/api/auth/google/callback`;
 }
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_OAUTH_CLIENT_ID,
-  process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-  getRedirectUri()
-);
+// OAuth2クライアントの取得（環境変数チェック付き）
+function getOAuth2Client() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in environment variables'
+    );
+  }
+
+  return new google.auth.OAuth2(clientId, clientSecret, getRedirectUri());
+}
 
 // stateトークンの検証
 function verifyStateToken(stateToken: string): string | null {
@@ -107,6 +115,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // 認証コードをトークンに交換
+    const oauth2Client = getOAuth2Client();
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.refresh_token) {
