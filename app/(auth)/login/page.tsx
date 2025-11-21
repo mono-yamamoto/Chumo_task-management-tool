@@ -33,10 +33,16 @@ function LoginContent() {
   }, [user, router]);
 
   const handleLogin = async () => {
+    setError(null); // エラーメッセージをクリア
     try {
       await login();
-    } catch {
-      setError('ログインに失敗しました。もう一度お試しください。');
+    } catch (error: any) {
+      // 許可されていないユーザーのエラーを区別
+      if (error.code === 'auth/not-allowed' || error.message === 'NOT_ALLOWED') {
+        setError('このアカウントは許可されていません。管理者に連絡してください。');
+      } else {
+        setError('ログインに失敗しました。もう一度お試しください。');
+      }
     }
   };
 

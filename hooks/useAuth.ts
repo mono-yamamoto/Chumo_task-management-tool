@@ -33,7 +33,9 @@ export function useAuth() {
       setFirebaseUser(firebaseUserParam);
       if (firebaseUserParam) {
         try {
-          const isAllowed = await checkUserAllowed(firebaseUserParam.uid);
+          // メールアドレスも渡して、メールアドレスで事前登録されているユーザーをマッチング
+          const email = firebaseUserParam.email || undefined;
+          const isAllowed = await checkUserAllowed(firebaseUserParam.uid, email);
           if (!isAllowed) {
             if (auth) {
               await signOut(auth);
@@ -43,7 +45,7 @@ export function useAuth() {
             router.push('/login?error=not_allowed');
             return;
           }
-          const userData = await getUser(firebaseUserParam.uid);
+          const userData = await getUser(firebaseUserParam.uid, email);
           setUser(userData);
         } catch (error) {
           console.error('Error in auth state change:', error);
@@ -64,9 +66,26 @@ export function useAuth() {
     }
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
+      const result = await signInWithPopup(auth, provider);
+      // ログイン成功後、すぐに許可チェックを行う
+      if (result.user) {
+        const email = result.user.email || undefined;
+        const isAllowed = await checkUserAllowed(result.user.uid, email);
+        if (!isAllowed) {
+          // 許可されていない場合はログアウトしてエラーを投げる
+          await signOut(auth);
+          const notAllowedError = new Error('NOT_ALLOWED');
+          (notAllowedError as any).code = 'auth/not-allowed';
+          throw notAllowedError;
+        }
+      }
+    } catch (error: any) {
       console.error('Login error:', error);
+      // 許可されていないユーザーのエラーはそのまま投げる
+      if (error.code === 'auth/not-allowed' || error.message === 'NOT_ALLOWED') {
+        throw error;
+      }
+      // その他のエラーも投げる
       throw error;
     }
     return undefined;
