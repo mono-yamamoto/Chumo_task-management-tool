@@ -1,0 +1,18 @@
+# Kiri MCP index database
+.kiri/
+
+# Local development files
+.env*.local
+
+# Build artifacts
+.next/
+out/
+build/
+
+# Dependencies
+node_modules/
+
+# Functions (deployed separately)
+functions/lib/
+functions/node_modules/
+
