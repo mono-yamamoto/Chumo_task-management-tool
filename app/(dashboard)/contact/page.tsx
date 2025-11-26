@@ -409,8 +409,6 @@ export default function ContactPage() {
     );
   }
 
-  const isAdmin = user.role === 'admin';
-
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
       {/* 左側: お問い合わせ一覧（全ユーザー）または新規作成フォーム（一般ユーザー） */}
@@ -925,9 +923,8 @@ export default function ContactPage() {
         )}
       </Box>
 
-      {/* 右側: 新規作成フォーム（管理者の場合のみDrawerで表示） */}
-      {isAdmin && (
-        <ContactFormDrawer
+      {/* 右側: 新規作成フォーム（全ユーザーがDrawerで表示） */}
+      <ContactFormDrawer
           open={showForm}
           onClose={() => setShowForm(false)}
           type={type}
@@ -967,7 +964,6 @@ export default function ContactPage() {
           onSubmit={handleSubmit}
           isSubmitting={submitContact.isPending}
         />
-      )}
     </Box>
   );
 }
