@@ -60,16 +60,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     お問い合わせ
                   </MUILink>
                 </Link>
-                {user?.role === 'admin' && (
-                  <Link href="/settings" style={{ textDecoration: 'none' }}>
-                    <MUILink
-                      component="span"
-                      sx={{ color: 'text.primary', '&:hover': { color: 'text.secondary' } }}
-                    >
-                      設定
-                    </MUILink>
-                  </Link>
-                )}
+                <Link href="/settings" style={{ textDecoration: 'none' }}>
+                  <MUILink
+                    component="span"
+                    sx={{ color: 'text.primary', '&:hover': { color: 'text.secondary' } }}
+                  >
+                    設定
+                  </MUILink>
+                </Link>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

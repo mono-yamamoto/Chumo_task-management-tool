@@ -436,11 +436,9 @@ export default function ContactPage() {
             >
               {viewMode === 'pending' ? '解決済みを表示' : '対応中を表示'}
             </Button>
-            {isAdmin && (
-              <Button onClick={() => setShowForm(true)} variant="default">
-                新規作成
-              </Button>
-            )}
+            <Button onClick={() => setShowForm(true)} variant="default">
+              新規作成
+            </Button>
           </Box>
         </Box>
 

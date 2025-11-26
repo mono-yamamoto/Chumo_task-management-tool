@@ -183,14 +183,6 @@ export default function SettingsPage() {
     },
   });
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography>アクセス権限がありません</Typography>
-      </Box>
-    );
-  }
-
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -296,6 +288,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {user?.role === 'admin' && (
       <Card>
         <CardContent>
           <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
@@ -402,8 +395,9 @@ export default function SettingsPage() {
               );
             })}
           </List>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }
