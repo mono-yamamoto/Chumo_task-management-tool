@@ -641,61 +641,59 @@ export default function TaskDetailPage() {
                 連携
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {task?.kubunLabelId === kobetsuLabelId ? null : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {activeSession?.taskId === task.id ? (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="error"
-                        onClick={handleStopTimer}
-                        disabled={stopTimer.isPending}
-                        sx={{
-                          animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
-                          '@keyframes pulse': {
-                            '0%, 100%': {
-                              opacity: 1,
-                            },
-                            '50%': {
-                              opacity: 0.8,
-                            },
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {activeSession?.taskId === task.id ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="error"
+                      onClick={handleStopTimer}
+                      disabled={stopTimer.isPending}
+                      sx={{
+                        animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': {
+                            opacity: 1,
                           },
-                        }}
-                      >
-                        {stopTimer.isPending ? (
-                          <>
-                            <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                            停止中...
-                          </>
-                        ) : (
-                          <>
-                            <Stop fontSize="small" sx={{ mr: 1 }} />
-                            タイマー停止
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <CustomButton
-                        fullWidth
-                        variant="outline"
-                        onClick={handleStartTimer}
-                        disabled={!!activeSession || startTimer.isPending}
-                      >
-                        {startTimer.isPending ? (
-                          <>
-                            <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                            開始中...
-                          </>
-                        ) : (
-                          <>
-                            <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                            タイマー開始
-                          </>
-                        )}
-                      </CustomButton>
-                    )}
-                  </Box>
-                )}
+                          '50%': {
+                            opacity: 0.8,
+                          },
+                        },
+                      }}
+                    >
+                      {stopTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          停止中...
+                        </>
+                      ) : (
+                        <>
+                          <Stop fontSize="small" sx={{ mr: 1 }} />
+                          タイマー停止
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <CustomButton
+                      fullWidth
+                      variant="outline"
+                      onClick={handleStartTimer}
+                      disabled={!!activeSession || startTimer.isPending}
+                    >
+                      {startTimer.isPending ? (
+                        <>
+                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+                          開始中...
+                        </>
+                      ) : (
+                        <>
+                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
+                          タイマー開始
+                        </>
+                      )}
+                    </CustomButton>
+                  )}
+                </Box>
                 <Box
                   sx={{
                     display: 'flex',

@@ -31,11 +31,6 @@ export function TaskTimerButton({
   kobetsuLabelId,
   taskKubunLabelId,
 }: TaskTimerButtonProps) {
-  // 「個別」ラベルの場合はタイマーを表示しない
-  if (kobetsuLabelId && taskKubunLabelId === kobetsuLabelId) {
-    return null;
-  }
-
   if (isActive) {
     return (
       <Button

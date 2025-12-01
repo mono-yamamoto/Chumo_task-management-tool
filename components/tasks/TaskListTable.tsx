@@ -46,7 +46,6 @@ export function TaskListTable({
   onStopTimer,
   isStartingTimer,
   isStoppingTimer,
-  kobetsuLabelId,
   emptyMessage = 'タスクがありません',
   rowSx,
 }: TaskListTableProps) {
@@ -136,11 +135,7 @@ export function TaskListTable({
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {task.kubunLabelId === kobetsuLabelId ? (
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        -
-                      </Typography>
-                    ) : isActive ? (
+                    {isActive ? (
                       <Button
                         size="small"
                         variant="contained"
