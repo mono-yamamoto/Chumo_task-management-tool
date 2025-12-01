@@ -24,7 +24,7 @@ async function deleteOldProjects() {
 
   try {
     // プロジェクトタイプ（固定値）のリスト
-    const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem'];
+    const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'];
 
     // すべてのプロジェクトを取得
     const projectsSnapshot = await db.collection('projects').get();

@@ -12,7 +12,9 @@ service cloud.firestore {
              projectId == 'MONO' ||
              projectId == 'MONO_ADMIN' ||
              projectId == 'DES_FIRE' ||
-             projectId == 'DesignSystem';
+             projectId == 'DesignSystem' ||
+             projectId == 'DMREG2' ||
+             projectId == 'monosus';
     }
 
     function isAdmin() {

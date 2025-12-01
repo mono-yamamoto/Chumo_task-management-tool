@@ -13,7 +13,7 @@ config({ path: resolve(__dirname, '../.env.local') });
 // 実行方法: npx ts-node scripts/create-sample-tasks.ts
 
 // プロジェクトタイプの固定値
-const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem'] as const;
+const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'] as const;
 type ProjectType = (typeof PROJECT_TYPES)[number];
 
 // タスクのステータスオプション

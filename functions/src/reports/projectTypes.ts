@@ -9,6 +9,8 @@ export const PROJECT_TYPES = [
   'MONO_ADMIN',
   'DES_FIRE',
   'DesignSystem',
+  'DMREG2',
+  'monosus',
 ] as const;
 
 export type ProjectType = (typeof PROJECT_TYPES)[number];

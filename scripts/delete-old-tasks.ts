@@ -39,7 +39,7 @@ async function deleteOldTasks() {
       const projectData = projectDoc.data();
 
       // プロジェクトタイプ（固定値）の場合はスキップ
-      const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem'];
+      const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'];
       if (PROJECT_TYPES.includes(projectId)) {
         console.info(`プロジェクトタイプ "${projectId}" はスキップします`);
         continue;
