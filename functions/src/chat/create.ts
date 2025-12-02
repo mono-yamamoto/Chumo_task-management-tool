@@ -205,82 +205,7 @@ export const createGoogleChatThread = onRequest(
       const firstMessageName = webhookJson?.name || null;
       const threadName = webhookJson?.thread?.name || null;
 
-      // スレッドに2つ目のメッセージを送信してスレッドを確実に開けるようにする
-      // Stack Overflowの情報に基づき、threadKeyとmessageReplyOptionをクエリパラメータとして追加する方法を実装
-      // 参考: https://stackoverflow.com/questions/67111540/how-do-you-respond-to-a-thread-in-google-chat-from-an-incoming-webhook
-      let finalMessageName = firstMessageName;
-      if (threadName) {
-        try {
-          // threadNameからthreadIdを抽出
-          // threadNameの形式: "spaces/{spaceId}/threads/{threadId}"
-          const threadIdMatch = threadName.match(/threads\/([^?]+)/);
-          if (!threadIdMatch) {
-            console.warn('Failed to extract threadId from threadName:', threadName);
-          } else {
-            const threadId = threadIdMatch[1];
-
-            // Webhook URLにthreadKeyとmessageReplyOptionをクエリパラメータとして追加
-            // messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD により、
-            // スレッドが存在する場合は返信し、存在しない場合は新しいスレッドを作成
-            const separator = webhookUrl.includes('?') ? '&' : '?';
-            const webhookUrlWithParams = `${webhookUrl}${separator}threadKey=${threadId}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`;
-
-            console.info('Sending second message to thread:', {
-              threadId,
-              threadName,
-              webhookUrl: webhookUrlWithParams,
-            });
-
-            // threadKeyとmessageReplyOptionを使用してスレッドに返信
-            const secondMessageResponse = await fetch(webhookUrlWithParams, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                text: 'スレッド開始',
-              }),
-            });
-
-            if (secondMessageResponse.ok) {
-              const secondMessageJson = (await secondMessageResponse.json().catch(() => null)) as
-                | { name?: string; thread?: { name?: string } }
-                | null;
-
-              console.info('Second webhook response:', JSON.stringify(secondMessageJson, null, 2));
-
-              // 2つ目のメッセージが同じスレッドに送信されたか確認
-              const secondThreadName = secondMessageJson?.thread?.name;
-              if (secondThreadName === threadName) {
-                // 同じスレッドに送信された場合、2つ目のメッセージのnameを使用
-                if (secondMessageJson?.name) {
-                  finalMessageName = secondMessageJson.name;
-                  console.info('Using second message name for URL (same thread):', finalMessageName);
-                }
-              } else {
-                console.warn('Second message created a new thread:', {
-                  expectedThread: threadName,
-                  actualThread: secondThreadName,
-                  threadId,
-                });
-                // 新しいスレッドが作成された場合、最初のメッセージのURLを使用
-              }
-            } else {
-              const errorText = await secondMessageResponse.text().catch(() => 'Unknown error');
-              console.warn('Failed to send second message to thread:', {
-                status: secondMessageResponse.status,
-                statusText: secondMessageResponse.statusText,
-                error: errorText,
-                threadId,
-                threadName,
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error sending second message to thread:', error);
-          // エラーが発生しても最初のメッセージのURLを使用する
-        }
-      }
-
-      const threadUrl = buildThreadUrl(spaceBaseUrl, finalMessageName, threadName);
+      const threadUrl = buildThreadUrl(spaceBaseUrl, firstMessageName, threadName);
 
       console.info('Built thread URL:', threadUrl);
 
@@ -294,10 +219,10 @@ export const createGoogleChatThread = onRequest(
           updatedAt: new Date(),
         });
 
-      res.status(200).json({ success: true, url: threadUrl, messageName: finalMessageName });
+      res.status(200).json({ success: true, url: threadUrl, messageName: firstMessageName });
     } catch (error) {
       console.error('createGoogleChatThread error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
-);
+);;
