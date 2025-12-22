@@ -5,6 +5,7 @@ import { createFireIssue } from './github/create';
 import { createGoogleChatThread } from './chat/create';
 import { getTimeReport, exportTimeReportCSV } from './reports/time';
 import { createContactIssue } from './contact/createIssue';
+import { webhookBacklog } from './webhook/backlog';
 
 export {
   syncBacklog,
@@ -16,4 +17,5 @@ export {
   getTimeReport,
   exportTimeReportCSV,
   createContactIssue,
+  webhookBacklog,
 };
