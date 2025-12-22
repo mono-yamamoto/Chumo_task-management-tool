@@ -4,6 +4,9 @@ import { PROJECT_TYPES } from '../reports/projectTypes';
 
 const db = getFirestore();
 
+// utils/backlog.tsからgenerateBacklogUrlをインポートできないため、
+// 同じ実装を保持（Cloud Functions環境ではutilsディレクトリにアクセスできない）
+
 /**
  * 課題番号からプロジェクトタイプを抽出する
  * 例: "BRGREG-2905" → "BRGREG"
@@ -25,7 +28,7 @@ function extractProjectTypeFromIssueKey(issueKey: string): string | null {
   const projectName = match[1];
 
   // PROJECT_TYPESに一致するか確認
-  if (PROJECT_TYPES.includes(projectName as any)) {
+  if ((PROJECT_TYPES as readonly string[]).includes(projectName)) {
     return projectName;
   }
 
@@ -67,12 +70,18 @@ export const webhookBacklog = onRequest(
     }
 
     try {
-      // リクエストボディ全体をログ出力（データ構造確認用）
-      console.info('=== Backlog Webhook Request ===');
-      console.info('Headers:', JSON.stringify(req.headers, null, 2));
-      console.info('Body:', JSON.stringify(req.body, null, 2));
-      console.info('Query:', JSON.stringify(req.query, null, 2));
-      console.info('================================');
+      // デバッグログ（本番ではDEBUGレベルに変更を推奨）
+      // センシティブな情報をマスキングしてログ出力
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      if (isDevelopment) {
+        console.debug('Backlog Webhook received:', {
+          method: req.method,
+          contentType: req.headers['content-type'],
+          bodyKeys: Object.keys(req.body || {}),
+          hasContent: !!req.body?.content,
+          hasProject: !!req.body?.project,
+        });
+      }
 
       const body = req.body;
 
@@ -124,9 +133,10 @@ export const webhookBacklog = onRequest(
       // 課題番号が必須
       if (!issueKey) {
         console.error('Missing issueKey in webhook payload');
+        // デバッグ用にログに記録（レスポンスには含めない）
+        console.debug('Received body:', body);
         res.status(400).json({
           error: 'Missing issueKey in webhook payload',
-          receivedBody: body,
         });
         return;
       }
@@ -144,9 +154,10 @@ export const webhookBacklog = onRequest(
       // タイトルが必須
       if (!title) {
         console.error('Missing title in webhook payload');
+        // デバッグ用にログに記録（レスポンスには含めない）
+        console.debug('Received body:', body);
         res.status(400).json({
           error: 'Missing title in webhook payload',
-          receivedBody: body,
         });
         return;
       }
