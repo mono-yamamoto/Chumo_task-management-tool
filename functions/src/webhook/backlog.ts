@@ -145,11 +145,31 @@ function parseDateString(dateString: string | null | undefined): Date | null {
   }
 
   const [, year, month, day] = match;
-  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const yearNum = parseInt(year);
+  const monthNum = parseInt(month);
+  const dayNum = parseInt(day);
+
+  // 月と日の範囲を検証
+  if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+    console.warn(`Invalid date range: ${dateString}`);
+    return null;
+  }
+
+  const date = new Date(yearNum, monthNum - 1, dayNum);
 
   // 有効な日付かチェック
   if (isNaN(date.getTime())) {
     console.warn(`Invalid date: ${dateString}`);
+    return null;
+  }
+
+  // Date コンストラクタの自動調整を検出
+  if (
+    date.getFullYear() !== yearNum ||
+    date.getMonth() !== monthNum - 1 ||
+    date.getDate() !== dayNum
+  ) {
+    console.warn(`Date auto-adjusted from input: ${dateString}`);
     return null;
   }
 
