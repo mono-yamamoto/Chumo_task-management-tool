@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PROJECT_TYPES, ProjectType } from '../reports/projectTypes';
+import type { TaskExternal, FlowStatus, Priority } from '../../../types/index';
 
 const db = getFirestore();
 
@@ -50,38 +51,9 @@ interface BacklogWebhookPayload {
 }
 
 // =====================================
-// types/index.ts の型定義を複製
-// Cloud Functions環境では @/ エイリアスが使用できないため
-// =====================================
-
-// タスクの外部連携情報の型（types/index.ts TaskExternal と同一）
-interface TaskExternal {
-  source: 'backlog';
-  issueId: string;
-  issueKey: string;
-  url: string;
-  lastSyncedAt: Date;
-  syncStatus: 'ok' | 'failed';
-}
-
-// FlowStatus型（types/index.ts FlowStatus と同一）
-type FlowStatus =
-  | '未着手'
-  | 'ディレクション'
-  | 'コーディング'
-  | 'デザイン'
-  | '待ち'
-  | '対応中'
-  | '週次報告'
-  | '月次報告'
-  | '完了';
-
-// Priority型（types/index.ts Priority と同一）
-type Priority = 'low' | 'medium' | 'high' | 'urgent';
-
-// =====================================
 // タスクデータの型定義
 // utils/schemas.ts taskSchema に準拠
+// types/index.ts から型をインポートして使用
 // =====================================
 
 // Firestoreに保存するタスクデータの型（新規作成用）
