@@ -8,10 +8,10 @@ import { Box, CircularProgress } from '@mui/material';
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  // クライアントでマウント後にのみ有効化してSSRと初期レンダーを一致させる
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // クライアントサイドでのみマウント状態を設定
     setMounted(true);
   }, []);
 

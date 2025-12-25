@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
-import { useTimer } from '@/hooks/useTimer';
+import { useTimerActions } from '@/hooks/useTimerActions';
 import {
   useDriveIntegration,
   useFireIntegration,
@@ -72,7 +72,11 @@ function TasksPageContent() {
     setActiveSession,
     resetFilters,
   } = useTaskStore();
-  const { startTimer, stopTimer } = useTimer();
+  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
+    userId: user?.id,
+    queryClient,
+    setActiveSession,
+  });
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
@@ -390,41 +394,11 @@ function TasksPageContent() {
   };
 
   const handleStartTimer = async (projectType: string, taskId: string) => {
-    if (!user) return;
-    try {
-      await startTimer.mutateAsync({
-        projectType: projectType,
-        taskId,
-        userId: user.id,
-      });
-      // アクティブセッションを再取得
-      queryClient.invalidateQueries({ queryKey: ['activeSession', user.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
-    } catch (error: any) {
-      console.error('Timer start error:', error);
-      if (error.message?.includes('稼働中')) {
-        alert('他のタイマーが稼働中です。停止してから開始してください。');
-      } else {
-        alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
-      }
-    }
+    await startTimerWithOptimistic(projectType, taskId);
   };
 
   const handleStopTimer = async () => {
-    if (!activeSession) return;
-    try {
-      await stopTimer.mutateAsync({
-        projectType: activeSession.projectType,
-        sessionId: activeSession.sessionId,
-      });
-      setActiveSession(null);
-      // アクティブセッションを再取得
-      queryClient.invalidateQueries({ queryKey: ['activeSession', user?.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
-    } catch (error: any) {
-      console.error('Timer stop error:', error);
-      alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
-    }
+    await stopActiveSession(activeSession);
   };
 
   const handleDriveCreate = async (projectType: string, taskId: string) => {
@@ -724,7 +698,6 @@ function TasksPageContent() {
           activeSession={activeSession}
           onStartTimer={handleStartTimer}
           onStopTimer={handleStopTimer}
-          isStartingTimer={startTimer.isPending}
           isStoppingTimer={stopTimer.isPending}
           kobetsuLabelId={kobetsuLabelId}
           emptyMessage={effectiveEmptyMessage}
@@ -784,7 +757,6 @@ function TasksPageContent() {
         activeSession={activeSession}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
-        isStartingTimer={startTimer.isPending}
         isStoppingTimer={stopTimer.isPending}
         onDriveCreate={handleDriveCreate}
         isCreatingDrive={createDriveFolder.isPending}

@@ -13,20 +13,18 @@ import {
   OutlinedInput,
   Checkbox,
   ListItemText,
-  CircularProgress,
   Drawer,
 } from '@mui/material';
 import {
   Close,
   Delete,
-  PlayArrow,
-  Stop,
   FolderOpen,
   LocalFireDepartment,
   BugReport,
   ChatBubbleOutline,
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
+import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { Task, FlowStatus, User, Label } from '@/types';
 import Link from 'next/link';
@@ -50,7 +48,6 @@ interface TaskDetailDrawerProps {
 
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
-  isStartingTimer: boolean;
   isStoppingTimer: boolean;
 
   onDriveCreate: (projectId: string, taskId: string) => void;
@@ -87,7 +84,6 @@ export function TaskDetailDrawer({
   activeSession,
   onStartTimer,
   onStopTimer,
-  isStartingTimer,
   isStoppingTimer,
   onDriveCreate,
   isCreatingDrive,
@@ -344,60 +340,17 @@ export function TaskDetailDrawer({
             }}
           >
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {activeSession?.taskId === selectedTask.id ? (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="error"
-                  onClick={onStopTimer}
-                  disabled={isStoppingTimer}
-                  sx={{
-                    animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
-                    '@keyframes pulse': {
-                      '0%, 100%': {
-                        opacity: 1,
-                      },
-                      '50%': {
-                        opacity: 0.8,
-                      },
-                    },
-                  }}
-                >
-                  {isStoppingTimer ? (
-                    <>
-                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                      停止中...
-                    </>
-                  ) : (
-                    <>
-                      <Stop fontSize="small" sx={{ mr: 1 }} />
-                      タイマー停止
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <CustomButton
-                  fullWidth
-                  variant="outline"
-                  onClick={() => {
-                    const { projectType } = (selectedTask as any);
-                    onStartTimer(projectType, selectedTask.id);
-                  }}
-                  disabled={!!activeSession || isStartingTimer}
-                >
-                  {isStartingTimer ? (
-                    <>
-                      <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                      開始中...
-                    </>
-                  ) : (
-                    <>
-                      <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                      タイマー開始
-                    </>
-                  )}
-                </CustomButton>
-              )}
+              <TaskTimerButton
+                isActive={activeSession?.taskId === selectedTask.id}
+                onStart={() => {
+                  const { projectType } = (selectedTask as any);
+                  onStartTimer(projectType, selectedTask.id);
+                }}
+                onStop={onStopTimer}
+                isStopping={isStoppingTimer}
+                startDisabled={!!activeSession}
+                fullWidth
+              />
             </Box>
             <Box
               sx={{

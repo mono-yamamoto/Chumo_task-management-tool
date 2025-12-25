@@ -34,10 +34,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Link href="/dashboard" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-                  タスク管理ツール
+                  ちゅも
                 </Typography>
               </Link>
               <Box sx={{ display: 'flex', gap: 2 }}>
+                <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+                  <MUILink
+                    component="span"
+                    sx={{ color: 'text.primary', '&:hover': { color: 'text.secondary' } }}
+                  >
+                    ダッシュボード
+                  </MUILink>
+                </Link>
                 <Link href="/tasks" style={{ textDecoration: 'none' }}>
                   <MUILink
                     component="span"

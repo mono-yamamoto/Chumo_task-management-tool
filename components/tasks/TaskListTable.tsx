@@ -3,10 +3,9 @@
 import { useMemo, useState } from 'react';
 import { Task, Label, User } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
-import { Button as CustomButton } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import {
-  Button,
   Typography,
   Table,
   TableBody,
@@ -15,10 +14,8 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress,
   Box,
 } from '@mui/material';
-import { PlayArrow, Stop } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ProjectType } from '@/constants/projectTypes';
 
@@ -31,7 +28,6 @@ interface TaskListTableProps {
   activeSession: { projectType: string; taskId: string; sessionId: string } | null;
   onStartTimer: (projectType: string, taskId: string) => void;
   onStopTimer: () => void;
-  isStartingTimer: boolean;
   isStoppingTimer: boolean;
   kobetsuLabelId: string | null;
   emptyMessage?: string;
@@ -47,7 +43,6 @@ export function TaskListTable({
   activeSession,
   onStartTimer,
   onStopTimer,
-  isStartingTimer,
   isStoppingTimer,
   emptyMessage = 'タスクがありません',
   rowSx,
@@ -114,6 +109,7 @@ export function TaskListTable({
           ) : (
             tasks?.map((task) => {
               const isActive = activeSession?.taskId === task.id;
+              const isStartDisabled = !!activeSession && activeSession.taskId !== task.id;
               const defaultRowSx = {
                 cursor: 'pointer',
                 '&:hover': { bgcolor: 'action.hover' },
@@ -156,53 +152,16 @@ export function TaskListTable({
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {isActive ? (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="error"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onStopTimer();
-                        }}
-                        disabled={isStoppingTimer}
-                        sx={{
-                          animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
-                          '@keyframes pulse': {
-                            '0%, 100%': {
-                              opacity: 1,
-                            },
-                            '50%': {
-                              opacity: 0.8,
-                            },
-                          },
-                        }}
-                      >
-                        {isStoppingTimer ? (
-                          <CircularProgress size={16} sx={{ color: 'inherit' }} />
-                        ) : (
-                          <Stop fontSize="small" />
-                        )}
-                      </Button>
-                    ) : (
-                      <CustomButton
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onStartTimer(task.projectType, task.id);
-                        }}
-                        disabled={
-                          (!!activeSession && activeSession.taskId !== task.id) || isStartingTimer
-                        }
-                      >
-                        {isStartingTimer ? (
-                          <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                        ) : (
-                          <PlayArrow fontSize="small" />
-                        )}
-                      </CustomButton>
-                    )}
+                    <TaskTimerButton
+                      isActive={isActive}
+                      onStart={() => onStartTimer(task.projectType, task.id)}
+                      onStop={onStopTimer}
+                      isStopping={isStoppingTimer}
+                      startDisabled={isStartDisabled}
+                      stopButtonSize="small"
+                      startButtonSize="sm"
+                      displayMode="icon"
+                    />
                   </TableCell>
                 </TableRow>
               );
