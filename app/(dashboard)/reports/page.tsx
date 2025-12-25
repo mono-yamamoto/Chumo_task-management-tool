@@ -75,7 +75,7 @@ export default function ReportsPage() {
 
     // 無効な日付の場合はエラーを表示
     if (isNaN(fromDateObj.getTime()) || isNaN(toDateObj.getTime())) {
-      alert('無効な日付が指定されています');
+      window.alert('無効な日付が指定されています');
       return;
     }
 
@@ -88,7 +88,7 @@ export default function ReportsPage() {
     const csvUrl = getExportTimeReportCsvUrl();
     const response = await fetch(`${csvUrl}?${params}`);
     if (!response.ok) {
-      alert('CSVのエクスポートに失敗しました');
+      window.alert('CSVのエクスポートに失敗しました');
       return;
     }
 
