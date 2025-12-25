@@ -8,38 +8,45 @@ interface TaskTimerButtonProps {
   isActive: boolean;
   onStart: () => void;
   onStop: () => void;
-  isStarting?: boolean;
   isStopping?: boolean;
-  disabled?: boolean;
+  startDisabled?: boolean;
+  stopDisabled?: boolean;
   fullWidth?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  stopButtonSize?: 'small' | 'medium' | 'large';
+  startButtonSize?: 'default' | 'sm' | 'lg' | 'icon';
   variant?: 'default' | 'outline' | 'ghost';
-  kobetsuLabelId?: string | null;
-  taskKubunLabelId?: string;
+  displayMode?: 'full' | 'icon';
+  // 未使用パラメータ（将来使用予定）
+  _kobetsuLabelId?: string | null;
+  _taskKubunLabelId?: string;
 }
 
 export function TaskTimerButton({
   isActive,
   onStart,
   onStop,
-  isStarting = false,
   isStopping = false,
-  disabled = false,
+  startDisabled = false,
+  stopDisabled = false,
   fullWidth = false,
-  size = 'medium',
+  stopButtonSize = 'medium',
+  startButtonSize = 'default',
   variant = 'outline',
-  kobetsuLabelId,
-  taskKubunLabelId,
+  displayMode = 'full',
+  _kobetsuLabelId,
+  _taskKubunLabelId,
 }: TaskTimerButtonProps) {
+  const isIconMode = displayMode === 'icon';
+
   if (isActive) {
     return (
       <Button
         fullWidth={fullWidth}
-        size={size}
+        size={stopButtonSize}
         variant="contained"
         color="error"
         onClick={onStop}
-        disabled={disabled || isStopping}
+        disabled={stopDisabled || isStopping}
         sx={{
           animation: isStopping
             ? 'none'
@@ -55,14 +62,18 @@ export function TaskTimerButton({
         }}
       >
         {isStopping ? (
-          <>
-            <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-            停止中...
-          </>
+          isIconMode ? (
+            <CircularProgress size={16} sx={{ color: 'inherit' }} />
+          ) : (
+            <>
+              <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
+              停止中...
+            </>
+          )
         ) : (
           <>
-            <Stop fontSize="small" sx={{ mr: 1 }} />
-            タイマー停止
+            <Stop fontSize="small" sx={{ mr: isIconMode ? 0 : 1 }} />
+            {!isIconMode && 'タイマー停止'}
           </>
         )}
       </Button>
@@ -74,20 +85,11 @@ export function TaskTimerButton({
       fullWidth={fullWidth}
       variant={variant}
       onClick={onStart}
-      disabled={disabled || isStarting}
+      disabled={startDisabled}
+      size={startButtonSize}
     >
-      {isStarting ? (
-        <>
-          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-          開始中...
-        </>
-      ) : (
-        <>
-          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-          タイマー開始
-        </>
-      )}
+      <PlayArrow fontSize="small" sx={{ mr: isIconMode ? 0 : 1 }} />
+      {!isIconMode && 'タイマー開始'}
     </CustomButton>
   );
 }
-
