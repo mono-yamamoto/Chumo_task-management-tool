@@ -3,12 +3,14 @@
 import React from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
+import { useTimerTitle } from '@/hooks/useTimerTitle';
 import { Button } from '@/components/ui/button';
 import { AppBar, Toolbar, Typography, Box, Link as MUILink } from '@mui/material';
 import Link from 'next/link';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  useTimerTitle(); // タイマータイトル更新を有効化
 
   return (
     <AuthGuard>

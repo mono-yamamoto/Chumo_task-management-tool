@@ -8,7 +8,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ちゅも-タスク管理ツール',
+  title: 'ちゅも',
   description: '個人〜小規模チーム向けタスク管理ツール',
 };
 
