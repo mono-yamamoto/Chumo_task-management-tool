@@ -19,8 +19,8 @@ const ANIMATION_PARAMS = {
   HAND_WIDTH: 15, // 針の太さ
 } as const;
 
-// 通常のfaviconパス（Next.jsのデフォルトfavicon）
-const NORMAL_FAVICON_PATH = '/favicon.ico';
+// 通常のfaviconパス（Next.jsのApp Routerではapp/icon.pngが自動的に/favicon.icoとして提供される）
+const NORMAL_FAVICON_PATH = '/icon.png';
 
 // モジュール内の状態管理
 // eslint-disable-next-line no-undef
