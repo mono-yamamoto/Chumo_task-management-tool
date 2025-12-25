@@ -71,17 +71,30 @@ export default function TaskDetailPage() {
     taskId: string;
     sessionId: string;
   } | null>(null);
+
+  // 依存配列の安定化のため、extraInvalidateKeysとextraRefetchKeysをuseMemoでメモ化
+  const extraInvalidateKeys = useMemo(
+    () => [['activeSession'], ['activeSession', taskId], ['sessionHistory', taskId]],
+    [taskId]
+  );
+
+  const extraRefetchKeys = useMemo(
+    () =>
+      user?.id
+        ? [
+            ['activeSession', taskId, user.id],
+            ['sessionHistory', taskId],
+          ]
+        : [['sessionHistory', taskId]],
+    [taskId, user?.id]
+  );
+
   const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
     userId: user?.id,
     queryClient,
     setActiveSession,
-    extraInvalidateKeys: [['activeSession'], ['activeSession', taskId], ['sessionHistory', taskId]],
-    extraRefetchKeys: user?.id
-      ? [
-          ['activeSession', taskId, user.id],
-          ['sessionHistory', taskId],
-        ]
-      : [['sessionHistory', taskId]],
+    extraInvalidateKeys,
+    extraRefetchKeys,
   });
   // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
