@@ -9,13 +9,14 @@ import { useUsers } from '@/hooks/useUsers';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTimer } from '@/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
+import {
+  useDriveIntegration,
+  useFireIntegration,
+  useGoogleChatIntegration,
+} from '@/hooks/useIntegrations';
 import { useTaskStore } from '@/stores/taskStore';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
-import {
-  FLOW_STATUS_OPTIONS,
-  FLOW_STATUS_LABELS,
-} from '@/constants/taskConstants';
+import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
@@ -81,6 +82,10 @@ function TasksPageContent() {
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  // コンポーネントマウント時の時刻を保持（1週間判定用）
+  // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
+  const [mountTime] = useState(() => Date.now());
+
   // タスク一覧を取得（ページネーション対応）
   const tasksQuery = useTasks(selectedProjectType);
 
@@ -106,7 +111,8 @@ function TasksPageContent() {
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
-  const isFetchingNextPage = 'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
+  const isFetchingNextPage =
+    'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
   const fetchNextPage = 'fetchNextPage' in tasksQuery ? tasksQuery.fetchNextPage : undefined;
 
   // すべてのユーザーを取得（アサイン表示用）
@@ -124,7 +130,11 @@ function TasksPageContent() {
       if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
         return false;
       }
-      if (filterStatus !== 'all' && filterStatus !== 'not-completed' && task.flowStatus !== filterStatus) {
+      if (
+        filterStatus !== 'all' &&
+        filterStatus !== 'not-completed' &&
+        task.flowStatus !== filterStatus
+      ) {
         return false;
       }
 
@@ -195,6 +205,34 @@ function TasksPageContent() {
     activeSession,
   ]);
 
+  // ソートロジック: 未アサインかつ作成から1週間以内のタスクを上位表示
+  const sortedTasks = useMemo(() => {
+    if (!filteredTasks) return [];
+
+    // マウント時の時刻から1週間前を計算（子コンポーネントと同じ基準時刻を使用）
+    const oneWeekAgo = mountTime - 7 * 24 * 60 * 60 * 1000;
+
+    const isNewTask = (task: ExtendedTask) => {
+      return (
+        task.assigneeIds.length === 0 && task.createdAt && task.createdAt.getTime() >= oneWeekAgo
+      );
+    };
+
+    return [...filteredTasks].sort((a, b) => {
+      const aIsNew = isNewTask(a);
+      const bIsNew = isNewTask(b);
+
+      // 条件に合うタスクを最優先
+      if (aIsNew && !bIsNew) return -1;
+      if (!aIsNew && bIsNew) return 1;
+
+      // それ以外は既存のソート順（createdAt降順）を維持
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return bTime - aTime;
+    });
+  }, [filteredTasks, mountTime]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -209,7 +247,7 @@ function TasksPageContent() {
   ]);
 
   const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
-  const shouldRequestMoreData = hasNextPage && filteredTasks.length < requiredItemsForCurrentPage;
+  const shouldRequestMoreData = hasNextPage && sortedTasks.length < requiredItemsForCurrentPage;
 
   useEffect(() => {
     if (!fetchNextPage || !shouldRequestMoreData || isFetchingNextPage) {
@@ -220,10 +258,10 @@ function TasksPageContent() {
 
   const paginatedTasks = useMemo<ExtendedTask[]>(() => {
     const start = (currentPage - 1) * TASKS_PER_PAGE;
-    return filteredTasks.slice(start, start + TASKS_PER_PAGE);
-  }, [filteredTasks, currentPage]);
+    return sortedTasks.slice(start, start + TASKS_PER_PAGE);
+  }, [sortedTasks, currentPage]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / TASKS_PER_PAGE));
   const canGoPrev = currentPage > 1;
   const canGoNext = hasNextPage || currentPage < totalPages;
 
@@ -232,7 +270,7 @@ function TasksPageContent() {
   const paginatedRangeEnd =
     paginatedTasks.length > 0 ? paginatedRangeStart + paginatedTasks.length - 1 : 0;
 
-  const totalKnownCount = filteredTasks.length;
+  const totalKnownCount = sortedTasks.length;
   const rangeLabel =
     paginatedTasks.length === 0
       ? hasNextPage || isFetchingNextPage
@@ -256,8 +294,8 @@ function TasksPageContent() {
 
   // 選択されたタスクの詳細を取得
   const selectedTask = useMemo(
-    () => filteredTasks?.find((t: ExtendedTask) => t.id === selectedTaskId) || null,
-    [filteredTasks, selectedTaskId]
+    () => sortedTasks?.find((t: ExtendedTask) => t.id === selectedTaskId) || null,
+    [sortedTasks, selectedTaskId]
   );
 
   // 選択されたタスクが変更されたらフォームデータを初期化
@@ -308,7 +346,7 @@ function TasksPageContent() {
   // タスクが選択されたらフォームデータを初期化
   const handleTaskSelect = (taskId: string) => {
     setSelectedTaskId(taskId);
-    const task = filteredTasks?.find((t: ExtendedTask) => t.id === taskId);
+    const task = sortedTasks?.find((t: ExtendedTask) => t.id === taskId);
     if (task) {
       setTaskFormData({
         title: task.title,
@@ -350,7 +388,6 @@ function TasksPageContent() {
     }
     return formatDurationUtil(secs);
   };
-
 
   const handleStartTimer = async (projectType: string, taskId: string) => {
     if (!user) return;
@@ -580,7 +617,9 @@ function TasksPageContent() {
                 <InputLabel>ステータス</InputLabel>
                 <Select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as FlowStatus | 'all' | 'not-completed')}
+                  onChange={(e) =>
+                    setFilterStatus(e.target.value as FlowStatus | 'all' | 'not-completed')
+                  }
                   label="ステータス"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -786,7 +825,9 @@ function TasksPageContent() {
           <CustomButton
             variant="destructive"
             onClick={handleDeleteTask}
-            disabled={deleteConfirmTitle !== tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title}
+            disabled={
+              deleteConfirmTitle !== tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title
+            }
           >
             削除
           </CustomButton>

@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { Task, Label, User } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Button as CustomButton } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Button,
   Typography,
@@ -14,6 +16,7 @@ import {
   TableRow,
   Paper,
   CircularProgress,
+  Box,
 } from '@mui/material';
 import { PlayArrow, Stop } from '@mui/icons-material';
 import { format } from 'date-fns';
@@ -67,6 +70,22 @@ export function TaskListTable({
     return label?.name || '-';
   };
 
+  // コンポーネントマウント時の時刻を保持（1週間判定用）
+  // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
+  const [mountTime] = useState(() => Date.now());
+
+  // 現在時刻から1週間前の時刻を計算
+  const oneWeekAgo = useMemo(() => {
+    return mountTime - 7 * 24 * 60 * 60 * 1000;
+  }, [mountTime]);
+
+  // 未アサインかつ作成から1週間以内のタスクかどうかを判定
+  const isNewTask = (task: Task & { projectType: ProjectType }) => {
+    if (task.assigneeIds.length > 0) return false;
+    if (!task.createdAt) return false;
+    return task.createdAt.getTime() >= oneWeekAgo;
+  };
+
   // プロジェクトタイプを表示するかどうか
   const shouldShowProjectType = selectedProjectType === 'all' || selectedProjectType === undefined;
 
@@ -105,16 +124,20 @@ export function TaskListTable({
               return (
                 <TableRow key={task.id} onClick={() => onTaskSelect(task.id)} sx={finalRowSx}>
                   <TableCell sx={{ maxWidth: '400px' }}>
-                    <Typography
-                      sx={{
-                        fontWeight: 'medium',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {task.title}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {isNewTask(task) && <Badge variant="error">New</Badge>}
+                      <Typography
+                        sx={{
+                          fontWeight: 'medium',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1,
+                        }}
+                      >
+                        {task.title}
+                      </Typography>
+                    </Box>
                     {shouldShowProjectType && (
                       <Typography
                         variant="caption"
@@ -129,9 +152,7 @@ export function TaskListTable({
                     )}
                   </TableCell>
                   <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
-                  <TableCell>
-                    {task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}
-                  </TableCell>
+                  <TableCell>{task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -146,9 +167,7 @@ export function TaskListTable({
                         }}
                         disabled={isStoppingTimer}
                         sx={{
-                          animation: isStoppingTimer
-                            ? 'none'
-                            : 'pulse 2s ease-in-out infinite',
+                          animation: isStoppingTimer ? 'none' : 'pulse 2s ease-in-out infinite',
                           '@keyframes pulse': {
                             '0%, 100%': {
                               opacity: 1,
@@ -174,8 +193,7 @@ export function TaskListTable({
                           onStartTimer(task.projectType, task.id);
                         }}
                         disabled={
-                          (!!activeSession && activeSession.taskId !== task.id) ||
-                          isStartingTimer
+                          (!!activeSession && activeSession.taskId !== task.id) || isStartingTimer
                         }
                       >
                         {isStartingTimer ? (
@@ -195,4 +213,3 @@ export function TaskListTable({
     </TableContainer>
   );
 }
-
