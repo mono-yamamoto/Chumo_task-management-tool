@@ -16,11 +16,16 @@ import {
   useDeleteSession,
 } from '@/hooks/useTaskSessions';
 import { useParams } from 'next/navigation';
-import { useTimer } from '@/hooks/useTimer';
-import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
+import { useTimerActions } from '@/hooks/useTimerActions';
+import {
+  useDriveIntegration,
+  useFireIntegration,
+  useGoogleChatIntegration,
+} from '@/hooks/useIntegrations';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
+import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import {
@@ -43,8 +48,6 @@ import {
   DialogActions,
 } from '@mui/material';
 import {
-  PlayArrow,
-  Stop,
   FolderOpen,
   LocalFireDepartment,
   ChatBubbleOutline,
@@ -60,7 +63,6 @@ export default function TaskDetailPage() {
   const taskId = params?.taskId as string;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(true); // デフォルトで編集モード
-  const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
@@ -69,6 +71,18 @@ export default function TaskDetailPage() {
     taskId: string;
     sessionId: string;
   } | null>(null);
+  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
+    userId: user?.id,
+    queryClient,
+    setActiveSession,
+    extraInvalidateKeys: [['activeSession'], ['activeSession', taskId], ['sessionHistory', taskId]],
+    extraRefetchKeys: user?.id
+      ? [
+          ['activeSession', taskId, user.id],
+          ['sessionHistory', taskId],
+        ]
+      : [['sessionHistory', taskId]],
+  });
   // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
@@ -89,8 +103,8 @@ export default function TaskDetailPage() {
   // 区分ラベルは全プロジェクト共通
   const { data: labels } = useKubunLabels();
 
-  // 「個別」ラベルのIDを取得
-  const kobetsuLabelId = useMemo(() => {
+  // 「個別」ラベルのIDを取得（将来使用予定）
+  const _kobetsuLabelId = useMemo(() => {
     return labels?.find((label) => label.name === '個別')?.id || null;
   }, [labels]);
 
@@ -104,12 +118,7 @@ export default function TaskDetailPage() {
     queryFn: async () => {
       if (!task?.projectType || !db || !user) return null;
       const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const sessionsRef = collection(
-        db,
-        'projects',
-        task.projectType,
-        'taskSessions'
-      );
+      const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
       const q = query(
         sessionsRef,
         where('taskId', '==', taskId),
@@ -148,48 +157,11 @@ export default function TaskDetailPage() {
 
   const handleStartTimer = async () => {
     if (!user || !task) return;
-    try {
-      await startTimer.mutateAsync({
-        projectType: task.projectType,
-        taskId: task.id,
-        userId: user.id,
-      });
-      // アクティブセッションを再取得（グローバルとタスク固有の両方）
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] });
-      queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user.id] });
-      queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
-    } catch (error: any) {
-      console.error('Timer start error:', error);
-      if (error.message?.includes('稼働中')) {
-        alert('他のタイマーが稼働中です。停止してから開始してください。');
-      } else {
-        alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
-      }
-    }
+    await startTimerWithOptimistic(task.projectType, task.id);
   };
 
   const handleStopTimer = async () => {
-    if (!activeSession) return;
-    try {
-      await stopTimer.mutateAsync({
-        projectType: activeSession.projectType,
-        sessionId: activeSession.sessionId,
-      });
-      setActiveSession(null);
-      // アクティブセッションを再取得（グローバルとタスク固有の両方）
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] });
-      queryClient.invalidateQueries({ queryKey: ['activeSession', taskId] });
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', taskId] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', taskId, user?.id] });
-      queryClient.refetchQueries({ queryKey: ['sessionHistory', taskId] });
-    } catch (error: any) {
-      console.error('Timer stop error:', error);
-      alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
-    }
+    await stopActiveSession(activeSession);
   };
 
   const handleDriveCreate = async () => {
@@ -283,7 +255,6 @@ export default function TaskDetailPage() {
   //   }
   // };
 
-
   const handleEditSession = (session: any) => {
     setEditingSession(session);
     const startedAt = session.startedAt ? new Date(session.startedAt) : new Date();
@@ -376,7 +347,6 @@ export default function TaskDetailPage() {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-
     if (!window.confirm('このセッションを削除しますか？')) return;
     if (!task?.projectType) return;
     await deleteSession.mutateAsync({
@@ -434,9 +404,7 @@ export default function TaskDetailPage() {
             {(() => {
               // バックログURLを取得（優先順位: backlogUrl > external.url > タイトルから生成）
               const backlogUrl =
-                task.backlogUrl ||
-                task.external?.url ||
-                generateBacklogUrlFromTitle(task.title);
+                task.backlogUrl || task.external?.url || generateBacklogUrlFromTitle(task.title);
               const issueKey = task.external?.issueKey || null;
 
               if (backlogUrl) {
@@ -642,57 +610,14 @@ export default function TaskDetailPage() {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {activeSession?.taskId === task.id ? (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="error"
-                      onClick={handleStopTimer}
-                      disabled={stopTimer.isPending}
-                      sx={{
-                        animation: stopTimer.isPending ? 'none' : 'pulse 2s ease-in-out infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': {
-                            opacity: 1,
-                          },
-                          '50%': {
-                            opacity: 0.8,
-                          },
-                        },
-                      }}
-                    >
-                      {stopTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                          停止中...
-                        </>
-                      ) : (
-                        <>
-                          <Stop fontSize="small" sx={{ mr: 1 }} />
-                          タイマー停止
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <CustomButton
-                      fullWidth
-                      variant="outline"
-                      onClick={handleStartTimer}
-                      disabled={!!activeSession || startTimer.isPending}
-                    >
-                      {startTimer.isPending ? (
-                        <>
-                          <CircularProgress size={16} sx={{ color: 'inherit', mr: 1 }} />
-                          開始中...
-                        </>
-                      ) : (
-                        <>
-                          <PlayArrow fontSize="small" sx={{ mr: 1 }} />
-                          タイマー開始
-                        </>
-                      )}
-                    </CustomButton>
-                  )}
+                  <TaskTimerButton
+                    isActive={activeSession?.taskId === task.id}
+                    onStart={handleStartTimer}
+                    onStop={handleStopTimer}
+                    isStopping={stopTimer.isPending}
+                    startDisabled={!!activeSession}
+                    fullWidth
+                  />
                 </Box>
                 <Box
                   sx={{

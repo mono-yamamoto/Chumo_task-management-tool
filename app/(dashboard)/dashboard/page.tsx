@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
 import { useUpdateTask } from '@/hooks/useTasks';
 import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
-import { useTimer } from '@/hooks/useTimer';
+import { useTimerActions } from '@/hooks/useTimerActions';
 import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
@@ -40,7 +40,6 @@ function DashboardPageContent() {
   const queryClient = useQueryClient();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskFormData, setTaskFormData] = useState<Partial<Task> | null>(null);
-  const { startTimer, stopTimer } = useTimer();
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
@@ -49,6 +48,11 @@ function DashboardPageContent() {
     taskId: string;
     sessionId: string;
   } | null>(null);
+  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
+    userId: user?.id,
+    queryClient,
+    setActiveSession,
+  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -210,44 +214,11 @@ function DashboardPageContent() {
   };
 
   const handleStartTimer = async (projectType: string, taskId: string) => {
-    if (!user) return;
-    try {
-      await startTimer.mutateAsync({
-        projectType: projectType,
-        taskId,
-        userId: user.id,
-      });
-      // アクティブセッションを再取得
-      queryClient.invalidateQueries({ queryKey: ['activeSession', user.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user.id] });
-    } catch (error: any) {
-      console.error('Timer start error:', error);
-      if (error.message?.includes('稼働中')) {
-
-        alert('他のタイマーが稼働中です。停止してから開始してください。');
-      } else {
-
-        alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
-      }
-    }
+    await startTimerWithOptimistic(projectType, taskId);
   };
 
   const handleStopTimer = async () => {
-    if (!activeSession) return;
-    try {
-      await stopTimer.mutateAsync({
-        projectType: activeSession.projectType,
-        sessionId: activeSession.sessionId,
-      });
-      setActiveSession(null);
-      // アクティブセッションを再取得
-      queryClient.invalidateQueries({ queryKey: ['activeSession', user?.id] });
-      queryClient.refetchQueries({ queryKey: ['activeSession', user?.id] });
-    } catch (error: any) {
-      console.error('Timer stop error:', error);
-
-      alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
-    }
+    await stopActiveSession(activeSession);
   };
 
   const handleDriveCreate = async (projectType: string, taskId: string) => {
@@ -386,7 +357,6 @@ function DashboardPageContent() {
           activeSession={activeSession}
           onStartTimer={handleStartTimer}
           onStopTimer={handleStopTimer}
-          isStartingTimer={startTimer.isPending}
           isStoppingTimer={stopTimer.isPending}
           kobetsuLabelId={kobetsuLabelId}
           emptyMessage="自分のタスクがありません"
@@ -419,7 +389,6 @@ function DashboardPageContent() {
         activeSession={activeSession}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
-        isStartingTimer={startTimer.isPending}
         isStoppingTimer={stopTimer.isPending}
         onDriveCreate={handleDriveCreate}
         isCreatingDrive={createDriveFolder.isPending}
