@@ -99,7 +99,7 @@ export default function ReportsPage() {
     a.download = `report_${activeTab}_${fromDate}_${toDate}.csv`;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
     window.URL.revokeObjectURL(url);
   };
 

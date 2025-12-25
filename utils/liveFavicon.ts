@@ -21,6 +21,7 @@ const ANIMATION_PARAMS = {
 
 // 通常のfaviconパス（Next.jsのApp Routerではapp/icon.pngが自動的に/favicon.icoとして提供される）
 const NORMAL_FAVICON_PATH = '/icon.png';
+const LIVE_FAVICON_ATTR = 'data-live-favicon';
 
 // モジュール内の状態管理
 // eslint-disable-next-line no-undef
@@ -51,17 +52,20 @@ function initCanvas(): void {
 function getOrCreateFaviconLink(): HTMLLinkElement | null {
   if (typeof document === 'undefined') return null;
 
-  // 既存のfavicon link要素をすべて削除（複数のパターンに対応）
-  const existingLinks = document.querySelectorAll(
-    "link[rel='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']"
+  // eslint-disable-next-line no-undef
+  const existingLink = document.querySelector<HTMLLinkElement>(
+    `link[rel='icon'][${LIVE_FAVICON_ATTR}]`
   );
-  existingLinks.forEach((link) => link.remove());
+  if (existingLink) {
+    return existingLink;
+  }
 
   // 新しいfavicon link要素を作成
   const link = document.createElement('link');
   link.rel = 'icon';
   link.type = 'image/png';
-  document.head.appendChild(link);
+  link.setAttribute(LIVE_FAVICON_ATTR, 'true');
+  document.head?.appendChild(link);
 
   return link;
 }
@@ -80,13 +84,6 @@ function setFaviconFromCanvas(): void {
       // タイムスタンプを追加してキャッシュを回避
       const timestamp = Date.now();
       link.href = `${dataURL}#${timestamp}`;
-
-      // 強制的に再読み込みさせるため、一度削除して再追加
-      const parent = link.parentNode;
-      if (parent) {
-        parent.removeChild(link);
-        parent.appendChild(link);
-      }
     }
   } catch (error) {
     console.error('Failed to update favicon:', error);
@@ -168,15 +165,24 @@ export function stopLiveFavicon(): void {
     animationTimer = null;
   }
 
-  // 既存のfavicon link要素をすべて削除
-  const existingLinks = document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon']");
-  existingLinks.forEach((link) => link.remove());
+  // ライブ用のfaviconだけを削除
+  // eslint-disable-next-line no-undef
+  const liveLink = document.querySelector<HTMLLinkElement>(
+    `link[rel='icon'][${LIVE_FAVICON_ATTR}]`
+  );
+  liveLink?.remove();
 
-  // 通常のfaviconを再作成
-  const link = document.createElement('link');
-  link.rel = 'icon';
-  link.href = NORMAL_FAVICON_PATH;
-  document.head.appendChild(link);
+  // 通常のfaviconがなければ再作成
+  // eslint-disable-next-line no-undef
+  const defaultLink = document.querySelector<HTMLLinkElement>(
+    "link[rel='icon']:not([data-live-favicon])"
+  );
+  if (!defaultLink) {
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.href = NORMAL_FAVICON_PATH;
+    document.head?.appendChild(link);
+  }
 
   // 回転角度をリセット
   rotationAngle = 0;
