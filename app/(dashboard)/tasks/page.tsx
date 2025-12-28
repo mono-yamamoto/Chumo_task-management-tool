@@ -79,25 +79,11 @@ function TasksPageContent() {
   // タスク一覧を取得（ページネーション対応）
   const tasksQuery = useTasks(selectedProjectType);
 
-  // useInfiniteQueryの場合はpagesをフラット化、useQueryの場合はそのまま使用
+  // useInfiniteQueryのpagesをフラット化
   const tasks = useMemo<Task[]>(() => {
     if (!tasksQuery.data) return [];
-
-    // useInfiniteQueryの場合
-    if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
-      return tasksQuery.data.pages.flatMap((page: { tasks?: Task[] }) => {
-        if (!page || !page.tasks) return [];
-        return page.tasks as Task[];
-      });
-    }
-
-    // useQueryの場合（'all'の時）
-    if (Array.isArray(tasksQuery.data)) {
-      return tasksQuery.data as Task[];
-    }
-
-    return [];
-  }, [tasksQuery.data]) as Task[];
+    return tasksQuery.data.pages.flatMap((page) => page.tasks);
+  }, [tasksQuery.data]);
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
@@ -260,20 +246,45 @@ function TasksPageContent() {
     setTaskFormData,
   });
 
-  useEffect(() => {
-    // フィルタ変更時にページを1に戻す意図的な更新
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  const handleFilterTitleChange = (value: string) => {
+    setFilterTitle(value);
     setCurrentPage(1);
-  }, [
-    selectedProjectType,
-    filterStatus,
-    filterAssignee,
-    filterLabel,
-    filterTitle,
-    filterTimerActive,
-    filterItUpDateMonth,
-    filterReleaseDateMonth,
-  ]);
+  };
+
+  const handleProjectTypeChange = (value: ProjectType | 'all') => {
+    setSelectedProjectType(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterStatusChange = (value: FlowStatus | 'all' | 'not-completed') => {
+    setFilterStatus(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterAssigneeChange = (value: string) => {
+    setFilterAssignee(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterLabelChange = (value: string) => {
+    setFilterLabel(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterTimerActiveChange = (value: string) => {
+    setFilterTimerActive(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterItUpDateMonthChange = (value: string) => {
+    setFilterItUpDateMonth(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterReleaseDateMonthChange = (value: string) => {
+    setFilterReleaseDateMonth(value);
+    setCurrentPage(1);
+  };
 
   const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
   const shouldRequestMoreData = hasNextPage && sortedTasks.length < requiredItemsForCurrentPage;
@@ -452,7 +463,7 @@ function TasksPageContent() {
             <Grid size={{ xs: 12 }}>
               <TaskSearchForm
                 value={filterTitle}
-                onChange={setFilterTitle}
+                onChange={handleFilterTitleChange}
                 placeholder="タイトルで検索..."
                 label="タイトル検索"
               />
@@ -464,7 +475,7 @@ function TasksPageContent() {
                 <InputLabel>プロジェクト</InputLabel>
                 <Select
                   value={selectedProjectType}
-                  onChange={(e) => setSelectedProjectType(e.target.value as ProjectType | 'all')}
+                  onChange={(e) => handleProjectTypeChange(e.target.value as ProjectType | 'all')}
                   label="プロジェクト"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -482,7 +493,7 @@ function TasksPageContent() {
                 <Select
                   value={filterStatus}
                   onChange={(e) =>
-                    setFilterStatus(e.target.value as FlowStatus | 'all' | 'not-completed')
+                    handleFilterStatusChange(e.target.value as FlowStatus | 'all' | 'not-completed')
                   }
                   label="ステータス"
                 >
@@ -501,7 +512,7 @@ function TasksPageContent() {
                 <InputLabel>アサイン</InputLabel>
                 <Select
                   value={filterAssignee}
-                  onChange={(e) => setFilterAssignee(e.target.value)}
+                  onChange={(e) => handleFilterAssigneeChange(e.target.value)}
                   label="アサイン"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -518,7 +529,7 @@ function TasksPageContent() {
                 <InputLabel>区分</InputLabel>
                 <Select
                   value={filterLabel}
-                  onChange={(e) => setFilterLabel(e.target.value)}
+                  onChange={(e) => handleFilterLabelChange(e.target.value)}
                   label="区分"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -547,7 +558,7 @@ function TasksPageContent() {
                 <InputLabel>タイマー</InputLabel>
                 <Select
                   value={filterTimerActive}
-                  onChange={(e) => setFilterTimerActive(e.target.value)}
+                  onChange={(e) => handleFilterTimerActiveChange(e.target.value)}
                   label="タイマー"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -562,7 +573,7 @@ function TasksPageContent() {
                 label="ITアップ日（月）"
                 type="month"
                 value={filterItUpDateMonth}
-                onChange={(e) => setFilterItUpDateMonth(e.target.value)}
+                onChange={(e) => handleFilterItUpDateMonthChange(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -572,7 +583,7 @@ function TasksPageContent() {
                 label="リリース日（月）"
                 type="month"
                 value={filterReleaseDateMonth}
-                onChange={(e) => setFilterReleaseDateMonth(e.target.value)}
+                onChange={(e) => handleFilterReleaseDateMonthChange(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>

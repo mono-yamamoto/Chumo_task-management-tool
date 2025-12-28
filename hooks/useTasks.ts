@@ -9,6 +9,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import { fetchTaskByIdAcrossProjects, fetchTaskPage } from '@/lib/firestore/repositories/taskRepository';
 type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
+type TaskPage = {
+  tasks: (Task & { projectType: ProjectType })[];
+  lastDoc: QueryDocumentSnapshot | ProjectCursorMap | null;
+  hasMore: boolean;
+};
 
 /**
  * タスク一覧を取得するカスタムフック（無限スクロール対応）
@@ -22,7 +27,7 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
     projectType === undefined || projectType === null ? 'all' : projectType;
   const isAllProjects = normalizedProjectType === 'all';
 
-  const infiniteQuery = useInfiniteQuery({
+  const infiniteQuery = useInfiniteQuery<TaskPage>({
     queryKey: queryKeys.tasks(isAllProjects ? 'all' : normalizedProjectType),
     queryFn: async ({
       pageParam,
@@ -124,7 +129,7 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
     enabled: !!db,
   });
 
-  return infiniteQuery as any;
+  return infiniteQuery;
 }
 
 /**
