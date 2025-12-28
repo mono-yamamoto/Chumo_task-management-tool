@@ -3,28 +3,17 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Box, Typography, Alert, Container } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useLoginErrorMessage } from '@/hooks/useLoginErrorMessage';
+import { useEffect, Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
 function LoginContent() {
   const { login, user, loading } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const errorParam = params.get('error');
-      if (errorParam === 'not_allowed') {
-        // 次のレンダリングサイクルでsetStateを実行
-        setTimeout(() => {
-          setError('このアカウントは許可されていません。管理者に連絡してください。');
-        }, 0);
-      }
-    }
-  }, []);
+  const searchParams = useSearchParams();
+  const { error, setError } = useLoginErrorMessage({ searchParams });
 
   useEffect(() => {
     if (user) {
