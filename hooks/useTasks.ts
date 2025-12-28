@@ -7,6 +7,7 @@ import {
   useQueryClient,
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
 import { addDoc, updateDoc, deleteDoc, doc, collection, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
@@ -27,7 +28,7 @@ type TaskPage = {
  */
 export function useTasks(
   projectType: ProjectType | 'all' | undefined = 'all'
-): UseInfiniteQueryResult<TaskPage, Error> {
+): UseInfiniteQueryResult<InfiniteData<TaskPage>, Error> {
   const INITIAL_LIMIT = 10;
   const LOAD_MORE_LIMIT = 10;
 
