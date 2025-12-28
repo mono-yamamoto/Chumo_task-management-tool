@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { FlowStatus } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
@@ -28,6 +27,8 @@ import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
+import { queryKeys } from '@/lib/queryKeys';
+import { fetchActiveSessionForTask } from '@/lib/firestore/repositories/sessionRepository';
 import {
   Button,
   Box,
@@ -73,20 +74,22 @@ export default function TaskDetailPage() {
   } | null>(null);
 
   // 依存配列の安定化のため、extraInvalidateKeysとextraRefetchKeysをuseMemoでメモ化
-  const extraInvalidateKeys = useMemo(
-    () => [['activeSession'], ['activeSession', taskId], ['sessionHistory', taskId]],
-    [taskId]
-  );
+  const extraInvalidateKeys = useMemo(() => {
+    return [
+      queryKeys.activeSession(user?.id ?? null, taskId),
+      queryKeys.sessionHistory(taskId),
+    ];
+  }, [taskId, user]);
 
   const extraRefetchKeys = useMemo(
     () =>
       user?.id
         ? [
-            ['activeSession', taskId, user.id],
-            ['sessionHistory', taskId],
+            queryKeys.activeSession(user.id, taskId),
+            queryKeys.sessionHistory(taskId),
           ]
-        : [['sessionHistory', taskId]],
-    [taskId, user?.id]
+        : [queryKeys.sessionHistory(taskId)],
+    [taskId, user]
   );
 
   const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
@@ -127,31 +130,21 @@ export default function TaskDetailPage() {
   // アクティブなセッション（未終了）を取得
   // タスク固有のアクティブセッションを取得するため、カスタムクエリを使用
   useQuery({
-    queryKey: ['activeSession', taskId, user?.id],
+    queryKey: queryKeys.activeSession(user?.id ?? null, taskId),
     queryFn: async () => {
-      if (!task?.projectType || !db || !user) return null;
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const sessionsRef = collection(db, 'projects', task.projectType, 'taskSessions');
-      const q = query(
-        sessionsRef,
-        where('taskId', '==', taskId),
-        where('userId', '==', user.id),
-        where('endedAt', '==', null)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const session = snapshot.docs[0];
+      if (!task?.projectType || !user) return null;
+      const activeSessionInfo = await fetchActiveSessionForTask({
+        projectType: task.projectType,
+        taskId,
+        userId: user.id,
+      });
+      if (activeSessionInfo) {
         setActiveSession({
-          projectType: task.projectType,
+          projectType: activeSessionInfo.projectType,
           taskId,
-          sessionId: session.id,
+          sessionId: activeSessionInfo.sessionId,
         });
-        return {
-          id: session.id,
-          ...session.data(),
-          startedAt: session.data().startedAt?.toDate(),
-          endedAt: null,
-        };
+        return activeSessionInfo.session;
       }
       setActiveSession(null);
       return null;
@@ -185,10 +178,10 @@ export default function TaskDetailPage() {
         taskId: task.id,
       });
       // タスク詳細を更新（URLが反映されるように）
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
       // タスク一覧も更新
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
 
       if (result.warning) {
         // チェックシート作成エラーがある場合（警告として表示）
@@ -209,8 +202,8 @@ export default function TaskDetailPage() {
     try {
       await createFireIssue.mutateAsync({ projectType: task.projectType, taskId: task.id });
       // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
     } catch (error: any) {
       console.error('Fire create error:', error);
       alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
@@ -231,8 +224,8 @@ export default function TaskDetailPage() {
         taskId: task.id,
         taskUrl,
       });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
     } catch (error: any) {
       console.error('Chat thread create error:', error);
       alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
@@ -365,6 +358,7 @@ export default function TaskDetailPage() {
     await deleteSession.mutateAsync({
       projectType: task.projectType,
       sessionId,
+      taskId: task.id,
     });
   };
 

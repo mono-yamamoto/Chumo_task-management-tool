@@ -20,6 +20,7 @@ import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstan
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   Box,
   Typography,
@@ -405,10 +406,10 @@ function TasksPageContent() {
     try {
       const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
       // タスク一覧と詳細を更新（URLが反映されるように）
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
 
       if (result.warning) {
         // チェックシート作成エラーがある場合（警告として表示）
@@ -428,8 +429,8 @@ function TasksPageContent() {
     try {
       await createFireIssue.mutateAsync({ projectType: projectType, taskId });
       // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // タスク一覧を更新
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') }); // タスク一覧を更新
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
     } catch (error: any) {
       console.error('Fire create error:', error);
       alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
@@ -445,10 +446,10 @@ function TasksPageContent() {
       }
 
       await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
     } catch (error: any) {
       console.error('Chat thread create error:', error);
       alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);

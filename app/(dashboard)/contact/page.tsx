@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import {
-  Contact,
   ContactType,
   DeviceType,
   PCOSType,
@@ -30,6 +29,8 @@ import {
 } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 import { ContactFormDrawer } from '@/components/Drawer/ContactFormDrawer';
+import { queryKeys } from '@/lib/queryKeys';
+import { fetchContactsByStatus } from '@/lib/firestore/repositories/contactRepository';
 
 function getContactTypeLabel(type: ContactType): string {
   switch (type) {
@@ -87,38 +88,20 @@ export default function ContactPage() {
 
   // 未解決のお問い合わせを取得
   const { data: pendingContacts, isLoading: isLoadingPending } = useQuery({
-    queryKey: ['contacts', 'pending'],
+    queryKey: queryKeys.contacts('pending'),
     queryFn: async () => {
       if (!db) return [];
-      const contactsRef = collection(db, 'contacts');
-      const q = query(contactsRef, orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const allContacts = snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-        createdAt: docItem.data().createdAt?.toDate() || new Date(),
-        updatedAt: docItem.data().updatedAt?.toDate() || new Date(),
-      })) as Contact[];
-      return allContacts.filter((contact) => contact.status === 'pending');
+      return fetchContactsByStatus('pending');
     },
     enabled: !!user && !!db,
   });
 
   // 解決済みのお問い合わせを取得
   const { data: resolvedContacts, isLoading: isLoadingResolved } = useQuery({
-    queryKey: ['contacts', 'resolved'],
+    queryKey: queryKeys.contacts('resolved'),
     queryFn: async () => {
       if (!db) return [];
-      const contactsRef = collection(db, 'contacts');
-      const q = query(contactsRef, orderBy('updatedAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const allContacts = snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-        createdAt: docItem.data().createdAt?.toDate() || new Date(),
-        updatedAt: docItem.data().updatedAt?.toDate() || new Date(),
-      })) as Contact[];
-      return allContacts.filter((contact) => contact.status === 'resolved');
+      return fetchContactsByStatus('resolved');
     },
     enabled: !!user && !!db,
   });
@@ -138,7 +121,8 @@ export default function ContactPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts('pending') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts('resolved') });
     },
   });
 
@@ -259,7 +243,8 @@ export default function ContactPage() {
       setErrorScreenshotFile(null);
       setErrorScreenshotPreview(null);
       setShowForm(false);
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts('pending') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts('resolved') });
     },
     onError: (error: Error) => {
       setMessage({ type: 'error', text: error.message });

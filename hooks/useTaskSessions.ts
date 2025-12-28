@@ -1,30 +1,14 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  doc,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  Timestamp,
-} from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { PROJECT_TYPES } from '@/constants/projectTypes';
-
-export interface TaskSession {
-  id: string;
-  taskId: string;
-  userId: string;
-  startedAt: Date;
-  endedAt: Date | null;
-  durationSec: number;
-  note?: string;
-}
+import { TaskSession } from '@/types';
+import { queryKeys } from '@/lib/queryKeys';
+import {
+  fetchActiveSessionsByUser,
+  fetchTaskSessions,
+} from '@/lib/firestore/repositories/sessionRepository';
 
 /**
  * タスクのセッション履歴を取得するカスタムフック
@@ -33,59 +17,10 @@ export interface TaskSession {
  */
 export function useTaskSessions(projectType: string | null, taskId: string | null) {
   return useQuery({
-    queryKey: ['taskSessions', taskId],
+    queryKey: taskId ? queryKeys.taskSessions(taskId) : ['taskSessions', null],
     queryFn: async () => {
-      if (!projectType || !db || !taskId) return [];
-
-      try {
-        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-        const q = query(
-          sessionsRef,
-          where('taskId', '==', taskId),
-          orderBy('startedAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map((docItem) => {
-          const data = docItem.data();
-          return {
-            id: docItem.id,
-            ...data,
-            startedAt: data.startedAt?.toDate(),
-            endedAt: data.endedAt?.toDate() || null,
-            durationSec: data.durationSec ?? 0,
-          } as TaskSession;
-        });
-      } catch (error: any) {
-        // インデックスエラーの場合、orderByなしで再試行
-        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
-          try {
-            const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-            const q = query(sessionsRef, where('taskId', '==', taskId));
-            const snapshot = await getDocs(q);
-            const sessions = snapshot.docs.map((docItem) => {
-              const data = docItem.data();
-              return {
-                id: docItem.id,
-                ...data,
-                startedAt: data.startedAt?.toDate(),
-                endedAt: data.endedAt?.toDate() || null,
-                durationSec: data.durationSec ?? 0,
-              } as TaskSession;
-            });
-            // クライアント側でソート
-            return sessions.sort((a, b) => {
-              const aTime = a.startedAt?.getTime() || 0;
-              const bTime = b.startedAt?.getTime() || 0;
-              return bTime - aTime;
-            });
-          } catch (retryError) {
-            console.error('Error fetching sessions:', retryError);
-            return [];
-          }
-        }
-        console.error('Error fetching sessions:', error);
-        return [];
-      }
+      if (!projectType || !taskId) return [];
+      return fetchTaskSessions(projectType, taskId);
     },
     enabled: !!projectType && !!taskId,
     retry: false,
@@ -106,43 +41,24 @@ export function useActiveSession(
   } | null) => void
 ) {
   return useQuery({
-    queryKey: ['activeSession', userId],
+    queryKey: queryKeys.activeSession(userId ?? null),
     queryFn: async () => {
       if (!userId || !db) return null;
-      const allSessions: any[] = [];
-
-      // すべてのプロジェクトタイプからアクティブセッションを取得
-      for (const projectType of PROJECT_TYPES) {
-        const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-        const q = query(
-          sessionsRef,
-          where('userId', '==', userId),
-          where('endedAt', '==', null)
-        );
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((docItem) => {
-          allSessions.push({
-            id: docItem.id,
-            projectType,
-            taskId: docItem.data().taskId,
-            ...docItem.data(),
-          });
-        });
-      }
+      const allSessions = await fetchActiveSessionsByUser(userId);
 
       if (allSessions.length > 0) {
-        const session = allSessions[0];
+        const firstSession = allSessions[0];
         const activeSession = {
-          projectType: session.projectType,
-          taskId: session.taskId,
-          sessionId: session.id,
+          projectType: firstSession.projectType,
+          taskId: firstSession.session.taskId,
+          sessionId: firstSession.sessionId,
         };
         onActiveSessionChange?.(activeSession);
-        return session;
-      } else {
-        onActiveSessionChange?.(null);
-        return null;
+        return firstSession.session;
       }
+
+      onActiveSessionChange?.(null);
+      return null;
     },
     enabled: !!userId && !!db,
     refetchInterval: 5000, // 5秒ごとに再取得
@@ -189,8 +105,12 @@ export function useAddSession() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['taskSessions', variables.sessionData.taskId] });
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory', variables.sessionData.taskId] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.taskSessions(variables.sessionData.taskId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionHistory(variables.sessionData.taskId),
+      });
     },
   });
 }
@@ -274,11 +194,18 @@ export function useUpdateSession() {
 
       await updateDoc(sessionRef, updateData);
     },
-    onSuccess: () => {
-      // taskIdを取得する必要があるが、updatesに含まれていない場合は既存セッションから取得
-      // ここでは簡略化のため、taskSessionsクエリを無効化
-      queryClient.invalidateQueries({ queryKey: ['taskSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory'] });
+    onSuccess: (_result, variables) => {
+      if (variables.existingSession?.taskId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.taskSessions(variables.existingSession.taskId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.sessionHistory(variables.existingSession.taskId),
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['taskSessions'] });
+        queryClient.invalidateQueries({ queryKey: ['sessionHistory'] });
+      }
     },
   });
 }
@@ -293,19 +220,20 @@ export function useDeleteSession() {
     mutationFn: async ({
       projectType,
       sessionId,
+      taskId: _taskId,
     }: {
       projectType: string;
       sessionId: string;
+      taskId: string;
     }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
       const sessionRef = doc(db, 'projects', projectType, 'taskSessions', sessionId);
       await deleteDoc(sessionRef);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['taskSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['sessionHistory'] });
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.taskSessions(variables.taskId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessionHistory(variables.taskId) });
     },
   });
 }
-

@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { useTimer } from '@/hooks/useTimer';
+import { queryKeys } from '@/lib/queryKeys';
 
 type ActiveSession = {
   projectType: string;
@@ -58,7 +59,7 @@ export function useTimerActions({
         if (result?.sessionId) {
           setActiveSession({ projectType, taskId, sessionId: result.sessionId });
         }
-        const baseKeys = userId ? ([['activeSession', userId]] as QueryKey[]) : [];
+        const baseKeys = userId ? ([queryKeys.activeSession(userId)] as QueryKey[]) : [];
         invalidateKeys(baseKeys);
         invalidateKeys(extraInvalidateKeys);
         refetchKeys(baseKeys);
@@ -93,7 +94,7 @@ export function useTimerActions({
           sessionId: activeSession.sessionId,
         });
         setActiveSession(null);
-        const baseKeys = userId ? ([['activeSession', userId]] as QueryKey[]) : [];
+        const baseKeys = userId ? ([queryKeys.activeSession(userId)] as QueryKey[]) : [];
         invalidateKeys(baseKeys);
         invalidateKeys(extraInvalidateKeys);
         refetchKeys(baseKeys);

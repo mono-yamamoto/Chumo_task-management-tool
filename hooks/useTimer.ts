@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStartTimerUrl, getStopTimerUrl } from '@/utils/functions';
+import { queryKeys } from '@/lib/queryKeys';
 
 export function useTimer() {
   const queryClient = useQueryClient();
@@ -41,7 +42,7 @@ export function useTimer() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
     },
   });
 
@@ -72,7 +73,7 @@ export function useTimer() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
     },
   });
 
@@ -81,4 +82,3 @@ export function useTimer() {
     stopTimer,
   };
 }
-

@@ -2,12 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  collection,
-  getDocs,
-  doc,
-  deleteDoc,
-} from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
@@ -17,7 +12,6 @@ import { useUpdateTask } from '@/hooks/useTasks';
 import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTimerActions } from '@/hooks/useTimerActions';
 import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
-import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
@@ -34,6 +28,8 @@ import {
 } from '@mui/material';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
+import { queryKeys } from '@/lib/queryKeys';
+import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskRepository';
 
 function DashboardPageContent() {
   const { user } = useAuth();
@@ -60,38 +56,10 @@ function DashboardPageContent() {
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ['dashboard-tasks', user?.id],
+    queryKey: queryKeys.dashboardTasks(user?.id),
     queryFn: async () => {
       if (!db || !user) return [];
-
-      const allTasks: (Task & { projectType: ProjectType })[] = [];
-
-      // すべてのプロジェクトタイプからタスクを取得
-      for (const projectType of PROJECT_TYPES) {
-        const tasksRef = collection(db, 'projects', projectType, 'tasks');
-        const tasksSnapshot = await getDocs(tasksRef);
-
-        tasksSnapshot.docs.forEach((docItem) => {
-          const taskData = {
-            id: docItem.id,
-            projectType,
-            ...docItem.data(),
-            createdAt: docItem.data().createdAt?.toDate(),
-            updatedAt: docItem.data().updatedAt?.toDate(),
-            itUpDate: docItem.data().itUpDate?.toDate() || null,
-            releaseDate: docItem.data().releaseDate?.toDate() || null,
-            dueDate: docItem.data().dueDate?.toDate() || null,
-            completedAt: docItem.data().completedAt?.toDate() || null,
-          } as Task & { projectType: ProjectType };
-
-          // 自分のタスクかつ完了以外のもののみを追加
-          if (taskData.assigneeIds.includes(user.id) && taskData.flowStatus !== '完了') {
-            allTasks.push(taskData);
-          }
-        });
-      }
-
-      return allTasks;
+      return fetchAssignedOpenTasks(user.id);
     },
     enabled: !!user && !!db,
   });
@@ -224,11 +192,11 @@ function DashboardPageContent() {
   const handleDriveCreate = async (projectType: string, taskId: string) => {
     try {
       const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
 
       if (result.warning) {
         // チェックシート作成エラーがある場合（警告として表示）
@@ -250,9 +218,9 @@ function DashboardPageContent() {
     try {
       await createFireIssue.mutateAsync({ projectType: projectType, taskId });
       // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
     } catch (error: any) {
       console.error('Fire create error:', error);
 
@@ -269,9 +237,9 @@ function DashboardPageContent() {
       }
 
       await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
     } catch (error: any) {
       console.error('Chat thread create error:', error);
       alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
@@ -308,9 +276,9 @@ function DashboardPageContent() {
       const taskRef = doc(db, 'projects', deleteProjectType, 'tasks', deleteTaskId);
       await deleteDoc(taskRef);
 
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
 
       if (selectedTaskId === deleteTaskId) {
         setSelectedTaskId(null);

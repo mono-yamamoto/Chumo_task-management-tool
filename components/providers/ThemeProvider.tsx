@@ -5,10 +5,13 @@ import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { CssBaseline } from '@mui/material';
 import { ReactNode, useMemo } from 'react';
+import { useServerInsertedHTML } from 'next/navigation';
 
 // Emotionキャッシュを作成（SSRとクライアント側で同じキーを使用）
 const createEmotionCache = () => {
-  return createCache({ key: 'mui', prepend: true });
+  const cache = createCache({ key: 'mui', prepend: true });
+  cache.compat = true;
+  return cache;
 };
 
 const theme = createTheme({
@@ -35,30 +38,34 @@ const theme = createTheme({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // クライアント側でのみキャッシュを作成（SSR時はundefined）
-  const emotionCache = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return createEmotionCache();
-    }
-    return null;
-  }, []);
+  const emotionCache = useMemo(() => createEmotionCache(), []);
 
-  // クライアント側ではCacheProviderでラップ、サーバー側では直接MUIThemeProviderを使用
-  if (emotionCache) {
+  useServerInsertedHTML(() => {
+    const inserted = emotionCache.inserted;
+    const names = Object.keys(inserted).filter((name) => inserted[name] !== true);
+    if (names.length === 0) {
+      return null;
+    }
+
+    let styles = '';
+    names.forEach((name) => {
+      styles += inserted[name];
+    });
+
     return (
-      <CacheProvider value={emotionCache}>
-        <MUIThemeProvider theme={theme}>
-          <CssBaseline />
-          {children}
-        </MUIThemeProvider>
-      </CacheProvider>
+      <style
+        data-emotion={`${emotionCache.key} ${names.join(' ')}`}
+        dangerouslySetInnerHTML={{ __html: styles }}
+      />
     );
-  }
+  });
 
   return (
-    <MUIThemeProvider theme={theme}>
-      <CssBaseline />
-      {children}
-    </MUIThemeProvider>
+    <CacheProvider value={emotionCache}>
+      <MUIThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </MUIThemeProvider>
+    </CacheProvider>
   );
 }
