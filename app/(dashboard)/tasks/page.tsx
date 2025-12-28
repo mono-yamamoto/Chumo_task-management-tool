@@ -7,19 +7,13 @@ import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
-import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
-import { useTimerActions } from '@/hooks/useTimerActions';
-import {
-  useDriveIntegration,
-  useFireIntegration,
-  useGoogleChatIntegration,
-} from '@/hooks/useIntegrations';
+import { useTaskSessions } from '@/hooks/useTaskSessions';
+import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
+import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { useTaskStore } from '@/stores/taskStore';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
-import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
-import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { queryKeys } from '@/lib/queryKeys';
 import {
   Box,
@@ -73,14 +67,6 @@ function TasksPageContent() {
     setActiveSession,
     resetFilters,
   } = useTaskStore();
-  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
-    userId: user?.id,
-    queryClient,
-    setActiveSession,
-  });
-  const { createDriveFolder } = useDriveIntegration();
-  const { createFireIssue } = useFireIntegration();
-  const { createGoogleChatThread } = useGoogleChatIntegration();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -126,6 +112,27 @@ function TasksPageContent() {
   // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
+  const {
+    activeSession: activeSessionValue,
+    handleStartTimer,
+    handleStopTimer,
+    isStoppingTimer,
+    handleDriveCreate,
+    isCreatingDrive,
+    handleFireCreate,
+    isCreatingFire,
+    handleChatThreadCreate,
+    isCreatingChatThread,
+    formatDuration,
+  } = useTaskDetailActions({
+    userId: user?.id,
+    queryClient,
+    listQueryKeys: [queryKeys.tasks('all')],
+    detailQueryKey: (taskId) => queryKeys.task(taskId),
+    activeSession,
+    setActiveSession,
+  });
+
   // フィルタリングされたタスクを取得
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
@@ -159,10 +166,10 @@ function TasksPageContent() {
       }
 
       // タイマー稼働中フィルタ
-      if (filterTimerActive === 'active' && activeSession?.taskId !== task.id) {
+      if (filterTimerActive === 'active' && activeSessionValue?.taskId !== task.id) {
         return false;
       }
-      if (filterTimerActive === 'inactive' && activeSession?.taskId === task.id) {
+      if (filterTimerActive === 'inactive' && activeSessionValue?.taskId === task.id) {
         return false;
       }
 
@@ -207,7 +214,7 @@ function TasksPageContent() {
     filterTimerActive,
     filterItUpDateMonth,
     filterReleaseDateMonth,
-    activeSession,
+    activeSessionValue,
   ]);
 
   // ソートロジック: 未アサインかつ作成から1週間以内のタスクを上位表示
@@ -238,7 +245,24 @@ function TasksPageContent() {
     });
   }, [filteredTasks, mountTime]);
 
+  const {
+    selectedTaskId: selectedTaskIdValue,
+    selectedTask,
+    taskFormData: taskFormDataValue,
+    setTaskFormData: setTaskFormDataValue,
+    handleTaskSelect,
+    resetSelection,
+  } = useTaskDetailState({
+    tasks: sortedTasks || [],
+    initializeMode: 'if-empty',
+    selectedTaskId,
+    setSelectedTaskId,
+    taskFormData,
+    setTaskFormData,
+  });
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [
     selectedProjectType,
@@ -297,40 +321,6 @@ function TasksPageContent() {
       ? '読み込み中...'
       : fallbackEmptyMessage;
 
-  // 選択されたタスクの詳細を取得
-  const selectedTask = useMemo(
-    () => sortedTasks?.find((t: ExtendedTask) => t.id === selectedTaskId) || null,
-    [sortedTasks, selectedTaskId]
-  );
-
-  // 選択されたタスクが変更されたらフォームデータを初期化
-  useEffect(() => {
-    if (selectedTask && selectedTaskId) {
-      // フォームデータが存在しない場合のみ初期化
-      // （毎回再初期化すると、handleTaskSelectで設定したassigneeIdsなどが上書きされて消えるため）
-      if (!taskFormData) {
-        setTaskFormData({
-          title: selectedTask.title,
-          description: selectedTask.description || '',
-          flowStatus: selectedTask.flowStatus,
-          kubunLabelId: selectedTask.kubunLabelId,
-          itUpDate: selectedTask.itUpDate,
-          releaseDate: selectedTask.releaseDate,
-          dueDate: selectedTask.dueDate,
-          assigneeIds: selectedTask.assigneeIds || [],
-        });
-      }
-    } else if (!selectedTaskId) {
-      // タスクが選択されていない場合はフォームデータをリセット
-      setTaskFormData(null);
-    }
-    // selectedTask, setTaskFormData, taskFormDataは意図的に依存配列から除外
-    // - selectedTask: オブジェクト全体を依存配列に入れると、参照が変わるたびに再実行される
-    // - setTaskFormData: Zustandのsetterは安定しているため不要
-    // - taskFormData: 依存配列に入れると無限ループになる可能性がある
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTask?.id, selectedTaskId]);
-
   // 区分ラベルは全プロジェクト共通なので、そのまま使用
   const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
@@ -341,119 +331,19 @@ function TasksPageContent() {
 
   // 選択されたタスクのセッション履歴を取得
   const selectedTaskProjectType = (selectedTask as any)?.projectType;
-  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
-
-  // アクティブなセッションを取得（すべてのプロジェクトタイプから）
-  useActiveSession(user?.id || null, setActiveSession);
+  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskIdValue);
 
   const updateTask = useUpdateTask();
 
-  // タスクが選択されたらフォームデータを初期化
-  const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    const task = sortedTasks?.find((t: ExtendedTask) => t.id === taskId);
-    if (task) {
-      setTaskFormData({
-        title: task.title,
-        description: task.description || '',
-        flowStatus: task.flowStatus,
-        kubunLabelId: task.kubunLabelId,
-        assigneeIds: task.assigneeIds,
-        itUpDate: task.itUpDate,
-        releaseDate: task.releaseDate,
-      });
-    }
-  };
-
   const handleSave = () => {
-    if (!taskFormData || !selectedTask) return;
+    if (!taskFormDataValue || !selectedTask) return;
     const projectType = (selectedTask as any)?.projectType;
     if (!projectType) return;
     updateTask.mutate({
       projectType,
       taskId: selectedTask.id,
-      updates: taskFormData,
+      updates: taskFormDataValue,
     });
-  };
-
-  const formatDuration = (
-    seconds: number | undefined | null,
-    startedAt?: Date,
-    endedAt?: Date | null
-  ) => {
-    let secs = 0;
-    if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
-      if (endedAt && startedAt) {
-        secs = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
-      } else {
-        return '0秒';
-      }
-    } else {
-      secs = Math.floor(Number(seconds));
-    }
-    return formatDurationUtil(secs);
-  };
-
-  const handleStartTimer = async (projectType: string, taskId: string) => {
-    await startTimerWithOptimistic(projectType, taskId);
-  };
-
-  const handleStopTimer = async () => {
-    await stopActiveSession(activeSession);
-  };
-
-  const handleDriveCreate = async (projectType: string, taskId: string) => {
-    try {
-      const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
-      // タスク一覧と詳細を更新（URLが反映されるように）
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
-      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
-      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
-      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
-
-      if (result.warning) {
-        // チェックシート作成エラーがある場合（警告として表示）
-        alert(
-          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
-        );
-      }
-      // 完全に成功した場合はalertを表示しない
-    } catch (error: any) {
-      console.error('Drive create error:', error);
-      const errorMessage = error?.message || '不明なエラー';
-      alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
-    }
-  };
-
-  const handleFireCreate = async (projectType: string, taskId: string) => {
-    try {
-      await createFireIssue.mutateAsync({ projectType: projectType, taskId });
-      // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') }); // タスク一覧を更新
-      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
-    } catch (error: any) {
-      console.error('Fire create error:', error);
-      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
-  };
-
-  const handleChatThreadCreate = async (projectType: string, taskId: string) => {
-    try {
-      const taskUrl = buildTaskDetailUrl(taskId);
-      if (!taskUrl) {
-        alert('タスクのURLを生成できませんでした。');
-        return;
-      }
-
-      await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
-      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
-      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
-      queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
-    } catch (error: any) {
-      console.error('Chat thread create error:', error);
-      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -491,9 +381,8 @@ function TasksPageContent() {
       {
         onSuccess: () => {
           // 削除したタスクが選択されていた場合はサイドバーを閉じる
-          if (selectedTaskId === deleteTaskId) {
-            setSelectedTaskId(null);
-            setTaskFormData(null);
+          if (selectedTaskIdValue === deleteTaskId) {
+            resetSelection();
           }
           alert('タスクを削除しました');
         },
@@ -696,10 +585,10 @@ function TasksPageContent() {
           selectedProjectType={selectedProjectType}
           allUsers={allUsers}
           allLabels={allLabels}
-          activeSession={activeSession}
+          activeSession={activeSessionValue}
           onStartTimer={handleStartTimer}
           onStopTimer={handleStopTimer}
-          isStoppingTimer={stopTimer.isPending}
+          isStoppingTimer={isStoppingTimer}
           kobetsuLabelId={kobetsuLabelId}
           emptyMessage={effectiveEmptyMessage}
         />
@@ -742,29 +631,26 @@ function TasksPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskId}
-        onClose={() => {
-          setSelectedTaskId(null);
-          setTaskFormData(null);
-        }}
+        open={!!selectedTaskIdValue}
+        onClose={resetSelection}
         selectedTask={selectedTask}
-        taskFormData={taskFormData}
-        onTaskFormDataChange={setTaskFormData}
+        taskFormData={taskFormDataValue}
+        onTaskFormDataChange={setTaskFormDataValue}
         onSave={handleSave}
         onDelete={handleDeleteClick}
         isSaving={updateTask.isPending}
         taskLabels={taskLabels}
         allUsers={allUsers}
-        activeSession={activeSession}
+        activeSession={activeSessionValue}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
-        isStoppingTimer={stopTimer.isPending}
+        isStoppingTimer={isStoppingTimer}
         onDriveCreate={handleDriveCreate}
-        isCreatingDrive={createDriveFolder.isPending}
+        isCreatingDrive={isCreatingDrive}
         onFireCreate={handleFireCreate}
-        isCreatingFire={createFireIssue.isPending}
+        isCreatingFire={isCreatingFire}
         onChatThreadCreate={handleChatThreadCreate}
-        isCreatingChatThread={createGoogleChatThread.isPending}
+        isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         formatDuration={formatDuration}
       />
