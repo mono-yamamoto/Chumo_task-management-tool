@@ -12,27 +12,20 @@ import {
   TextField,
   Card,
   CardContent,
-  List,
-  ListItem,
-  ListItemText,
   Chip,
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSettingsOauthStatus } from '@/hooks/useSettingsOauthStatus';
+import { AdminUserList } from '@/components/settings/AdminUserList';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [githubUsername, setGithubUsername] = useState(user?.githubUsername || '');
-  const [chatId, setChatId] = useState(user?.chatId || '');
-  const [oauthStatus, setOauthStatus] = useState<'connected' | 'disconnected' | 'loading'>(
-    'loading'
-  );
-  const [message, setMessage] = useState<string | null>(null);
   const [editingChatIds, setEditingChatIds] = useState<Record<string, string>>({});
   const [isEditingChatIds, setIsEditingChatIds] = useState<Record<string, boolean>>({});
 
@@ -48,44 +41,20 @@ export default function SettingsPage() {
     enabled: !!user && !!db,
   });
 
-  useEffect(() => {
-    if (currentUser) {
-      const hasToken = !!currentUser.googleRefreshToken;
-      console.debug('OAuth status check:', {
-        userId: currentUser.id,
-        hasToken,
-        tokenLength: currentUser.googleRefreshToken?.length || 0,
-        allFields: Object.keys(currentUser),
-      });
-      // 次のレンダリングサイクルでsetStateを実行
-      setTimeout(() => {
-        setOauthStatus(hasToken ? 'connected' : 'disconnected');
-        setGithubUsername(currentUser.githubUsername || '');
-        setChatId(currentUser.chatId || '');
-      }, 0);
-    }
-  }, [currentUser]);
-
-  // URLパラメータからメッセージを取得
-  useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const errorMessage = searchParams.get('message');
-
-    // 次のレンダリングサイクルでsetStateを実行
-    setTimeout(() => {
-      if (success === 'oauth_connected') {
-        setMessage('Google Drive認証が完了しました');
-        setOauthStatus('connected');
-        // URLからパラメータを削除
-        router.replace('/settings');
-      } else if (error) {
-        setMessage(`エラー: ${errorMessage || error}`);
-        // URLからパラメータを削除
-        router.replace('/settings');
-      }
-    }, 0);
-  }, [searchParams, router]);
+  const {
+    oauthStatus,
+    githubUsername,
+    setGithubUsername,
+    chatId,
+    setChatId,
+    message,
+    setMessage,
+  } = useSettingsOauthStatus({
+    currentUser,
+    fallbackUser: user,
+    router,
+    searchParams,
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
@@ -183,6 +152,33 @@ export default function SettingsPage() {
     },
   });
 
+  const handleToggleAllowed = (userId: string, isAllowed: boolean) => {
+    toggleUserAllowed.mutate({ userId, isAllowed });
+  };
+
+  const handleChangeEditingChatId = (userId: string, value: string) => {
+    setEditingChatIds((prev) => ({ ...prev, [userId]: value }));
+  };
+
+  const handleStartEditingChatId = (userId: string, currentChatId: string) => {
+    setEditingChatIds((prev) => ({ ...prev, [userId]: currentChatId }));
+    setIsEditingChatIds((prev) => ({ ...prev, [userId]: true }));
+  };
+
+  const handleCancelEditingChatId = (userId: string) => {
+    setEditingChatIds((prev) => {
+      const nextState = { ...prev };
+      delete nextState[userId];
+      return nextState;
+    });
+    setIsEditingChatIds((prev) => ({ ...prev, [userId]: false }));
+  };
+
+  const handleSaveUserChatId = (userId: string, chatIdValue: string) => {
+    updateUserChatId.mutate({ userId, chatIdValue });
+    setIsEditingChatIds((prev) => ({ ...prev, [userId]: false }));
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -277,10 +273,7 @@ export default function SettingsPage() {
                 variant="outlined"
                 helperText="例: 1234567890123456789"
               />
-              <Button
-                onClick={() => updateChatId.mutate(chatId)}
-                disabled={updateChatId.isPending}
-              >
+              <Button onClick={() => updateChatId.mutate(chatId)} disabled={updateChatId.isPending}>
                 保存
               </Button>
             </Box>
@@ -289,114 +282,18 @@ export default function SettingsPage() {
       </Card>
 
       {user?.role === 'admin' && (
-      <Card>
-        <CardContent>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
-            許可リスト管理
-          </Typography>
-          <List>
-            {users?.map((u) => {
-              const editingChatId = editingChatIds[u.id] ?? u.chatId ?? '';
-              const isEditingChatId = isEditingChatIds[u.id] ?? false;
-
-              return (
-                <ListItem
-                  key={u.id}
-                  sx={{
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'stretch',
-                    gap: 2,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <ListItemText primary={u.displayName} secondary={u.email} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Chip
-                        label={u.isAllowed ? '許可' : '拒否'}
-                        color={u.isAllowed ? 'success' : 'error'}
-                        size="small"
-                      />
-                      <Button
-                        onClick={() =>
-                          toggleUserAllowed.mutate({
-                            userId: u.id,
-                            isAllowed: !u.isAllowed,
-                          })
-                        }
-                        variant="outline"
-                        size="sm"
-                      >
-                        {u.isAllowed ? '拒否' : '許可'}
-                      </Button>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="text"
-                      value={editingChatId}
-                      onChange={(e) =>
-                        setEditingChatIds((prev) => ({ ...prev, [u.id]: e.target.value }))
-                      }
-                      placeholder="Google ChatユーザーID"
-                      variant="outlined"
-                      disabled={!isEditingChatId}
-                      helperText={u.chatId ? `現在: ${u.chatId}` : '未設定'}
-                    />
-                    {isEditingChatId ? (
-                      <>
-                        <Button
-                          onClick={() => {
-                            updateUserChatId.mutate({
-                              userId: u.id,
-                              chatIdValue: editingChatId,
-                            });
-                            setIsEditingChatIds((prev) => ({ ...prev, [u.id]: false }));
-                          }}
-                          disabled={updateUserChatId.isPending}
-                          variant="outline"
-                          size="sm"
-                        >
-                          保存
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingChatIds((prev) => {
-                              const newState = { ...prev };
-                              delete newState[u.id];
-                              return newState;
-                            });
-                            setIsEditingChatIds((prev) => ({ ...prev, [u.id]: false }));
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          キャンセル
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        onClick={() => {
-                          setEditingChatIds((prev) => ({ ...prev, [u.id]: u.chatId || '' }));
-                          setIsEditingChatIds((prev) => ({ ...prev, [u.id]: true }));
-                        }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        編集
-                      </Button>
-                    )}
-                  </Box>
-                </ListItem>
-              );
-            })}
-          </List>
-          </CardContent>
-        </Card>
+        <AdminUserList
+          users={users}
+          editingChatIds={editingChatIds}
+          isEditingChatIds={isEditingChatIds}
+          onChangeEditingChatId={handleChangeEditingChatId}
+          onStartEditingChatId={handleStartEditingChatId}
+          onCancelEditingChatId={handleCancelEditingChatId}
+          onSaveChatId={handleSaveUserChatId}
+          onToggleAllowed={handleToggleAllowed}
+          isSavingChatId={updateUserChatId.isPending}
+          isTogglingAllowed={toggleUserAllowed.isPending}
+        />
       )}
     </Box>
   );
