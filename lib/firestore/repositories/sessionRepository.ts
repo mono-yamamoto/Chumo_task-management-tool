@@ -56,11 +56,7 @@ export async function fetchActiveSessionsByUser(userId: string): Promise<ActiveS
 
   for (const projectType of PROJECT_TYPES) {
     const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-    const q = query(
-      sessionsRef,
-      where('userId', '==', userId),
-      where('endedAt', '==', null)
-    );
+    const q = query(sessionsRef, where('userId', '==', userId), where('endedAt', '==', null));
     const snapshot = await getDocs(q);
     snapshot.docs.forEach((docItem) => {
       const session = mapSessionDoc(docItem.id, docItem.data());
@@ -72,7 +68,11 @@ export async function fetchActiveSessionsByUser(userId: string): Promise<ActiveS
     });
   }
 
-  return allSessions;
+  return allSessions.sort((a, b) => {
+    const aTime = a.session.startedAt?.getTime() ?? 0;
+    const bTime = b.session.startedAt?.getTime() ?? 0;
+    return bTime - aTime;
+  });
 }
 
 export async function fetchActiveSessionForTask(params: {

@@ -64,15 +64,17 @@ export async function fetchAssignedOpenTasks(userId: string): Promise<(Task & { 
 
   for (const projectType of PROJECT_TYPES) {
     const tasksRef = collection(db, 'projects', projectType, 'tasks');
-    // array-containsでアサイン済みタスクをサーバーサイドフィルタ
-    const q = query(tasksRef, where('assigneeIds', 'array-contains', userId));
+    // assigneeIds/flowStatusの複合インデックスを使ってサーバー側で絞り込む
+    const q = query(
+      tasksRef,
+      where('assigneeIds', 'array-contains', userId),
+      where('flowStatus', '!=', '完了'),
+      orderBy('flowStatus')
+    );
     const tasksSnapshot = await getDocs(q);
     tasksSnapshot.docs.forEach((docItem) => {
       const taskData = mapTaskDoc(docItem.id, docItem.data(), projectType);
-      // flowStatusは複合インデックスが必要なためクライアントでフィルタ
-      if (taskData.flowStatus !== '完了') {
-        allTasks.push(taskData);
-      }
+      allTasks.push(taskData);
     });
   }
 
