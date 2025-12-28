@@ -10,11 +10,21 @@ import {
 import { fetchJson, HttpError } from '@/lib/http/fetchJson';
 import { queryKeys } from '@/lib/queryKeys';
 
+type DriveFolderResult = {
+  warning?: boolean;
+  url?: string;
+  error?: string;
+};
+
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const createDriveFolder = useMutation({
+  const createDriveFolder = useMutation<
+    DriveFolderResult,
+    Error,
+    { projectType: string; taskId: string }
+  >({
     mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
       if (!user) {
         throw new Error('ユーザーがログインしていません');
@@ -23,7 +33,7 @@ export function useDriveIntegration() {
       const driveUrl = getCreateDriveFolderUrl();
       console.debug('Creating drive folder with:', { projectType, taskId, userId: user.id });
       try {
-        return await fetchJson(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
+        return await fetchJson<DriveFolderResult>(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
