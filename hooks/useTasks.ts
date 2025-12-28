@@ -36,13 +36,15 @@ export function useTasks(
     projectType === undefined || projectType === null ? 'all' : projectType;
   const isAllProjects = normalizedProjectType === 'all';
 
-  const infiniteQuery = useInfiniteQuery<TaskPage>({
+  const infiniteQuery = useInfiniteQuery<
+    TaskPage,
+    Error,
+    InfiniteData<TaskPage>,
+    ReturnType<typeof queryKeys.tasks>,
+    QueryDocumentSnapshot | ProjectCursorMap | null | undefined
+  >({
     queryKey: queryKeys.tasks(isAllProjects ? 'all' : normalizedProjectType),
-    queryFn: async ({
-      pageParam,
-    }: {
-      pageParam: QueryDocumentSnapshot | ProjectCursorMap | null | undefined;
-    }) => {
+    queryFn: async ({ pageParam }) => {
       if (!db) {
         return {
           tasks: [],

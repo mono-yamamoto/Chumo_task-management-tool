@@ -1,6 +1,8 @@
 import { Contact } from '@/types';
 import { toNullableDate } from '@/lib/firestore/mappers/date';
 
+import type { ContactType } from '@/types';
+
 export function mapContactDoc(docId: string, data: Record<string, unknown>): Contact {
   const type = data.type;
   const title = data.title;
