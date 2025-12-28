@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [isEditingChatIds, setIsEditingChatIds] = useState<Record<string, boolean>>({});
 
   // OAuth認証状態を確認
-  const { data: currentUser } = useQuery({
+  const { data: currentUser = null } = useQuery({
     queryKey: ['user', user?.id],
     queryFn: async () => {
       if (!user || !db) return null;
