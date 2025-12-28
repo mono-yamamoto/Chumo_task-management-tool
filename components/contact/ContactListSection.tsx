@@ -98,7 +98,7 @@ function ContactCard({
               variant="h6"
               component="h2"
               sx={{
-                fontWeight: 'semibold',
+                fontWeight: 600,
                 mb: 1,
                 color: isResolved ? 'text.disabled' : 'text.primary',
                 textDecoration: isResolved ? 'line-through' : 'none',
@@ -108,19 +108,19 @@ function ContactCard({
             </Typography>
             {contact.type === 'error' && contact.errorReportDetails ? (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                   事象
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {contact.errorReportDetails.issue}
                 </Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                   再現方法
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {contact.errorReportDetails.reproductionSteps}
                 </Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                   環境
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -159,7 +159,7 @@ function ContactCard({
                 )}
                 {contact.errorReportDetails.screenshotUrl && (
                   <Box sx={{ mt: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                       スクリーンショット
                     </Typography>
                     <Box
@@ -190,7 +190,7 @@ function ContactCard({
                 )}
                 {contact.content && (
                   <>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'semibold', mb: 1, mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, mt: 2 }}>
                       その他の情報
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>

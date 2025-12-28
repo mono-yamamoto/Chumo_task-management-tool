@@ -9,6 +9,8 @@ export function mapContactDoc(docId: string, data: Record<string, unknown>): Con
   const userName = data.userName;
   const userEmail = data.userEmail;
   const status = data.status;
+  const validTypes: ContactType[] = ['error', 'feature', 'other'];
+  const validStatuses = ['pending', 'resolved'] as const;
 
   if (
     typeof type !== 'string' ||
@@ -17,9 +19,11 @@ export function mapContactDoc(docId: string, data: Record<string, unknown>): Con
     typeof userId !== 'string' ||
     typeof userName !== 'string' ||
     typeof userEmail !== 'string' ||
-    typeof status !== 'string'
+    typeof status !== 'string' ||
+    !validTypes.includes(type as ContactType) ||
+    !validStatuses.includes(status as Contact['status'])
   ) {
-    throw new Error('Invalid contact data');
+    throw new Error(`Invalid contact data: type=${type}, status=${status}`);
   }
 
   const githubIssueUrl = typeof data.githubIssueUrl === 'string' ? data.githubIssueUrl : undefined;

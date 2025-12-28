@@ -261,6 +261,7 @@ function TasksPageContent() {
   });
 
   useEffect(() => {
+    // フィルタ変更時にページを1に戻す意図的な更新
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [

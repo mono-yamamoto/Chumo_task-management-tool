@@ -47,7 +47,12 @@ export function useActiveSession(
       const allSessions = await fetchActiveSessionsByUser(userId);
 
       if (allSessions.length > 0) {
-        const firstSession = allSessions[0];
+        const sortedSessions = [...allSessions].sort((a, b) => {
+          const aTime = a.session.startedAt?.getTime() ?? 0;
+          const bTime = b.session.startedAt?.getTime() ?? 0;
+          return bTime - aTime;
+        });
+        const firstSession = sortedSessions[0];
         const activeSession = {
           projectType: firstSession.projectType,
           taskId: firstSession.session.taskId,
