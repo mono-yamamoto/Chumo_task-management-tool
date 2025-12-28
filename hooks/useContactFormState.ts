@@ -62,7 +62,7 @@ export function useContactFormState({ firebaseUser }: UseContactFormStateOptions
   // 種類が変更されたときにエラー報告の詳細情報をリセット
   useEffect(() => {
     if (type !== 'error') {
-      // 次のレンダリングサイクルでsetStateを実行
+      // react-hooks/set-state-in-effect を避けるため非同期でリセット
       setTimeout(() => {
         resetErrorDetails();
       }, 0);

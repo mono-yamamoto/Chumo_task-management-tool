@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Contact } from '@/types';
 import { mapContactDoc } from '@/lib/firestore/mappers/contactMapper';
@@ -10,9 +10,7 @@ export async function fetchContactsByStatus(
 
   const contactsRef = collection(db, 'contacts');
   const orderField = status === 'pending' ? 'createdAt' : 'updatedAt';
-  const q = query(contactsRef, orderBy(orderField, 'desc'));
+  const q = query(contactsRef, where('status', '==', status), orderBy(orderField, 'desc'));
   const snapshot = await getDocs(q);
-  const allContacts = snapshot.docs.map((docItem) => mapContactDoc(docItem.id, docItem.data()));
-
-  return allContacts.filter((contact) => contact.status === status);
+  return snapshot.docs.map((docItem) => mapContactDoc(docItem.id, docItem.data()));
 }

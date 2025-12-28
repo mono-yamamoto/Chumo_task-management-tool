@@ -217,18 +217,14 @@ export function useDeleteSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      projectType,
-      sessionId,
-      taskId: _taskId,
-    }: {
+    mutationFn: async (variables: {
       projectType: string;
       sessionId: string;
       taskId: string;
     }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
-      const sessionRef = doc(db, 'projects', projectType, 'taskSessions', sessionId);
+      const sessionRef = doc(db, 'projects', variables.projectType, 'taskSessions', variables.sessionId);
       await deleteDoc(sessionRef);
     },
     onSuccess: (_result, variables) => {

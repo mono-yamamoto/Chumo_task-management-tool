@@ -3,6 +3,7 @@ import {
   getDocs,
   getDoc,
   query,
+  where,
   orderBy,
   limit,
   startAfter,
@@ -63,10 +64,11 @@ export async function fetchAssignedOpenTasks(userId: string): Promise<(Task & { 
 
   for (const projectType of PROJECT_TYPES) {
     const tasksRef = collection(db, 'projects', projectType, 'tasks');
-    const tasksSnapshot = await getDocs(tasksRef);
+    const q = query(tasksRef, where('assigneeIds', 'array-contains', userId));
+    const tasksSnapshot = await getDocs(q);
     tasksSnapshot.docs.forEach((docItem) => {
       const taskData = mapTaskDoc(docItem.id, docItem.data(), projectType);
-      if (taskData.assigneeIds.includes(userId) && taskData.flowStatus !== '完了') {
+      if (taskData.flowStatus !== '完了') {
         allTasks.push(taskData);
       }
     });

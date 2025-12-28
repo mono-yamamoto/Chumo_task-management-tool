@@ -235,8 +235,8 @@ function ContactCard({
             <Button
               onClick={() => onToggleStatus(contact.id, nextStatus)}
               disabled={isUpdating}
-              variant="outline"
-              size="sm"
+              variant="outlined"
+              size="small"
             >
               {actionLabel}
             </Button>

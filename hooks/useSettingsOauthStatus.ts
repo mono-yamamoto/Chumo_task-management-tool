@@ -34,7 +34,7 @@ export function useSettingsOauthStatus({
         tokenLength: currentUser.googleRefreshToken?.length || 0,
         allFields: Object.keys(currentUser),
       });
-      // 次のレンダリングサイクルでsetStateを実行
+      // react-hooks/set-state-in-effect を避けるため非同期で更新
       setTimeout(() => {
         setOauthStatus(hasToken ? 'connected' : 'disconnected');
         setGithubUsername(currentUser.githubUsername || '');
@@ -48,7 +48,7 @@ export function useSettingsOauthStatus({
     const error = searchParams.get('error');
     const errorMessage = searchParams.get('message');
 
-    // 次のレンダリングサイクルでsetStateを実行
+    // react-hooks/set-state-in-effect を避けるため非同期で更新
     setTimeout(() => {
       if (success === 'oauth_connected') {
         setMessage('Google Drive認証が完了しました');

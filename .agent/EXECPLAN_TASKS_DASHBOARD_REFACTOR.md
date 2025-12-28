@@ -15,12 +15,14 @@ Users and developers should be able to read and maintain task-related pages with
 - [x] (2025-09-04 14:20Z) Implement `hooks/useTaskDetailActions.ts` to unify timer + integration actions and query invalidation.
 - [x] (2025-09-04 14:30Z) Update `app/(dashboard)/dashboard/page.tsx` to use the new hooks and remove duplicated logic.
 - [x] (2025-09-04 14:35Z) Update `app/(dashboard)/tasks/page.tsx` to use the new hooks and remove duplicated logic.
-- [ ] Validate lint/build expectations (or document why not run) and re-check the UI behavior if a local dev server is available.
+- [ ] (2025-12-28 02:18Z) Validate lint/build expectations (completed: `npm run lint`; remaining: `npx tsc --noEmit` fails in existing files: `app/(dashboard)/tasks/[taskId]/page.tsx`, `hooks/useTaskDetailActions.ts`, `hooks/useTimerTitle.ts`). UI check performed for `/dashboard` and `/tasks` (unauthenticated alert only).
 
 ## Surprises & Discoveries
 
 - Observation: Kiri MCP is running in degraded mode (files_search only).
   Evidence: Tool response indicated “Server is running in degrade mode: duckdb:context_bundle. Only files_search is available.”
+- Observation: `npx tsc --noEmit` reports pre-existing type errors in task detail and timer hooks.
+  Evidence: Errors in `app/(dashboard)/tasks/[taskId]/page.tsx`, `hooks/useTaskDetailActions.ts`, `hooks/useTimerTitle.ts`.
 
 ## Decision Log
 

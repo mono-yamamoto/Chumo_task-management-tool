@@ -37,7 +37,6 @@ import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
 const TASKS_PER_PAGE = 10;
-type ExtendedTask = Task & { projectType: ProjectType };
 
 function TasksPageContent() {
   const { user } = useAuth();
@@ -81,20 +80,20 @@ function TasksPageContent() {
   const tasksQuery = useTasks(selectedProjectType);
 
   // useInfiniteQueryの場合はpagesをフラット化、useQueryの場合はそのまま使用
-  const tasks = useMemo<ExtendedTask[]>(() => {
+  const tasks = useMemo<Task[]>(() => {
     if (!tasksQuery.data) return [];
 
     // useInfiniteQueryの場合
     if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
       return tasksQuery.data.pages.flatMap((page: { tasks?: Task[] }) => {
         if (!page || !page.tasks) return [];
-        return page.tasks as ExtendedTask[];
+        return page.tasks as Task[];
       });
     }
 
     // useQueryの場合（'all'の時）
     if (Array.isArray(tasksQuery.data)) {
-      return tasksQuery.data as ExtendedTask[];
+      return tasksQuery.data as Task[];
     }
 
     return [];
@@ -137,7 +136,7 @@ function TasksPageContent() {
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
 
-    return tasks.filter((task: ExtendedTask) => {
+    return tasks.filter((task: Task) => {
       // ステータスフィルタ
       if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
         return false;
@@ -224,7 +223,7 @@ function TasksPageContent() {
     // マウント時の時刻から1週間前を計算（子コンポーネントと同じ基準時刻を使用）
     const oneWeekAgo = mountTime - 7 * 24 * 60 * 60 * 1000;
 
-    const isNewTask = (task: ExtendedTask) => {
+    const isNewTask = (task: Task) => {
       return (
         task.assigneeIds.length === 0 && task.createdAt && task.createdAt.getTime() >= oneWeekAgo
       );
@@ -285,7 +284,7 @@ function TasksPageContent() {
     fetchNextPage();
   }, [fetchNextPage, shouldRequestMoreData, isFetchingNextPage]);
 
-  const paginatedTasks = useMemo<ExtendedTask[]>(() => {
+  const paginatedTasks = useMemo<Task[]>(() => {
     const start = (currentPage - 1) * TASKS_PER_PAGE;
     return sortedTasks.slice(start, start + TASKS_PER_PAGE);
   }, [sortedTasks, currentPage]);
@@ -330,14 +329,14 @@ function TasksPageContent() {
   }, [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
-  const selectedTaskProjectType = (selectedTask as any)?.projectType;
+  const selectedTaskProjectType = selectedTask?.projectType ?? null;
   const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskIdValue);
 
   const updateTask = useUpdateTask();
 
   const handleSave = () => {
     if (!taskFormDataValue || !selectedTask) return;
-    const projectType = (selectedTask as any)?.projectType;
+    const projectType = selectedTask?.projectType;
     if (!projectType) return;
     updateTask.mutate({
       projectType,
@@ -358,7 +357,7 @@ function TasksPageContent() {
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectType) return;
 
-    const taskToDelete = tasks?.find((t: ExtendedTask) => t.id === deleteTaskId);
+  const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
     if (!taskToDelete) {
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
@@ -668,7 +667,7 @@ function TasksPageContent() {
             label="タイトルを入力"
             value={deleteConfirmTitle}
             onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-            placeholder={tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title || ''}
+            placeholder={tasks?.find((t: Task) => t.id === deleteTaskId)?.title || ''}
             variant="outlined"
           />
         </DialogContent>
@@ -685,7 +684,7 @@ function TasksPageContent() {
             variant="destructive"
             onClick={handleDeleteTask}
             disabled={
-              deleteConfirmTitle !== tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title
+              deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title
             }
           >
             削除

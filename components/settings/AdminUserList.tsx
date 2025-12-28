@@ -72,8 +72,8 @@ export function AdminUserList({
                     />
                     <Button
                       onClick={() => onToggleAllowed(userItem.id, !userItem.isAllowed)}
-                      variant="outline"
-                      size="sm"
+                      variant="outlined"
+                      size="small"
                       disabled={isTogglingAllowed}
                     >
                       {userItem.isAllowed ? '拒否' : '許可'}
@@ -97,15 +97,15 @@ export function AdminUserList({
                       <Button
                         onClick={() => onSaveChatId(userItem.id, editingChatId)}
                         disabled={isSavingChatId}
-                        variant="outline"
-                        size="sm"
+                        variant="outlined"
+                        size="small"
                       >
                         保存
                       </Button>
                       <Button
                         onClick={() => onCancelEditingChatId(userItem.id)}
-                        variant="outline"
-                        size="sm"
+                        variant="outlined"
+                        size="small"
                       >
                         キャンセル
                       </Button>
@@ -113,8 +113,8 @@ export function AdminUserList({
                   ) : (
                     <Button
                       onClick={() => onStartEditingChatId(userItem.id, userItem.chatId || '')}
-                      variant="outline"
-                      size="sm"
+                      variant="outlined"
+                      size="small"
                     >
                       編集
                     </Button>
