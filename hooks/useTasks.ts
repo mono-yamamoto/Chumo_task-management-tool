@@ -1,6 +1,12 @@
 'use client';
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 import { addDoc, updateDoc, deleteDoc, doc, collection, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
@@ -19,7 +25,9 @@ type TaskPage = {
  * タスク一覧を取得するカスタムフック（無限スクロール対応）
  * @param projectType プロジェクトタイプ（'all'の場合は全プロジェクト、無限スクロール非対応）
  */
-export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
+export function useTasks(
+  projectType: ProjectType | 'all' | undefined = 'all'
+): UseInfiniteQueryResult<TaskPage, Error> {
   const INITIAL_LIMIT = 10;
   const LOAD_MORE_LIMIT = 10;
 
