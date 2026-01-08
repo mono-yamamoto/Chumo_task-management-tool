@@ -16,6 +16,12 @@ export interface ActiveSessionInfo {
   sessionId: string;
 }
 
+/**
+ * 指定されたプロジェクト・タスクのセッション履歴を取得する
+ * @param projectType プロジェクトタイプ
+ * @param taskId タスクID
+ * @returns セッション履歴のリスト
+ */
 export async function fetchTaskSessions(
   projectType: string,
   taskId: string
@@ -49,6 +55,11 @@ export async function fetchTaskSessions(
   }
 }
 
+/**
+ * 指定されたユーザーのアクティブなセッション（未終了）を全プロジェクトから取得する
+ * @param userId ユーザーID
+ * @returns アクティブなセッション情報のリスト
+ */
 export async function fetchActiveSessionsByUser(userId: string): Promise<ActiveSessionInfo[]> {
   if (!userId || !db) return [];
 
@@ -75,6 +86,14 @@ export async function fetchActiveSessionsByUser(userId: string): Promise<ActiveS
   });
 }
 
+/**
+ * 指定されたタスクに対するユーザーのアクティブセッション（未終了）を取得する
+ * @param params パラメータオブジェクト
+ * @param params.projectType プロジェクトタイプ
+ * @param params.taskId タスクID
+ * @param params.userId ユーザーID
+ * @returns アクティブセッション情報、または見つからない場合はnull
+ */
 export async function fetchActiveSessionForTask(params: {
   projectType: string;
   taskId: string;

@@ -15,6 +15,14 @@ import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { mapTaskDoc } from '@/lib/firestore/mappers/taskMapper';
 
+/**
+ * 指定されたプロジェクトタイプのタスクをページネーション付きで取得する
+ * @param params パラメータオブジェクト
+ * @param params.projectType 取得するプロジェクトタイプ
+ * @param params.limitValue 取得件数
+ * @param params.cursor ページネーション用のカーソル（前回取得した最後のドキュメント）
+ * @returns タスクリストとページネーション情報
+ */
 export async function fetchTaskPage(params: {
   projectType: ProjectType;
   limitValue: number;
@@ -50,6 +58,11 @@ export async function fetchTaskPage(params: {
   }
 }
 
+/**
+ * 全プロジェクトを横断してタスクIDでタスクを取得する
+ * @param taskId 検索するタスクID
+ * @returns 見つかったタスク、または見つからない場合はnull
+ */
 export async function fetchTaskByIdAcrossProjects(taskId: string): Promise<Task | null> {
   if (!db) return null;
 
@@ -63,6 +76,11 @@ export async function fetchTaskByIdAcrossProjects(taskId: string): Promise<Task 
   return null;
 }
 
+/**
+ * 指定されたユーザーにアサインされた未完了のタスクを全プロジェクトから取得する
+ * @param userId アサインされたユーザーのID
+ * @returns ユーザーにアサインされた未完了タスクのリスト
+ */
 export async function fetchAssignedOpenTasks(userId: string): Promise<(Task & { projectType: ProjectType })[]> {
   if (!db) return [];
 
