@@ -5,6 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Box, Typography, Alert, Container } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLoginErrorMessage } from '@/hooks/useLoginErrorMessage';
+
+// エラーメッセージの定数定義
+const ERROR_MESSAGES = {
+  NOT_ALLOWED: 'このアカウントは許可されていません。管理者に連絡してください。',
+  LOGIN_FAILED: 'ログインに失敗しました。もう一度お試しください。',
+} as const;
 import { useEffect, Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
@@ -28,9 +34,9 @@ function LoginContent() {
     } catch (error: any) {
       // 許可されていないユーザーのエラーを区別
       if (error.code === 'auth/not-allowed' || error.message === 'NOT_ALLOWED') {
-        setError('このアカウントは許可されていません。管理者に連絡してください。');
+        setError(ERROR_MESSAGES.NOT_ALLOWED);
       } else {
-        setError('ログインに失敗しました。もう一度お試しください。');
+        setError(ERROR_MESSAGES.LOGIN_FAILED);
       }
     }
   };
