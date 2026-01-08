@@ -33,15 +33,21 @@ export async function fetchTaskPage(params: {
   const constraints = params.cursor
     ? [orderBy('createdAt', 'desc'), startAfter(params.cursor), limit(params.limitValue)]
     : [orderBy('createdAt', 'desc'), limit(params.limitValue)];
-  const snapshot = await getDocs(query(baseRef, ...constraints));
 
-  const tasks = snapshot.docs.map((docItem) =>
-    mapTaskDoc(docItem.id, docItem.data(), params.projectType)
-  );
-  const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-  const hasMore = snapshot.docs.length === params.limitValue;
+  try {
+    const snapshot = await getDocs(query(baseRef, ...constraints));
+    const tasks = snapshot.docs.map((docItem) =>
+      mapTaskDoc(docItem.id, docItem.data(), params.projectType)
+    );
 
-  return { tasks, lastDoc, hasMore, snapshots: snapshot.docs };
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    const hasMore = snapshot.docs.length === params.limitValue;
+
+    return { tasks, lastDoc, hasMore, snapshots: snapshot.docs };
+  } catch (error) {
+    console.error('Error in fetchTaskPage:', error);
+    throw error;
+  }
 }
 
 export async function fetchTaskByIdAcrossProjects(taskId: string): Promise<Task | null> {
