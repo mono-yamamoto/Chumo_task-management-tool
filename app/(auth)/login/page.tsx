@@ -4,13 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Box, Typography, Alert, Container } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useLoginErrorMessage } from '@/hooks/useLoginErrorMessage';
-
-// エラーメッセージの定数定義
-const ERROR_MESSAGES = {
-  NOT_ALLOWED: 'このアカウントは許可されていません。管理者に連絡してください。',
-  LOGIN_FAILED: 'ログインに失敗しました。もう一度お試しください。',
-} as const;
+import { useLoginErrorMessage, ERROR_MESSAGES } from '@/hooks/useLoginErrorMessage';
 import { useEffect, Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';

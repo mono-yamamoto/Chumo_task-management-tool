@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 
-// エラーメッセージの定数定義
-const ERROR_MESSAGES = {
+// ログイン関連のエラーメッセージの定数定義
+export const ERROR_MESSAGES = {
   NOT_ALLOWED: 'このアカウントは許可されていません。管理者に連絡してください。',
+  LOGIN_FAILED: 'ログインに失敗しました。もう一度お試しください。',
 } as const;
 
 type UseLoginErrorMessageOptions = {
