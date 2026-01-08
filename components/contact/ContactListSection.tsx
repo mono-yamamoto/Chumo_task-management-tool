@@ -174,9 +174,12 @@ function ContactCard({
                         borderColor: 'divider',
                         cursor: 'pointer',
                       }}
-                      onClick={() =>
-                        window.open(contact.errorReportDetails?.screenshotUrl || '', '_blank')
-                      }
+                      onClick={() => {
+                        const newWindow = window.open(contact.errorReportDetails?.screenshotUrl || '', '_blank');
+                        if (newWindow) {
+                          newWindow.opener = null;
+                        }
+                      }}
                     />
                     <MUILink
                       href={contact.errorReportDetails.screenshotUrl}
