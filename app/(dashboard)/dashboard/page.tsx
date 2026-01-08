@@ -130,6 +130,12 @@ function DashboardPageContent() {
     });
   };
 
+  const handleDrawerClose = () => {
+    // Drawerを閉じる前に保存
+    handleSave();
+    resetSelection();
+  };
+
   const handleDeleteClick = (taskId: string, projectType: string) => {
     setDeleteTaskId(taskId);
     setDeleteProjectType(projectType);
@@ -221,7 +227,7 @@ function DashboardPageContent() {
       {/* サイドバー */}
       <TaskDetailDrawer
         open={!!selectedTaskId}
-        onClose={resetSelection}
+        onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormData}
         onTaskFormDataChange={setTaskFormData}
