@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
-import { FlowStatus } from '@/types';
+import { FlowStatus, TaskSession } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useUsers } from '@/hooks/useUsers';
@@ -103,7 +103,7 @@ export default function TaskDetailPage() {
   // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
   const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<any | null>(null);
+  const [editingSession, setEditingSession] = useState<TaskSession | null>(null);
   const [sessionFormData, setSessionFormData] = useState({
     startedAt: '',
     startedAtTime: '',
@@ -190,9 +190,9 @@ export default function TaskDetailPage() {
         );
       }
       // 完全に成功した場合はalertを表示しない
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Drive create error:', error);
-      const errorMessage = error?.message || '不明なエラー';
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
       alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
     }
   };
@@ -204,9 +204,10 @@ export default function TaskDetailPage() {
       // 成功時はalertを表示しない
       queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
       queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Fire create error:', error);
-      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      alert(`GitHub Issueの作成に失敗しました: ${errorMessage}`);
     }
   };
 
@@ -226,9 +227,10 @@ export default function TaskDetailPage() {
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
       queryClient.refetchQueries({ queryKey: queryKeys.task(taskId) });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat thread create error:', error);
-      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      alert(`Google Chatスレッドの作成に失敗しました: ${errorMessage}`);
     }
   };
 
@@ -261,7 +263,7 @@ export default function TaskDetailPage() {
   //   }
   // };
 
-  const handleEditSession = (session: any) => {
+  const handleEditSession = (session: TaskSession) => {
     setEditingSession(session);
     const startedAt = session.startedAt ? new Date(session.startedAt) : new Date();
     const endedAt = session.endedAt ? new Date(session.endedAt) : null;
@@ -729,7 +731,7 @@ export default function TaskDetailPage() {
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {sessions && sessions.length > 0 ? (
-              sessions.map((session: any) => {
+              sessions.map((session: TaskSession) => {
                 const sessionUser = allUsers?.find((u) => u.id === session.userId);
                 const formatDuration = (seconds: number | undefined | null) => {
                   // durationSecが0または無効な場合、開始時刻と終了時刻から計算

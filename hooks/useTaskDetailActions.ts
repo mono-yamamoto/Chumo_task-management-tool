@@ -113,9 +113,9 @@ export function useTaskDetailActions({
           }\n\nエラー: ${result.error || '不明なエラー'}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Drive create error:', error);
-      const errorMessage = error?.message || '不明なエラー';
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
       notify(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
     }
   };
@@ -125,9 +125,10 @@ export function useTaskDetailActions({
       await createFireIssue.mutateAsync({ projectType: projectType, taskId });
       invalidateListQueries();
       refetchListQueries();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Fire create error:', error);
-      notify(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      notify(`GitHub Issueの作成に失敗しました: ${errorMessage}`);
     }
   };
 
@@ -148,9 +149,10 @@ export function useTaskDetailActions({
       if (refetchDetailOnChat) {
         refetchDetailQuery(taskId);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat thread create error:', error);
-      notify(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      notify(`Google Chatスレッドの作成に失敗しました: ${errorMessage}`);
     }
   };
 
