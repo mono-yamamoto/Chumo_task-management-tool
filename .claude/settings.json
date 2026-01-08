@@ -3,7 +3,6 @@
     "allow": [
       "mcp__*",
       "Bash(tree:*)",
-      "Bash(bun run:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
       "Bash(find:*)",
@@ -14,13 +13,27 @@
       "Bash(echo:*)",
       "Bash(nc:*)",
       "Bash(cat:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
-    ],
-    "ask": [
-      "Bash(git push:*)",
-      "Bash(bun add:*)",
-      "Bash(bun remove:*)"
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase emulators:*)",
+      "Bash(firebase serve)",
+      "Bash(firebase use:*)",
+      "Bash(firebase functions:log)",
+      "Bash(firebase firestore:export:*)",
+      "Bash(firebase firestore:query:*)",
+      "Bash(firebase help:*)",
+      "Bash(npm install)",
+      "Bash(npm run:*)",
+      "Bash(npm test)",
+      "Bash(npm build)",
+      "Bash(npm list:*)",
+      "Bash(bun install)",
+      "Bash(bun run:*)",
+      "Bash(bun test)",
+      "Bash(bun build)"
     ]
   },
   "enableAllProjectMcpServers": true,
