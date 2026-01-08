@@ -171,9 +171,6 @@ export function TaskDetailDrawer({
             タスク詳細
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <CustomButton onClick={onSave} size="sm" disabled={isSaving}>
-              {isSaving ? '保存中...' : '保存'}
-            </CustomButton>
             <CustomButton
               variant="destructive"
               size="sm"
