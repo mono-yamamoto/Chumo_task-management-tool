@@ -3,6 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { PROJECT_TYPES, type ProjectType } from '../constants/projectTypes.js';
 
 // .env.localを読み込む
 const __filename = fileURLToPath(import.meta.url);
@@ -11,10 +12,6 @@ config({ path: resolve(__dirname, '../.env.local') });
 
 // サンプルタスク作成スクリプト
 // 実行方法: npx ts-node scripts/create-sample-tasks.ts
-
-// プロジェクトタイプの固定値
-const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'] as const;
-type ProjectType = (typeof PROJECT_TYPES)[number];
 
 // タスクのステータスオプション
 const FLOW_STATUS_OPTIONS = [

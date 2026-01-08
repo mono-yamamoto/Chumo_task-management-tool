@@ -14,7 +14,8 @@ service cloud.firestore {
              projectId == 'DES_FIRE' ||
              projectId == 'DesignSystem' ||
              projectId == 'DMREG2' ||
-             projectId == 'monosus';
+             projectId == 'monosus' ||
+             projectId == 'PRREG';
     }
 
     function isAdmin() {

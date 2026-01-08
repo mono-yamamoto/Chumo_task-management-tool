@@ -7,19 +7,14 @@ import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
-import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
-import { useTimerActions } from '@/hooks/useTimerActions';
-import {
-  useDriveIntegration,
-  useFireIntegration,
-  useGoogleChatIntegration,
-} from '@/hooks/useIntegrations';
+import { useTaskSessions } from '@/hooks/useTaskSessions';
+import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
+import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { useTaskStore } from '@/stores/taskStore';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
-import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
-import { buildTaskDetailUrl } from '@/utils/taskLinks';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   Box,
   Typography,
@@ -42,7 +37,6 @@ import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
 const TASKS_PER_PAGE = 10;
-type ExtendedTask = Task & { projectType: ProjectType };
 
 function TasksPageContent() {
   const { user } = useAuth();
@@ -72,14 +66,6 @@ function TasksPageContent() {
     setActiveSession,
     resetFilters,
   } = useTaskStore();
-  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
-    userId: user?.id,
-    queryClient,
-    setActiveSession,
-  });
-  const { createDriveFolder } = useDriveIntegration();
-  const { createFireIssue } = useFireIntegration();
-  const { createGoogleChatThread } = useGoogleChatIntegration();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -93,25 +79,11 @@ function TasksPageContent() {
   // タスク一覧を取得（ページネーション対応）
   const tasksQuery = useTasks(selectedProjectType);
 
-  // useInfiniteQueryの場合はpagesをフラット化、useQueryの場合はそのまま使用
-  const tasks = useMemo<ExtendedTask[]>(() => {
+  // useInfiniteQueryのpagesをフラット化
+  const tasks = useMemo<Task[]>(() => {
     if (!tasksQuery.data) return [];
-
-    // useInfiniteQueryの場合
-    if ('pages' in tasksQuery.data && Array.isArray(tasksQuery.data.pages)) {
-      return tasksQuery.data.pages.flatMap((page: { tasks?: Task[] }) => {
-        if (!page || !page.tasks) return [];
-        return page.tasks as ExtendedTask[];
-      });
-    }
-
-    // useQueryの場合（'all'の時）
-    if (Array.isArray(tasksQuery.data)) {
-      return tasksQuery.data as ExtendedTask[];
-    }
-
-    return [];
-  }, [tasksQuery.data]) as Task[];
+    return tasksQuery.data.pages.flatMap((page) => page.tasks);
+  }, [tasksQuery.data]);
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
@@ -125,11 +97,32 @@ function TasksPageContent() {
   // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
+  const {
+    activeSession: activeSessionValue,
+    handleStartTimer,
+    handleStopTimer,
+    isStoppingTimer,
+    handleDriveCreate,
+    isCreatingDrive,
+    handleFireCreate,
+    isCreatingFire,
+    handleChatThreadCreate,
+    isCreatingChatThread,
+    formatDuration,
+  } = useTaskDetailActions({
+    userId: user?.id,
+    queryClient,
+    listQueryKeys: [queryKeys.tasks('all')],
+    detailQueryKey: (taskId) => queryKeys.task(taskId),
+    activeSession,
+    setActiveSession,
+  });
+
   // フィルタリングされたタスクを取得
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
 
-    return tasks.filter((task: ExtendedTask) => {
+    return tasks.filter((task: Task) => {
       // ステータスフィルタ
       if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
         return false;
@@ -158,10 +151,10 @@ function TasksPageContent() {
       }
 
       // タイマー稼働中フィルタ
-      if (filterTimerActive === 'active' && activeSession?.taskId !== task.id) {
+      if (filterTimerActive === 'active' && activeSessionValue?.taskId !== task.id) {
         return false;
       }
-      if (filterTimerActive === 'inactive' && activeSession?.taskId === task.id) {
+      if (filterTimerActive === 'inactive' && activeSessionValue?.taskId === task.id) {
         return false;
       }
 
@@ -206,7 +199,7 @@ function TasksPageContent() {
     filterTimerActive,
     filterItUpDateMonth,
     filterReleaseDateMonth,
-    activeSession,
+    activeSessionValue,
   ]);
 
   // ソートロジック: 未アサインかつ作成から1週間以内のタスクを上位表示
@@ -216,7 +209,7 @@ function TasksPageContent() {
     // マウント時の時刻から1週間前を計算（子コンポーネントと同じ基準時刻を使用）
     const oneWeekAgo = mountTime - 7 * 24 * 60 * 60 * 1000;
 
-    const isNewTask = (task: ExtendedTask) => {
+    const isNewTask = (task: Task) => {
       return (
         task.assigneeIds.length === 0 && task.createdAt && task.createdAt.getTime() >= oneWeekAgo
       );
@@ -237,18 +230,61 @@ function TasksPageContent() {
     });
   }, [filteredTasks, mountTime]);
 
-  useEffect(() => {
+  const {
+    selectedTaskId: selectedTaskIdValue,
+    selectedTask,
+    taskFormData: taskFormDataValue,
+    setTaskFormData: setTaskFormDataValue,
+    handleTaskSelect,
+    resetSelection,
+  } = useTaskDetailState({
+    tasks: sortedTasks || [],
+    initializeMode: 'if-empty',
+    selectedTaskId,
+    setSelectedTaskId,
+    taskFormData,
+    setTaskFormData,
+  });
+
+  const handleFilterTitleChange = (value: string) => {
+    setFilterTitle(value);
     setCurrentPage(1);
-  }, [
-    selectedProjectType,
-    filterStatus,
-    filterAssignee,
-    filterLabel,
-    filterTitle,
-    filterTimerActive,
-    filterItUpDateMonth,
-    filterReleaseDateMonth,
-  ]);
+  };
+
+  const handleProjectTypeChange = (value: ProjectType | 'all') => {
+    setSelectedProjectType(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterStatusChange = (value: FlowStatus | 'all' | 'not-completed') => {
+    setFilterStatus(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterAssigneeChange = (value: string) => {
+    setFilterAssignee(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterLabelChange = (value: string) => {
+    setFilterLabel(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterTimerActiveChange = (value: string) => {
+    setFilterTimerActive(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterItUpDateMonthChange = (value: string) => {
+    setFilterItUpDateMonth(value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterReleaseDateMonthChange = (value: string) => {
+    setFilterReleaseDateMonth(value);
+    setCurrentPage(1);
+  };
 
   const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
   const shouldRequestMoreData = hasNextPage && sortedTasks.length < requiredItemsForCurrentPage;
@@ -260,7 +296,7 @@ function TasksPageContent() {
     fetchNextPage();
   }, [fetchNextPage, shouldRequestMoreData, isFetchingNextPage]);
 
-  const paginatedTasks = useMemo<ExtendedTask[]>(() => {
+  const paginatedTasks = useMemo<Task[]>(() => {
     const start = (currentPage - 1) * TASKS_PER_PAGE;
     return sortedTasks.slice(start, start + TASKS_PER_PAGE);
   }, [sortedTasks, currentPage]);
@@ -296,40 +332,6 @@ function TasksPageContent() {
       ? '読み込み中...'
       : fallbackEmptyMessage;
 
-  // 選択されたタスクの詳細を取得
-  const selectedTask = useMemo(
-    () => sortedTasks?.find((t: ExtendedTask) => t.id === selectedTaskId) || null,
-    [sortedTasks, selectedTaskId]
-  );
-
-  // 選択されたタスクが変更されたらフォームデータを初期化
-  useEffect(() => {
-    if (selectedTask && selectedTaskId) {
-      // フォームデータが存在しない場合のみ初期化
-      // （毎回再初期化すると、handleTaskSelectで設定したassigneeIdsなどが上書きされて消えるため）
-      if (!taskFormData) {
-        setTaskFormData({
-          title: selectedTask.title,
-          description: selectedTask.description || '',
-          flowStatus: selectedTask.flowStatus,
-          kubunLabelId: selectedTask.kubunLabelId,
-          itUpDate: selectedTask.itUpDate,
-          releaseDate: selectedTask.releaseDate,
-          dueDate: selectedTask.dueDate,
-          assigneeIds: selectedTask.assigneeIds || [],
-        });
-      }
-    } else if (!selectedTaskId) {
-      // タスクが選択されていない場合はフォームデータをリセット
-      setTaskFormData(null);
-    }
-    // selectedTask, setTaskFormData, taskFormDataは意図的に依存配列から除外
-    // - selectedTask: オブジェクト全体を依存配列に入れると、参照が変わるたびに再実行される
-    // - setTaskFormData: Zustandのsetterは安定しているため不要
-    // - taskFormData: 依存配列に入れると無限ループになる可能性がある
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTask?.id, selectedTaskId]);
-
   // 区分ラベルは全プロジェクト共通なので、そのまま使用
   const taskLabels = useMemo(() => allLabels || [], [allLabels]);
 
@@ -339,120 +341,20 @@ function TasksPageContent() {
   }, [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
-  const selectedTaskProjectType = (selectedTask as any)?.projectType;
-  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
-
-  // アクティブなセッションを取得（すべてのプロジェクトタイプから）
-  useActiveSession(user?.id || null, setActiveSession);
+  const selectedTaskProjectType = selectedTask?.projectType ?? null;
+  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskIdValue);
 
   const updateTask = useUpdateTask();
 
-  // タスクが選択されたらフォームデータを初期化
-  const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    const task = sortedTasks?.find((t: ExtendedTask) => t.id === taskId);
-    if (task) {
-      setTaskFormData({
-        title: task.title,
-        description: task.description || '',
-        flowStatus: task.flowStatus,
-        kubunLabelId: task.kubunLabelId,
-        assigneeIds: task.assigneeIds,
-        itUpDate: task.itUpDate,
-        releaseDate: task.releaseDate,
-      });
-    }
-  };
-
   const handleSave = () => {
-    if (!taskFormData || !selectedTask) return;
-    const projectType = (selectedTask as any)?.projectType;
+    if (!taskFormDataValue || !selectedTask) return;
+    const projectType = selectedTask?.projectType;
     if (!projectType) return;
     updateTask.mutate({
       projectType,
       taskId: selectedTask.id,
-      updates: taskFormData,
+      updates: taskFormDataValue,
     });
-  };
-
-  const formatDuration = (
-    seconds: number | undefined | null,
-    startedAt?: Date,
-    endedAt?: Date | null
-  ) => {
-    let secs = 0;
-    if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
-      if (endedAt && startedAt) {
-        secs = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
-      } else {
-        return '0秒';
-      }
-    } else {
-      secs = Math.floor(Number(seconds));
-    }
-    return formatDurationUtil(secs);
-  };
-
-  const handleStartTimer = async (projectType: string, taskId: string) => {
-    await startTimerWithOptimistic(projectType, taskId);
-  };
-
-  const handleStopTimer = async () => {
-    await stopActiveSession(activeSession);
-  };
-
-  const handleDriveCreate = async (projectType: string, taskId: string) => {
-    try {
-      const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
-      // タスク一覧と詳細を更新（URLが反映されるように）
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
-
-      if (result.warning) {
-        // チェックシート作成エラーがある場合（警告として表示）
-        alert(
-          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
-        );
-      }
-      // 完全に成功した場合はalertを表示しない
-    } catch (error: any) {
-      console.error('Drive create error:', error);
-      const errorMessage = error?.message || '不明なエラー';
-      alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
-    }
-  };
-
-  const handleFireCreate = async (projectType: string, taskId: string) => {
-    try {
-      await createFireIssue.mutateAsync({ projectType: projectType, taskId });
-      // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // タスク一覧を更新
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-    } catch (error: any) {
-      console.error('Fire create error:', error);
-      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
-  };
-
-  const handleChatThreadCreate = async (projectType: string, taskId: string) => {
-    try {
-      const taskUrl = buildTaskDetailUrl(taskId);
-      if (!taskUrl) {
-        alert('タスクのURLを生成できませんでした。');
-        return;
-      }
-
-      await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
-    } catch (error: any) {
-      console.error('Chat thread create error:', error);
-      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -467,7 +369,7 @@ function TasksPageContent() {
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectType) return;
 
-    const taskToDelete = tasks?.find((t: ExtendedTask) => t.id === deleteTaskId);
+  const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
     if (!taskToDelete) {
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
@@ -490,9 +392,8 @@ function TasksPageContent() {
       {
         onSuccess: () => {
           // 削除したタスクが選択されていた場合はサイドバーを閉じる
-          if (selectedTaskId === deleteTaskId) {
-            setSelectedTaskId(null);
-            setTaskFormData(null);
+          if (selectedTaskIdValue === deleteTaskId) {
+            resetSelection();
           }
           alert('タスクを削除しました');
         },
@@ -562,7 +463,7 @@ function TasksPageContent() {
             <Grid size={{ xs: 12 }}>
               <TaskSearchForm
                 value={filterTitle}
-                onChange={setFilterTitle}
+                onChange={handleFilterTitleChange}
                 placeholder="タイトルで検索..."
                 label="タイトル検索"
               />
@@ -574,7 +475,7 @@ function TasksPageContent() {
                 <InputLabel>プロジェクト</InputLabel>
                 <Select
                   value={selectedProjectType}
-                  onChange={(e) => setSelectedProjectType(e.target.value as ProjectType | 'all')}
+                  onChange={(e) => handleProjectTypeChange(e.target.value as ProjectType | 'all')}
                   label="プロジェクト"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -592,7 +493,7 @@ function TasksPageContent() {
                 <Select
                   value={filterStatus}
                   onChange={(e) =>
-                    setFilterStatus(e.target.value as FlowStatus | 'all' | 'not-completed')
+                    handleFilterStatusChange(e.target.value as FlowStatus | 'all' | 'not-completed')
                   }
                   label="ステータス"
                 >
@@ -611,7 +512,7 @@ function TasksPageContent() {
                 <InputLabel>アサイン</InputLabel>
                 <Select
                   value={filterAssignee}
-                  onChange={(e) => setFilterAssignee(e.target.value)}
+                  onChange={(e) => handleFilterAssigneeChange(e.target.value)}
                   label="アサイン"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -628,7 +529,7 @@ function TasksPageContent() {
                 <InputLabel>区分</InputLabel>
                 <Select
                   value={filterLabel}
-                  onChange={(e) => setFilterLabel(e.target.value)}
+                  onChange={(e) => handleFilterLabelChange(e.target.value)}
                   label="区分"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -657,7 +558,7 @@ function TasksPageContent() {
                 <InputLabel>タイマー</InputLabel>
                 <Select
                   value={filterTimerActive}
-                  onChange={(e) => setFilterTimerActive(e.target.value)}
+                  onChange={(e) => handleFilterTimerActiveChange(e.target.value)}
                   label="タイマー"
                 >
                   <MenuItem value="all">すべて</MenuItem>
@@ -672,7 +573,7 @@ function TasksPageContent() {
                 label="ITアップ日（月）"
                 type="month"
                 value={filterItUpDateMonth}
-                onChange={(e) => setFilterItUpDateMonth(e.target.value)}
+                onChange={(e) => handleFilterItUpDateMonthChange(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -682,7 +583,7 @@ function TasksPageContent() {
                 label="リリース日（月）"
                 type="month"
                 value={filterReleaseDateMonth}
-                onChange={(e) => setFilterReleaseDateMonth(e.target.value)}
+                onChange={(e) => handleFilterReleaseDateMonthChange(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -695,10 +596,10 @@ function TasksPageContent() {
           selectedProjectType={selectedProjectType}
           allUsers={allUsers}
           allLabels={allLabels}
-          activeSession={activeSession}
+          activeSession={activeSessionValue}
           onStartTimer={handleStartTimer}
           onStopTimer={handleStopTimer}
-          isStoppingTimer={stopTimer.isPending}
+          isStoppingTimer={isStoppingTimer}
           kobetsuLabelId={kobetsuLabelId}
           emptyMessage={effectiveEmptyMessage}
         />
@@ -741,29 +642,26 @@ function TasksPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskId}
-        onClose={() => {
-          setSelectedTaskId(null);
-          setTaskFormData(null);
-        }}
+        open={!!selectedTaskIdValue}
+        onClose={resetSelection}
         selectedTask={selectedTask}
-        taskFormData={taskFormData}
-        onTaskFormDataChange={setTaskFormData}
+        taskFormData={taskFormDataValue}
+        onTaskFormDataChange={setTaskFormDataValue}
         onSave={handleSave}
         onDelete={handleDeleteClick}
         isSaving={updateTask.isPending}
         taskLabels={taskLabels}
         allUsers={allUsers}
-        activeSession={activeSession}
+        activeSession={activeSessionValue}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
-        isStoppingTimer={stopTimer.isPending}
+        isStoppingTimer={isStoppingTimer}
         onDriveCreate={handleDriveCreate}
-        isCreatingDrive={createDriveFolder.isPending}
+        isCreatingDrive={isCreatingDrive}
         onFireCreate={handleFireCreate}
-        isCreatingFire={createFireIssue.isPending}
+        isCreatingFire={isCreatingFire}
         onChatThreadCreate={handleChatThreadCreate}
-        isCreatingChatThread={createGoogleChatThread.isPending}
+        isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         formatDuration={formatDuration}
       />
@@ -781,7 +679,7 @@ function TasksPageContent() {
             label="タイトルを入力"
             value={deleteConfirmTitle}
             onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-            placeholder={tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title || ''}
+            placeholder={tasks?.find((t: Task) => t.id === deleteTaskId)?.title || ''}
             variant="outlined"
           />
         </DialogContent>
@@ -798,7 +696,7 @@ function TasksPageContent() {
             variant="destructive"
             onClick={handleDeleteTask}
             disabled={
-              deleteConfirmTitle !== tasks?.find((t: ExtendedTask) => t.id === deleteTaskId)?.title
+              deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title
             }
           >
             削除

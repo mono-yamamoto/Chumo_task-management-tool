@@ -3,28 +3,17 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Box, Typography, Alert, Container } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useLoginErrorMessage, ERROR_MESSAGES } from '@/hooks/useLoginErrorMessage';
+import { useEffect, Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
 function LoginContent() {
   const { login, user, loading } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const errorParam = params.get('error');
-      if (errorParam === 'not_allowed') {
-        // 次のレンダリングサイクルでsetStateを実行
-        setTimeout(() => {
-          setError('このアカウントは許可されていません。管理者に連絡してください。');
-        }, 0);
-      }
-    }
-  }, []);
+  const searchParams = useSearchParams();
+  const { error, setError } = useLoginErrorMessage({ searchParams });
 
   useEffect(() => {
     if (user) {
@@ -39,9 +28,9 @@ function LoginContent() {
     } catch (error: any) {
       // 許可されていないユーザーのエラーを区別
       if (error.code === 'auth/not-allowed' || error.message === 'NOT_ALLOWED') {
-        setError('このアカウントは許可されていません。管理者に連絡してください。');
+        setError(ERROR_MESSAGES.NOT_ALLOWED);
       } else {
-        setError('ログインに失敗しました。もう一度お試しください。');
+        setError(ERROR_MESSAGES.LOGIN_FAILED);
       }
     }
   };

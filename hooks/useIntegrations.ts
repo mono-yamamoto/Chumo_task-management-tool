@@ -7,12 +7,24 @@ import {
   getCreateFireIssueUrl,
   getCreateGoogleChatThreadUrl,
 } from '@/utils/functions';
+import { fetchJson, HttpError } from '@/lib/http/fetchJson';
+import { queryKeys } from '@/lib/queryKeys';
+
+type DriveFolderResult = {
+  warning?: boolean;
+  url?: string;
+  error?: string;
+};
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const createDriveFolder = useMutation({
+  const createDriveFolder = useMutation<
+    DriveFolderResult,
+    Error,
+    { projectType: string; taskId: string }
+  >({
     mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
       if (!user) {
         throw new Error('ユーザーがログインしていません');
@@ -20,33 +32,29 @@ export function useDriveIntegration() {
 
       const driveUrl = getCreateDriveFolderUrl();
       console.debug('Creating drive folder with:', { projectType, taskId, userId: user.id });
-      const response = await fetch(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-
-        // 認証が必要なエラーの場合、特別なエラーを投げる
-        if (errorData.requiresAuth) {
-          throw new Error(errorMessage);
+      try {
+        return await fetchJson<DriveFolderResult>(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+          }),
+        });
+      } catch (error) {
+        if (
+          error instanceof HttpError &&
+          typeof error.details?.requiresAuth === 'boolean' &&
+          error.details.requiresAuth
+        ) {
+          throw new Error(error.message);
         }
-
-        throw new Error(errorMessage);
+        throw error;
       }
-
-      return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task'] });
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(variables.taskId) });
     },
   });
 
@@ -61,21 +69,12 @@ export function useFireIntegration() {
   const createFireIssue = useMutation({
     mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
       const fireUrl = getCreateFireIssueUrl();
-      const response = await fetch(`${fireUrl}/projects/${projectType}/tasks/${taskId}`, {
+      return fetchJson(`${fireUrl}/projects/${projectType}/tasks/${taskId}`, {
         method: 'POST',
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task'] });
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(variables.taskId) });
     },
   });
 
@@ -109,28 +108,13 @@ export function useGoogleChatIntegration() {
       });
 
       try {
-        const response = await fetch(requestUrl, {
+        return await fetchJson(requestUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ taskUrl }),
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage =
-            errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-          console.error('Google Chat thread creation failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData,
-            requestUrl,
-          });
-          throw new Error(errorMessage);
-        }
-
-        return response.json();
       } catch (error) {
         // fetch自体が失敗した場合（ネットワークエラー、CORSエラーなど）
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -146,9 +130,9 @@ export function useGoogleChatIntegration() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
       if (variables.taskId) {
-        queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(variables.taskId) });
       }
     },
   });
@@ -157,4 +141,3 @@ export function useGoogleChatIntegration() {
     createGoogleChatThread,
   };
 }
-

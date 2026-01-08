@@ -1,61 +1,34 @@
 'use client';
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  QueryDocumentSnapshot,
-} from 'firebase/firestore';
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
+import { addDoc, updateDoc, deleteDoc, doc, collection, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { useAuth } from '@/hooks/useAuth';
+import { queryKeys } from '@/lib/queryKeys';
+import { fetchTaskByIdAcrossProjects, fetchTaskPage } from '@/lib/firestore/repositories/taskRepository';
 type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
-
-/**
- * タスクデータをFirestoreから取得して変換する共通関数
- */
-function transformTaskData(
-  docItem: any,
-  projectTypeOverride?: ProjectType
-): Task & { projectType: ProjectType } {
-  const taskData = docItem.data();
-  const resolvedProjectType =
-    projectTypeOverride ||
-    (taskData.projectType as ProjectType | undefined) ||
-    (docItem?.ref?.parent?.parent?.id as ProjectType | undefined);
-
-  if (!resolvedProjectType) {
-    throw new Error('projectType is required to transform task data');
-  }
-
-  return {
-    id: docItem.id,
-    projectType: resolvedProjectType,
-    ...taskData,
-    createdAt: taskData.createdAt?.toDate(),
-    updatedAt: taskData.updatedAt?.toDate(),
-    itUpDate: taskData.itUpDate?.toDate() || null,
-    releaseDate: taskData.releaseDate?.toDate() || null,
-    dueDate: taskData.dueDate?.toDate() || null,
-    completedAt: taskData.completedAt?.toDate() || null,
-  } as Task & { projectType: ProjectType };
-}
+type TaskPage = {
+  tasks: (Task & { projectType: ProjectType })[];
+  lastDoc: QueryDocumentSnapshot | ProjectCursorMap | null;
+  hasMore: boolean;
+};
 
 /**
  * タスク一覧を取得するカスタムフック（無限スクロール対応）
  * @param projectType プロジェクトタイプ（'all'の場合は全プロジェクト、無限スクロール非対応）
  */
-export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
+export function useTasks(
+  projectType: ProjectType | 'all' | undefined = 'all'
+): UseInfiniteQueryResult<InfiniteData<TaskPage>, Error> {
   const INITIAL_LIMIT = 10;
   const LOAD_MORE_LIMIT = 10;
 
@@ -63,14 +36,15 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
     projectType === undefined || projectType === null ? 'all' : projectType;
   const isAllProjects = normalizedProjectType === 'all';
 
-  const infiniteQueryKey = ['tasks', isAllProjects ? 'all' : normalizedProjectType] as const;
-  const infiniteQuery = useInfiniteQuery({
-    queryKey: infiniteQueryKey,
-    queryFn: async ({
-      pageParam,
-    }: {
-      pageParam: QueryDocumentSnapshot | ProjectCursorMap | null | undefined;
-    }) => {
+  const infiniteQuery = useInfiniteQuery<
+    TaskPage,
+    Error,
+    InfiniteData<TaskPage>,
+    ReturnType<typeof queryKeys.tasks>,
+    QueryDocumentSnapshot | ProjectCursorMap | null | undefined
+  >({
+    queryKey: queryKeys.tasks(isAllProjects ? 'all' : normalizedProjectType),
+    queryFn: async ({ pageParam }) => {
       if (!db) {
         return {
           tasks: [],
@@ -94,13 +68,20 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
 
         for (const projectType of PROJECT_TYPES) {
           const cursor = cursorMap[projectType] || null;
-          const baseRef = collection(db, 'projects', projectType, 'tasks');
-          const constraints = cursor
-            ? [orderBy('createdAt', 'desc'), startAfter(cursor), limit(limitValue)]
-            : [orderBy('createdAt', 'desc'), limit(limitValue)];
-          const snapshot = await getDocs(query(baseRef, ...constraints));
-          perProjectSnapshots[projectType] = snapshot.docs;
-          perProjectTasks[projectType] = snapshot.docs.map((docItem) => transformTaskData(docItem, projectType));
+          try {
+            const page = await fetchTaskPage({
+              projectType,
+              limitValue,
+              cursor,
+            });
+            perProjectSnapshots[projectType] = page.snapshots;
+            perProjectTasks[projectType] = page.tasks;
+          } catch (error) {
+            // エラーが発生したプロジェクトは空配列として扱う
+            console.error(`Failed to fetch tasks for ${projectType}:`, error);
+            perProjectSnapshots[projectType] = [];
+            perProjectTasks[projectType] = [];
+          }
         }
 
         const mergedTasks = PROJECT_TYPES.flatMap((type) => perProjectTasks[type]).sort((a, b) => {
@@ -140,31 +121,17 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
         };
       }
 
-      const baseRef = collection(db, 'projects', normalizedProjectType, 'tasks');
       const cursor = pageParam as QueryDocumentSnapshot | null | undefined;
-      const constraints = cursor
-        ? [orderBy('createdAt', 'desc'), startAfter(cursor), limit(limitValue)]
-        : [orderBy('createdAt', 'desc'), limit(limitValue)];
-      const snapshot = await getDocs(query(baseRef, ...constraints));
-
-      if (!snapshot || !snapshot.docs) {
-        return {
-          tasks: [],
-          lastDoc: null,
-          hasMore: false,
-        };
-      }
-
-      const tasks = snapshot.docs.map((docItem) =>
-        transformTaskData(docItem, normalizedProjectType as ProjectType)
-      );
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-      const hasMore = snapshot.docs.length === limitValue;
+      const page = await fetchTaskPage({
+        projectType: normalizedProjectType as ProjectType,
+        limitValue,
+        cursor,
+      });
 
       return {
-        tasks,
-        lastDoc: lastDoc as QueryDocumentSnapshot | null,
-        hasMore,
+        tasks: page.tasks,
+        lastDoc: page.lastDoc,
+        hasMore: page.hasMore,
       };
     },
     getNextPageParam: (lastPage) => {
@@ -180,7 +147,7 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
     enabled: !!db,
   });
 
-  return infiniteQuery as any;
+  return infiniteQuery;
 }
 
 /**
@@ -189,29 +156,10 @@ export function useTasks(projectType: ProjectType | 'all' | undefined = 'all') {
  */
 export function useTask(taskId: string | null) {
   return useQuery({
-    queryKey: ['task', taskId],
+    queryKey: taskId ? queryKeys.task(taskId) : ['task', null],
     queryFn: async () => {
       if (!db || !taskId) return null;
-
-      // 全プロジェクトタイプから検索
-      for (const projectType of PROJECT_TYPES) {
-        const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
-        const taskDoc = await getDoc(taskRef);
-        if (taskDoc.exists()) {
-          const taskData = taskDoc.data();
-          return {
-            id: taskDoc.id,
-            ...taskData,
-            createdAt: taskData.createdAt?.toDate(),
-            updatedAt: taskData.updatedAt?.toDate(),
-            itUpDate: taskData.itUpDate?.toDate() || null,
-            releaseDate: taskData.releaseDate?.toDate() || null,
-            dueDate: taskData.dueDate?.toDate() || null,
-            completedAt: taskData.completedAt?.toDate() || null,
-          } as Task;
-        }
-      }
-      return null;
+      return fetchTaskByIdAcrossProjects(taskId);
     },
     enabled: !!taskId,
   });
@@ -245,9 +193,10 @@ export function useCreateTask() {
       const docRef = await addDoc(collection(db, 'projects', projectType, 'tasks'), data);
       return docRef.id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks(variables.projectType) });
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
     },
   });
 }
@@ -277,9 +226,10 @@ export function useUpdateTask() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks(variables.projectType) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(variables.taskId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
     },
   });
 }
@@ -303,10 +253,10 @@ export function useDeleteTask() {
       const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
       await deleteDoc(taskRef);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks(variables.projectType) });
+      queryClient.refetchQueries({ queryKey: queryKeys.tasks('all') });
     },
   });
 }
-

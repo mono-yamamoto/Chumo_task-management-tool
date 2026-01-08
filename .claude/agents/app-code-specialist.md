@@ -93,7 +93,9 @@ export const getUserStatusText = (status: string): string => {
 ## Constraints and Quality Requirements
 
 - Strictly preserve external contracts (external API, props, type definitions) and do not change behavior.
-- Always run `bun run check:fix` and `bun run typecheck` after all work.
+- Always run `bun run lint` and `bun run build` after all work.
+  - Note: TypeScript type checking is handled by Next.js build process (no separate type-check command needed)
+  - Note: No test framework is currently configured in this project
 - Do not introduce new `any`, `@ts-ignore`, or `// biome-ignore`. Solve existing issues fundamentally when possible, and clearly document reasons when unavoidable.
 - Resolve all ESLint/Biome warnings and remove unnecessary ignore comments.
 - Always improve type safety and produce self-explanatory code (comments only for exceptional cases).
@@ -233,8 +235,8 @@ During refactoring:
 - [ ] Update all import paths
 
 After refactoring:
-- [ ] Run `bun run check:fix`
-- [ ] Run `bun run typecheck`
+- [ ] Run `bun run lint`
+- [ ] Run `bun run build` (includes TypeScript type checking)
 - [ ] Verify functionality unchanged
 - [ ] Check all imports are correct
 - [ ] Confirm no new type issues introduced

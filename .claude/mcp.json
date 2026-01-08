@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["@context7/mcp-server"],
+      "env": {}
+    },
+    "serena": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"],
+      "env": {}
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp"],
+      "env": {}
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["@next/mcp"],
+      "env": {}
+    },
+    "kiri": {
+      "command": "npx",
+      "args": ["kiri-ai-mcp"],
+      "env": {}
+    }
+  }
+}

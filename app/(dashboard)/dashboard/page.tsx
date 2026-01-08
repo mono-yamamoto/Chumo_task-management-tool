@@ -1,26 +1,17 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  collection,
-  getDocs,
-  doc,
-  deleteDoc,
-} from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
 import { useUpdateTask } from '@/hooks/useTasks';
-import { useActiveSession, useTaskSessions } from '@/hooks/useTaskSessions';
-import { useTimerActions } from '@/hooks/useTimerActions';
-import { useDriveIntegration, useFireIntegration, useGoogleChatIntegration } from '@/hooks/useIntegrations';
-import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
-import { formatDuration as formatDurationUtil } from '@/utils/timer';
+import { useTaskSessions } from '@/hooks/useTaskSessions';
+import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
+import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { Button as CustomButton } from '@/components/ui/button';
-import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import {
   Box,
   Typography,
@@ -34,25 +25,12 @@ import {
 } from '@mui/material';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
+import { queryKeys } from '@/lib/queryKeys';
+import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskRepository';
 
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [taskFormData, setTaskFormData] = useState<Partial<Task> | null>(null);
-  const { createDriveFolder } = useDriveIntegration();
-  const { createFireIssue } = useFireIntegration();
-  const { createGoogleChatThread } = useGoogleChatIntegration();
-  const [activeSession, setActiveSession] = useState<{
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null>(null);
-  const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
-    userId: user?.id,
-    queryClient,
-    setActiveSession,
-  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -60,38 +38,10 @@ function DashboardPageContent() {
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ['dashboard-tasks', user?.id],
+    queryKey: queryKeys.dashboardTasks(user?.id),
     queryFn: async () => {
       if (!db || !user) return [];
-
-      const allTasks: (Task & { projectType: ProjectType })[] = [];
-
-      // すべてのプロジェクトタイプからタスクを取得
-      for (const projectType of PROJECT_TYPES) {
-        const tasksRef = collection(db, 'projects', projectType, 'tasks');
-        const tasksSnapshot = await getDocs(tasksRef);
-
-        tasksSnapshot.docs.forEach((docItem) => {
-          const taskData = {
-            id: docItem.id,
-            projectType,
-            ...docItem.data(),
-            createdAt: docItem.data().createdAt?.toDate(),
-            updatedAt: docItem.data().updatedAt?.toDate(),
-            itUpDate: docItem.data().itUpDate?.toDate() || null,
-            releaseDate: docItem.data().releaseDate?.toDate() || null,
-            dueDate: docItem.data().dueDate?.toDate() || null,
-            completedAt: docItem.data().completedAt?.toDate() || null,
-          } as Task & { projectType: ProjectType };
-
-          // 自分のタスクかつ完了以外のもののみを追加
-          if (taskData.assigneeIds.includes(user.id) && taskData.flowStatus !== '完了') {
-            allTasks.push(taskData);
-          }
-        });
-      }
-
-      return allTasks;
+      return fetchAssignedOpenTasks(user.id);
     },
     enabled: !!user && !!db,
   });
@@ -102,8 +52,27 @@ function DashboardPageContent() {
   // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
-  // アクティブなセッションを取得（すべてのプロジェクトタイプから）
-  useActiveSession(user?.id || null, setActiveSession);
+  const {
+    activeSession,
+    handleStartTimer,
+    handleStopTimer,
+    isStoppingTimer,
+    handleDriveCreate,
+    isCreatingDrive,
+    handleFireCreate,
+    isCreatingFire,
+    handleChatThreadCreate,
+    isCreatingChatThread,
+    formatDuration,
+  } = useTaskDetailActions({
+    userId: user?.id,
+    queryClient,
+    listQueryKeys: [queryKeys.dashboardTasks(user?.id), queryKeys.tasks('all')],
+    refetchListQueryKeys: [queryKeys.dashboardTasks(user?.id)],
+    detailQueryKey: (taskId) => queryKeys.task(taskId),
+    refetchListOnChat: false,
+    refetchDetailOnChat: false,
+  });
 
   // 時間計測中のタスクを最優先でソート
   const sortedTasks = useMemo(() => {
@@ -124,36 +93,17 @@ function DashboardPageContent() {
     });
   }, [tasks, activeSession]);
 
-  // 選択されたタスクの詳細を取得
-  const selectedTask = useMemo(
-    () => sortedTasks?.find((t) => t.id === selectedTaskId) || null,
-    [sortedTasks, selectedTaskId]
-  );
-
-  // 選択されたタスクが変更されたらフォームデータを初期化
-  useEffect(() => {
-    if (selectedTask && selectedTaskId) {
-      if (!taskFormData || (taskFormData && selectedTask.id === selectedTaskId)) {
-        setTaskFormData({
-          title: selectedTask.title,
-          description: selectedTask.description || '',
-          flowStatus: selectedTask.flowStatus,
-          kubunLabelId: selectedTask.kubunLabelId,
-          assigneeIds: selectedTask.assigneeIds,
-          itUpDate: selectedTask.itUpDate,
-          releaseDate: selectedTask.releaseDate,
-          dueDate: selectedTask.dueDate,
-        });
-      }
-    } else if (!selectedTaskId) {
-      setTaskFormData(null);
-    }
-    // selectedTask, setTaskFormData, taskFormDataは意図的に依存配列から除外
-    // - selectedTask: オブジェクト全体を依存配列に入れると、参照が変わるたびに再実行される
-    // - setTaskFormData: Zustandのsetterは安定しているため不要
-    // - taskFormData: 依存配列に入れると無限ループになる可能性がある
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTask?.id, selectedTaskId]);
+  const {
+    selectedTaskId,
+    selectedTask,
+    taskFormData,
+    setTaskFormData,
+    handleTaskSelect,
+    resetSelection,
+  } = useTaskDetailState({
+    tasks: sortedTasks || [],
+    initializeMode: 'always',
+  });
 
   // 区分ラベルは全プロジェクト共通なので、そのまま使用
   const taskLabels = useMemo(() => allLabels || [], [allLabels]);
@@ -169,21 +119,6 @@ function DashboardPageContent() {
 
   const updateTask = useUpdateTask();
 
-  const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    const task = sortedTasks?.find((t) => t.id === taskId);
-    if (task) {
-      setTaskFormData({
-        title: task.title,
-        description: task.description || '',
-        flowStatus: task.flowStatus,
-        kubunLabelId: task.kubunLabelId,
-        itUpDate: task.itUpDate,
-        releaseDate: task.releaseDate,
-      });
-    }
-  };
-
   const handleSave = () => {
     if (!taskFormData || !selectedTask) return;
     const projectType = (selectedTask as any)?.projectType;
@@ -193,89 +128,6 @@ function DashboardPageContent() {
       taskId: selectedTask.id,
       updates: taskFormData,
     });
-  };
-
-  const formatDuration = (
-    seconds: number | undefined | null,
-    startedAt?: Date,
-    endedAt?: Date | null
-  ) => {
-    let secs = 0;
-    if (seconds === undefined || seconds === null || Number.isNaN(seconds) || seconds === 0) {
-      if (endedAt && startedAt) {
-        secs = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
-      } else {
-        return '0秒';
-      }
-    } else {
-      secs = Math.floor(Number(seconds));
-    }
-    return formatDurationUtil(secs);
-  };
-
-  const handleStartTimer = async (projectType: string, taskId: string) => {
-    await startTimerWithOptimistic(projectType, taskId);
-  };
-
-  const handleStopTimer = async () => {
-    await stopActiveSession(activeSession);
-  };
-
-  const handleDriveCreate = async (projectType: string, taskId: string) => {
-    try {
-      const result = await createDriveFolder.mutateAsync({ projectType: projectType, taskId });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.refetchQueries({ queryKey: ['task', taskId] });
-
-      if (result.warning) {
-        // チェックシート作成エラーがある場合（警告として表示）
-
-        alert(
-          `Driveフォルダを作成しましたが、チェックシートの作成に失敗しました。\n\nフォルダURL: ${result.url || '取得できませんでした'}\n\nエラー: ${result.error || '不明なエラー'}`
-        );
-      }
-      // 完全に成功した場合はalertを表示しない
-    } catch (error: any) {
-      console.error('Drive create error:', error);
-      const errorMessage = error?.message || '不明なエラー';
-
-      alert(`Driveフォルダの作成に失敗しました: ${errorMessage}`);
-    }
-  };
-
-  const handleFireCreate = async (projectType: string, taskId: string) => {
-    try {
-      await createFireIssue.mutateAsync({ projectType: projectType, taskId });
-      // 成功時はalertを表示しない
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
-    } catch (error: any) {
-      console.error('Fire create error:', error);
-
-      alert(`GitHub Issueの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
-  };
-
-  const handleChatThreadCreate = async (projectType: string, taskId: string) => {
-    try {
-      const taskUrl = buildTaskDetailUrl(taskId);
-      if (!taskUrl) {
-        alert('タスクのURLを生成できませんでした。');
-        return;
-      }
-
-      await createGoogleChatThread.mutateAsync({ projectType: projectType, taskId, taskUrl });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-    } catch (error: any) {
-      console.error('Chat thread create error:', error);
-      alert(`Google Chatスレッドの作成に失敗しました: ${error.message || '不明なエラー'}`);
-    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -290,14 +142,12 @@ function DashboardPageContent() {
 
     const taskToDelete = sortedTasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
-
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
       return;
     }
 
     if (deleteConfirmTitle !== taskToDelete.title) {
-
       alert('タイトルが一致しません。削除をキャンセルしました。');
       setDeleteDialogOpen(false);
       setDeleteConfirmTitle('');
@@ -308,15 +158,13 @@ function DashboardPageContent() {
       const taskRef = doc(db, 'projects', deleteProjectType, 'tasks', deleteTaskId);
       await deleteDoc(taskRef);
 
-      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['dashboard-tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
 
       if (selectedTaskId === deleteTaskId) {
-        setSelectedTaskId(null);
-        setTaskFormData(null);
+        resetSelection();
       }
-
 
       alert('タスクを削除しました');
     } catch (error: any) {
@@ -330,7 +178,6 @@ function DashboardPageContent() {
       setDeleteConfirmTitle('');
     }
   };
-
 
   if (isLoading) {
     return (
@@ -357,7 +204,7 @@ function DashboardPageContent() {
           activeSession={activeSession}
           onStartTimer={handleStartTimer}
           onStopTimer={handleStopTimer}
-          isStoppingTimer={stopTimer.isPending}
+          isStoppingTimer={isStoppingTimer}
           kobetsuLabelId={kobetsuLabelId}
           emptyMessage="自分のタスクがありません"
           rowSx={(task, isActive) =>
@@ -374,10 +221,7 @@ function DashboardPageContent() {
       {/* サイドバー */}
       <TaskDetailDrawer
         open={!!selectedTaskId}
-        onClose={() => {
-          setSelectedTaskId(null);
-          setTaskFormData(null);
-        }}
+        onClose={resetSelection}
         selectedTask={selectedTask}
         taskFormData={taskFormData}
         onTaskFormDataChange={setTaskFormData}
@@ -389,13 +233,13 @@ function DashboardPageContent() {
         activeSession={activeSession}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
-        isStoppingTimer={stopTimer.isPending}
+        isStoppingTimer={isStoppingTimer}
         onDriveCreate={handleDriveCreate}
-        isCreatingDrive={createDriveFolder.isPending}
+        isCreatingDrive={isCreatingDrive}
         onFireCreate={handleFireCreate}
-        isCreatingFire={createFireIssue.isPending}
+        isCreatingFire={isCreatingFire}
         onChatThreadCreate={handleChatThreadCreate}
-        isCreatingChatThread={createGoogleChatThread.isPending}
+        isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         formatDuration={formatDuration}
       />

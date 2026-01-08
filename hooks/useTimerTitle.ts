@@ -37,17 +37,9 @@ export function useTimerTitle() {
       if (typeof document === 'undefined') return;
 
       const now = new Date();
-      // startedAtがDateオブジェクトかTimestampかを判定
-      let startTime: Date;
-      if (activeSession.startedAt instanceof Date) {
-        startTime = activeSession.startedAt;
-      } else if (activeSession.startedAt && typeof activeSession.startedAt.toDate === 'function') {
-        // Firestore Timestampの場合
-        startTime = activeSession.startedAt.toDate();
-      } else {
-        // その他の場合（文字列や数値など）
-        startTime = new Date(activeSession.startedAt);
-      }
+      const startTime = activeSession.startedAt instanceof Date
+        ? activeSession.startedAt
+        : new Date(activeSession.startedAt);
 
       const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 

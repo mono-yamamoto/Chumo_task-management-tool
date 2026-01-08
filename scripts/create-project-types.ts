@@ -3,6 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { PROJECT_TYPES } from '../constants/projectTypes.js';
 
 // .env.localを読み込む
 const __filename = fileURLToPath(import.meta.url);
@@ -24,8 +25,8 @@ async function createProjectTypes() {
 
   const db = getFirestore(app);
 
-  // 作成するプロジェクトタイプ
-  const projectTypes = ['DMREG2', 'monosus'];
+  // 作成するプロジェクトタイプ（全てのPROJECT_TYPESを対象）
+  const projectTypes = PROJECT_TYPES;
 
   console.info('プロジェクトタイプドキュメントの作成を開始します...');
 
