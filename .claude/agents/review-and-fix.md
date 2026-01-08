@@ -24,55 +24,89 @@ description: "現在のブランチのPRレビューを確認し、未対応の�
 # 現在のブランチ名を取得
 CURRENT_BRANCH=$(git branch --show-current)
 
-# 現在のブランチのPRを検索
-gh pr list --head "$CURRENT_BRANCH" --json number,title,url,state
+# 現在のブランチのPRを検索してPR番号を取得
+PR_NUMBER=$(gh pr list --head "$CURRENT_BRANCH" --json number --jq -r '.[0].number')
 
 # PRが見つからない場合
-if [ -z "$PR_NUMBER" ]; then
+if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
   echo "⚠️ 現在のブランチ（$CURRENT_BRANCH）に対応するPRが見つかりませんでした。"
   echo "PRを作成してください: gh pr create"
   exit 1
 fi
+
+# 後続セクション用にPR_NUMBERをexport
+export PR_NUMBER
+echo "Found PR #$PR_NUMBER for branch $CURRENT_BRANCH"
 ```
 
 ### 2. レビューコメントを取得
 
 ```bash
-# PR番号を取得
-PR_NUMBER=$(gh pr view --json number --jq '.number')
+# PR番号は既にセクション1で取得済み
+# リポジトリ情報を取得
+REPO_INFO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
 
 # 全てのレビューコメントを取得（resolveされていないもの）
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id == null) | {id: .id, author: .user.login, body: .body[0:800], path: .path, line: .line, createdAt: .created_at, resolved: false}]'
+gh api repos/$REPO_INFO/pulls/$PR_NUMBER/comments \
+  --jq '[.[] | select(.in_reply_to_id == null) | {id: .id, author: .user.login, body: .body[0:800], path: .path, line: .line, createdAt: .created_at}]'
 
-# レビュー（review）を取得
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/reviews --jq '.[] | {id: .id, state: .state, author: .user.login, body: .body[0:500], submitted_at: .submitted_at}'
+# レビュー（review）を取得 + REVIEW_IDを抽出
+gh api repos/$REPO_INFO/pulls/$PR_NUMBER/reviews \
+  --jq '.[] | {id: .id, state: .state, author: .user.login, body: .body[0:500], submitted_at: .submitted_at}' | \
+  while IFS= read -r review; do
+    REVIEW_ID=$(echo "$review" | jq -r '.id')
+    echo "Review #$REVIEW_ID:"
+    echo "$review"
 
-# 各レビューに含まれるコメントを取得
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/reviews/{REVIEW_ID}/comments --jq '.[] | {id: .id, path: .path, line: .line, body: .body[0:800]}'
+    # 各レビューに含まれるコメント取得
+    gh api repos/$REPO_INFO/pulls/$PR_NUMBER/reviews/$REVIEW_ID/comments \
+      --jq '.[] | {id: .id, path: .path, line: .line, body: .body[0:800]}'
+  done
 ```
 
 ### 3. 未対応のレビューコメントを特定
 
 **対応すべきコメント:**
-- resolveされていないコメント
-- 返信がないコメント
+- トップレベルのコメント（返信でないもの）
 - 返信があるが、追加の修正が必要と明示されているコメント
+- 解決状態の確認はGraphQL APIまたはWeb UIで手動確認
 
 **対応しないコメント:**
-- **resolve済みのコメント**（`resolved: true`）
 - **返信で「意図的」「対応不要」というニュアンスが含まれているコメント**
   - 例：「これは意図的です」「対応不要です」「現状のままで問題ありません」など
   - 返信の内容を確認し、意図的に未対応であることが明示されている場合はスキップ
 
 ```bash
-# resolveされていないコメントを取得
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id == null) | select(.resolved == false or .resolved == null)]'
-
-# 返信がないコメントを取得
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id == null) | select((.replies | length) == 0)]'
+# トップレベルコメントを取得（返信でないもの）
+gh api repos/$REPO_INFO/pulls/$PR_NUMBER/comments \
+  --jq '[.[] | select(.in_reply_to_id == null) | {id: .id, author: .user.login, body: .body, path: .path, line: .line, created_at: .created_at}]'
 
 # 返信があるコメントの返信内容を確認（対応不要かどうか判断）
-gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments --jq '[.[] | select(.in_reply_to_id != null) | {reply_to: .in_reply_to_id, author: .user.login, body: .body[0:300]}]'
+gh api repos/$REPO_INFO/pulls/$PR_NUMBER/comments \
+  --jq '[.[] | select(.in_reply_to_id != null) | {reply_to: .in_reply_to_id, author: .user.login, body: .body[0:300]}]'
+
+# 解決状態の確認にはGraphQL APIを使用（より詳細な情報）
+gh api graphql -f query='
+query($owner: String!, $repo: String!, $pr: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 10) {
+            nodes {
+              author { login }
+              body
+              path
+              line
+              createdAt
+            }
+          }
+        }
+      }
+    }
+  }
+}' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUMBER"
 ```
 
 ### 4. レビュー内容の分析と優先順位付け
