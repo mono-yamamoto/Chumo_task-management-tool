@@ -40,3 +40,5 @@ functions/node_modules
 
 # Kiri MCP index database
 .kiri/
+
+.claude/settings.local.json

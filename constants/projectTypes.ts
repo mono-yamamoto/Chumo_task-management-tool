@@ -11,6 +11,7 @@ export const PROJECT_TYPES = [
   'DesignSystem',
   'DMREG2',
   'monosus',
+  'PRREG',
 ] as const;
 
 export type ProjectType = (typeof PROJECT_TYPES)[number];
