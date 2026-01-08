@@ -26,7 +26,7 @@ export function mapTaskDoc(
   const order = readNumber(data.order);
   const createdBy = readString(data.createdBy);
 
-  if (!title || !flowStatus || !assigneeIds || !kubunLabelId || order === undefined || !createdBy) {
+  if (!title || !flowStatus || !assigneeIds || kubunLabelId === undefined || order === undefined || !createdBy) {
     throw new Error('Invalid task data');
   }
 
