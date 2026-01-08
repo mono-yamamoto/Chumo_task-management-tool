@@ -40,7 +40,7 @@ async function deleteOldProjects() {
       const projectId = projectDoc.id;
 
       // プロジェクトタイプ（固定値）の場合はスキップ（PRREGを含む全タイプを保持）
-      if (PROJECT_TYPES.includes(projectId as any)) {
+      if ((PROJECT_TYPES as readonly string[]).includes(projectId)) {
         console.info(`プロジェクトタイプ "${projectId}" は保持します`);
         totalKept++;
         continue;
