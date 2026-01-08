@@ -68,13 +68,20 @@ export function useTasks(
 
         for (const projectType of PROJECT_TYPES) {
           const cursor = cursorMap[projectType] || null;
-          const page = await fetchTaskPage({
-            projectType,
-            limitValue,
-            cursor,
-          });
-          perProjectSnapshots[projectType] = page.snapshots;
-          perProjectTasks[projectType] = page.tasks;
+          try {
+            const page = await fetchTaskPage({
+              projectType,
+              limitValue,
+              cursor,
+            });
+            perProjectSnapshots[projectType] = page.snapshots;
+            perProjectTasks[projectType] = page.tasks;
+          } catch (error) {
+            // エラーが発生したプロジェクトは空配列として扱う
+            console.error(`Failed to fetch tasks for ${projectType}:`, error);
+            perProjectSnapshots[projectType] = [];
+            perProjectTasks[projectType] = [];
+          }
         }
 
         const mergedTasks = PROJECT_TYPES.flatMap((type) => perProjectTasks[type]).sort((a, b) => {

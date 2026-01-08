@@ -33,8 +33,11 @@ export async function fetchTaskSessions(
     const q = query(sessionsRef, where('taskId', '==', taskId), orderBy('startedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((docItem) => mapSessionDoc(docItem.id, docItem.data()));
-  } catch (error: any) {
-    if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+  } catch (error: unknown) {
+    const isIndexError =
+      (error && typeof error === 'object' && 'code' in error && error.code === 'failed-precondition') ||
+      (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('index'));
+    if (isIndexError) {
       try {
         const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
         const q = query(sessionsRef, where('taskId', '==', taskId));
@@ -66,17 +69,22 @@ export async function fetchActiveSessionsByUser(userId: string): Promise<ActiveS
   const allSessions: ActiveSessionInfo[] = [];
 
   for (const projectType of PROJECT_TYPES) {
-    const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-    const q = query(sessionsRef, where('userId', '==', userId), where('endedAt', '==', null));
-    const snapshot = await getDocs(q);
-    snapshot.docs.forEach((docItem) => {
-      const session = mapSessionDoc(docItem.id, docItem.data());
-      allSessions.push({
-        session,
-        projectType,
-        sessionId: docItem.id,
+    try {
+      const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
+      const q = query(sessionsRef, where('userId', '==', userId), where('endedAt', '==', null));
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach((docItem) => {
+        const session = mapSessionDoc(docItem.id, docItem.data());
+        allSessions.push({
+          session,
+          projectType,
+          sessionId: docItem.id,
+        });
       });
-    });
+    } catch (error) {
+      console.error(`Error fetching active sessions for project ${projectType}:`, error);
+      // 他のプロジェクトタイプの取得を続行
+    }
   }
 
   return allSessions.sort((a, b) => {
@@ -99,25 +107,30 @@ export async function fetchActiveSessionForTask(params: {
   taskId: string;
   userId: string;
 }): Promise<ActiveSessionInfo | null> {
-  if (!db) return null;
+  if (!db || !params.projectType || !params.taskId || !params.userId) return null;
 
   const sessionsRef = collection(db, 'projects', params.projectType, 'taskSessions');
-  const q = query(
-    sessionsRef,
-    where('taskId', '==', params.taskId),
-    where('userId', '==', params.userId),
-    where('endedAt', '==', null)
-  );
-  const snapshot = await getDocs(q);
-  if (!snapshot.empty) {
-    const sessionDoc = snapshot.docs[0];
-    const session = mapSessionDoc(sessionDoc.id, sessionDoc.data());
-    return {
-      session,
-      projectType: params.projectType,
-      sessionId: sessionDoc.id,
-    };
-  }
+  try {
+    const q = query(
+      sessionsRef,
+      where('taskId', '==', params.taskId),
+      where('userId', '==', params.userId),
+      where('endedAt', '==', null)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const sessionDoc = snapshot.docs[0];
+      const session = mapSessionDoc(sessionDoc.id, sessionDoc.data());
+      return {
+        session,
+        projectType: params.projectType,
+        sessionId: sessionDoc.id,
+      };
+    }
 
-  return null;
+    return null;
+  } catch (error) {
+    console.error('Error fetching active session for task:', error);
+    return null;
+  }
 }

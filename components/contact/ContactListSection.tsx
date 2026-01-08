@@ -38,6 +38,11 @@ type ContactCardProps = {
   getContactTypeColor: (type: ContactType) => 'error' | 'info' | 'warning';
 };
 
+/**
+ * 問い合わせ・エラーレポート表示用のカードコンポーネント
+ * 役割：個別の問い合わせアイテムの表示、ステータス切り替え、詳細情報の展開
+ * 責務：表示のみ（データ取得・更新処理は親コンポーネントが担当）
+ */
 function ContactCard({
   contact,
   variant,
@@ -46,6 +51,7 @@ function ContactCard({
   getContactTypeLabel,
   getContactTypeColor,
 }: ContactCardProps) {
+  // 現在の状態判定と次状態決定の意図（'pending'と'resolved'の扱い）
   const isResolved = variant === 'resolved';
   const statusLabel = isResolved ? '解決済み' : '対応中';
   const nextStatus = isResolved ? 'pending' : 'resolved';
@@ -55,6 +61,7 @@ function ContactCard({
     <Card
       sx={{
         mb: 2,
+        // 解決済みアイテムの視覚的な区別：透明度を下げて背景色を変更し、完了感を演出
         opacity: isResolved ? 0.6 : 1,
         backgroundColor: isResolved ? 'action.hover' : 'background.paper',
       }}
@@ -100,12 +107,20 @@ function ContactCard({
               sx={{
                 fontWeight: 600,
                 mb: 1,
+                // 解決済みタイトルの視覚的区別：テキスト色を無効化し、取り消し線で完了状態を表現
                 color: isResolved ? 'text.disabled' : 'text.primary',
                 textDecoration: isResolved ? 'line-through' : 'none',
               }}
             >
               {contact.title}
             </Typography>
+            {/* エラーレポート詳細表示：contact.type === 'error' かつ contact.errorReportDetails が存在する場合のみ
+                以下の情報を構造化して表示：
+                - issue: 発生した事象の説明
+                - reproductionSteps: 問題を再現するための手順
+                - environment: 実行環境情報（device, os, browser, browserVersion, osVersion）
+                - screenshotUrl: エラー画面のスクリーンショット（任意）
+                - content: 追加のコメントや詳細説明 */}
             {contact.type === 'error' && contact.errorReportDetails ? (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>

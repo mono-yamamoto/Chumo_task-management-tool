@@ -209,8 +209,12 @@ export function useUpdateSession() {
           queryKey: queryKeys.sessionHistory(variables.existingSession.taskId),
         });
       } else {
-        queryClient.invalidateQueries({ queryKey: ['taskSessions'] });
-        queryClient.invalidateQueries({ queryKey: ['sessionHistory'] });
+        // taskIdが不明な場合は、全てのtaskSessionsとsessionHistoryを無効化
+        console.warn('taskId not available in existingSession, invalidating all task sessions');
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            query.queryKey[0] === 'taskSessions' || query.queryKey[0] === 'sessionHistory',
+        });
       }
     },
   });
