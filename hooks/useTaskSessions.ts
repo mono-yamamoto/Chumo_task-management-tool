@@ -143,7 +143,13 @@ export function useUpdateSession() {
       const sessionRef = doc(db, 'projects', projectType, 'taskSessions', sessionId);
 
       // startedAtとendedAtを更新する場合、durationSecも再計算
-      const updateData: any = {};
+      const updateData: Partial<{
+        startedAt: Timestamp;
+        endedAt: Timestamp | null;
+        userId: string;
+        note: string | null;
+        durationSec: number;
+      }> = {};
       if (updates.startedAt) {
         updateData.startedAt =
           updates.startedAt instanceof Date
