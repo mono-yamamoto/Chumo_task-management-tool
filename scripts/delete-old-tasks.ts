@@ -1,5 +1,6 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { PROJECT_TYPES } from '../constants/projectTypes.js';
 
 /**
  * 既存のタスクを削除するスクリプト
@@ -38,9 +39,8 @@ async function deleteOldTasks() {
       const projectId = projectDoc.id;
       const projectData = projectDoc.data();
 
-      // プロジェクトタイプ（固定値）の場合はスキップ
-      const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'];
-      if (PROJECT_TYPES.includes(projectId)) {
+      // プロジェクトタイプ（固定値）の場合はスキップ（PRREGを含む全タイプを保護）
+      if (PROJECT_TYPES.includes(projectId as any)) {
         console.info(`プロジェクトタイプ "${projectId}" はスキップします`);
         continue;
       }

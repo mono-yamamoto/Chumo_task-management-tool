@@ -1,10 +1,11 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { PROJECT_TYPES } from '../constants/projectTypes.js';
 
 /**
  * 古いプロジェクトドキュメントを削除するスクリプト
  * プロジェクト実装変更により、古いプロジェクトIDベースのドキュメントは不要になったため削除
- * プロジェクトタイプのドキュメント（REG2017, BRGREGなど）は保持（タスクのサブコレクションを保持するため）
+ * プロジェクトタイプのドキュメント（REG2017, BRGREG, PRREGなど）は保持（タスクのサブコレクションを保持するため）
  * 実行方法: FORCE_DELETE=true npx ts-node scripts/delete-old-projects.ts
  */
 
@@ -23,9 +24,6 @@ async function deleteOldProjects() {
   console.info('古いプロジェクトドキュメントの削除を開始します...');
 
   try {
-    // プロジェクトタイプ（固定値）のリスト
-    const PROJECT_TYPES = ['REG2017', 'BRGREG', 'MONO', 'MONO_ADMIN', 'DES_FIRE', 'DesignSystem', 'DMREG2', 'monosus'];
-
     // すべてのプロジェクトを取得
     const projectsSnapshot = await db.collection('projects').get();
 
@@ -41,8 +39,8 @@ async function deleteOldProjects() {
     for (const projectDoc of projectsSnapshot.docs) {
       const projectId = projectDoc.id;
 
-      // プロジェクトタイプ（固定値）の場合はスキップ
-      if (PROJECT_TYPES.includes(projectId)) {
+      // プロジェクトタイプ（固定値）の場合はスキップ（PRREGを含む全タイプを保持）
+      if (PROJECT_TYPES.includes(projectId as any)) {
         console.info(`プロジェクトタイプ "${projectId}" は保持します`);
         totalKept++;
         continue;
