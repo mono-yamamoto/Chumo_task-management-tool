@@ -346,21 +346,42 @@ function TasksPageContent() {
 
   const updateTask = useUpdateTask();
 
-  const handleSave = () => {
-    if (!taskFormDataValue || !selectedTask) return;
-    const projectType = selectedTask?.projectType;
-    if (!projectType) return;
-    updateTask.mutate({
-      projectType,
-      taskId: selectedTask.id,
-      updates: taskFormDataValue,
-    });
-  };
+  const handleDrawerClose = async () => {
+    if (!taskFormDataValue || !selectedTask) {
+      resetSelection();
+      return;
+    }
 
-  const handleDrawerClose = () => {
-    // Drawerを閉じる前に保存
-    handleSave();
-    resetSelection();
+    const projectType = selectedTask?.projectType;
+    if (!projectType) {
+      resetSelection();
+      return;
+    }
+
+    // 変更があるかチェック
+    const hasChanges = Object.keys(taskFormDataValue).some((key) => {
+      const formValue = taskFormDataValue[key as keyof Task];
+      const taskValue = selectedTask[key as keyof Task];
+      return formValue !== taskValue;
+    });
+
+    // 変更がある場合のみ保存
+    if (hasChanges) {
+      try {
+        await updateTask.mutateAsync({
+          projectType,
+          taskId: selectedTask.id,
+          updates: taskFormDataValue,
+        });
+        resetSelection();
+      } catch (error) {
+        console.error('保存に失敗しました:', error);
+        alert('保存に失敗しました。もう一度お試しください。');
+        // エラー時はDrawerを開いたまま
+      }
+    } else {
+      resetSelection();
+    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -653,7 +674,6 @@ function TasksPageContent() {
         selectedTask={selectedTask}
         taskFormData={taskFormDataValue}
         onTaskFormDataChange={setTaskFormDataValue}
-        onSave={handleSave}
         onDelete={handleDeleteClick}
         isSaving={updateTask.isPending}
         taskLabels={taskLabels}

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -119,21 +120,42 @@ function DashboardPageContent() {
 
   const updateTask = useUpdateTask();
 
-  const handleSave = () => {
-    if (!taskFormData || !selectedTask) return;
-    const projectType = (selectedTask as any)?.projectType;
-    if (!projectType) return;
-    updateTask.mutate({
-      projectType,
-      taskId: selectedTask.id,
-      updates: taskFormData,
-    });
-  };
+  const handleDrawerClose = async () => {
+    if (!taskFormData || !selectedTask) {
+      resetSelection();
+      return;
+    }
 
-  const handleDrawerClose = () => {
-    // Drawerを閉じる前に保存
-    handleSave();
-    resetSelection();
+    const projectType = (selectedTask as any)?.projectType;
+    if (!projectType) {
+      resetSelection();
+      return;
+    }
+
+    // 変更があるかチェック
+    const hasChanges = Object.keys(taskFormData).some((key) => {
+      const formValue = taskFormData[key as keyof Task];
+      const taskValue = selectedTask[key as keyof Task];
+      return formValue !== taskValue;
+    });
+
+    // 変更がある場合のみ保存
+    if (hasChanges) {
+      try {
+        await updateTask.mutateAsync({
+          projectType,
+          taskId: selectedTask.id,
+          updates: taskFormData,
+        });
+        resetSelection();
+      } catch (error) {
+        console.error('保存に失敗しました:', error);
+        alert('保存に失敗しました。もう一度お試しください。');
+        // エラー時はDrawerを開いたまま
+      }
+    } else {
+      resetSelection();
+    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -231,7 +253,6 @@ function DashboardPageContent() {
         selectedTask={selectedTask}
         taskFormData={taskFormData}
         onTaskFormDataChange={setTaskFormData}
-        onSave={handleSave}
         onDelete={handleDeleteClick}
         isSaving={updateTask.isPending}
         taskLabels={taskLabels}

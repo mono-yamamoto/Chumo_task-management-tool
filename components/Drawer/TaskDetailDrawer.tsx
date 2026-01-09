@@ -36,36 +36,25 @@ interface TaskDetailDrawerProps {
   onClose: () => void;
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
-
   onTaskFormDataChange: (data: Partial<Task>) => void;
-  onSave: () => void;
-
   onDelete: (taskId: string, projectId: string) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
   activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
   isStoppingTimer: boolean;
-
   onDriveCreate: (projectId: string, taskId: string) => void;
   isCreatingDrive: boolean;
-
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
-
   onChatThreadCreate: (projectId: string, taskId: string) => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
-
   formatDuration: (
-
     durationSec: number | undefined | null,
-
     startedAt?: Date,
-
     endedAt?: Date | null
   ) => string;
 }
@@ -76,9 +65,8 @@ export function TaskDetailDrawer({
   selectedTask,
   taskFormData,
   onTaskFormDataChange,
-  onSave,
   onDelete,
-  isSaving,
+  isSaving: _isSaving,
   taskLabels,
   allUsers,
   activeSession,
@@ -92,7 +80,6 @@ export function TaskDetailDrawer({
   onChatThreadCreate,
   isCreatingChatThread,
   taskSessions,
-
   formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
   // taskFormDataがnullの場合はローディング状態を表示
