@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, doc, updateDoc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { TaskSession, ActiveSession } from '@/types';
+import { TaskSession, ActiveSession, ProjectType } from '@/types';
 import { queryKeys } from '@/lib/queryKeys';
 import { ACTIVE_SESSION_REFETCH_INTERVAL_MS } from '@/constants/timer';
 import {
@@ -46,7 +46,7 @@ export function useActiveSession(
       if (allSessions.length > 0) {
         const firstSession = allSessions[0];
         const activeSession = {
-          projectType: firstSession.projectType,
+          projectType: firstSession.projectType as ProjectType,
           taskId: firstSession.session.taskId,
           sessionId: firstSession.sessionId,
         };

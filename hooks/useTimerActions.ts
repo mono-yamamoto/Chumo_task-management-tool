@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { useTimer } from '@/hooks/useTimer';
 import { queryKeys } from '@/lib/queryKeys';
-import { ActiveSession } from '@/types';
+import { ActiveSession, ProjectType } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 interface UseTimerActionsOptions {
@@ -44,7 +44,7 @@ export function useTimerActions({
   );
 
   const startTimerWithOptimistic = useCallback(
-    async (projectType: string, taskId: string) => {
+    async (projectType: ProjectType, taskId: string) => {
       if (!userId) return;
       setActiveSession({ projectType, taskId, sessionId: 'pending' });
       try {

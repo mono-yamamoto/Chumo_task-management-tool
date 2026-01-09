@@ -15,28 +15,46 @@ interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
+  timers: Map<string, NodeJS.Timeout>;
   addToast: (_toast: Omit<Toast, 'id'>) => void;
   removeToast: (_id: string) => void;
 }
 
-export const useToastStore = create<ToastStore>((set) => ({
+export const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
+  timers: new Map(),
   addToast: (toast) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
-    set((state) => ({
-      toasts: [...state.toasts, { ...toast, id }],
-    }));
+
     // デフォルトで指定時間後に自動削除
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
+    const timerId = setTimeout(() => {
+      get().removeToast(id);
     }, toast.duration || DEFAULT_TOAST_DURATION_MS);
+
+    set((state) => {
+      const newTimers = new Map(state.timers);
+      newTimers.set(id, timerId);
+      return {
+        toasts: [...state.toasts, { ...toast, id }],
+        timers: newTimers,
+      };
+    });
   },
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
+  removeToast: (id) => {
+    const timerId = get().timers.get(id);
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+
+    set((state) => {
+      const newTimers = new Map(state.timers);
+      newTimers.delete(id);
+      return {
+        toasts: state.toasts.filter((t) => t.id !== id),
+        timers: newTimers,
+      };
+    });
+  },
 }));
 
 /**

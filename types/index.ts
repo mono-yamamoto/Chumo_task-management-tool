@@ -3,6 +3,7 @@
 
 import { ProjectType } from '@/constants/projectTypes';
 
+export type { ProjectType };
 export type UserRole = 'admin' | 'member';
 
 export type FlowStatus =

@@ -26,7 +26,7 @@ import {
 import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
-import { Task, FlowStatus, User, Label } from '@/types';
+import { Task, FlowStatus, User, Label, ProjectType } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
@@ -40,23 +40,23 @@ interface TaskDetailDrawerProps {
   onTaskFormDataChange: (data: Partial<Task>) => void;
   onSave: () => void;
 
-  onDelete: (taskId: string, projectId: string) => void;
+  onDelete: (taskId: string, projectId: ProjectType) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
-  activeSession: { projectType: string; taskId: string; sessionId: string } | null;
+  activeSession: { projectType: ProjectType; taskId: string; sessionId: string } | null;
 
-  onStartTimer: (projectId: string, taskId: string) => void;
+  onStartTimer: (projectId: ProjectType, taskId: string) => void;
   onStopTimer: () => void;
   isStoppingTimer: boolean;
 
-  onDriveCreate: (projectId: string, taskId: string) => void;
+  onDriveCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingDrive: boolean;
 
-  onFireCreate: (projectId: string, taskId: string) => void;
+  onFireCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingFire: boolean;
 
-  onChatThreadCreate: (projectId: string, taskId: string) => void;
+  onChatThreadCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
 

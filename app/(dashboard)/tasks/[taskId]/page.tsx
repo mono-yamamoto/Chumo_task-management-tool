@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
-import { FlowStatus, TaskSession } from '@/types';
+import { FlowStatus, TaskSession, ProjectType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useUsers } from '@/hooks/useUsers';
@@ -132,7 +132,7 @@ export default function TaskDetailPage() {
       });
       if (activeSessionInfo) {
         setActiveSession({
-          projectType: activeSessionInfo.projectType,
+          projectType: activeSessionInfo.projectType as ProjectType,
           taskId,
           sessionId: activeSessionInfo.sessionId,
         });
