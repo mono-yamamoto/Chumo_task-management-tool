@@ -36,7 +36,7 @@ import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
-const TASKS_PER_PAGE = 10;
+const TASKS_PER_PAGE = 30;
 
 function TasksPageContent() {
   const { user } = useAuth();
