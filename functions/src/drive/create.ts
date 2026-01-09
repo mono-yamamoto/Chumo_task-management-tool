@@ -129,12 +129,21 @@ export const createDriveFolder = onRequest(
       const folderName = parts.join(' ');
 
       // Secrets取得
+      console.info('Fetching secrets from Secret Manager...');
       const oauthClientId = await getSecret('GOOGLE_OAUTH_CLIENT_ID');
       const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
       const driveParentId = await getSecret('DRIVE_PARENT_ID');
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
 
+      console.info('Secrets retrieved:', {
+        oauthClientId: oauthClientId ? 'SET' : 'NOT SET',
+        oauthClientSecret: oauthClientSecret ? 'SET' : 'NOT SET',
+        driveParentId: driveParentId ? 'SET' : 'NOT SET',
+        checksheetTemplateId: checksheetTemplateId ? 'SET' : 'NOT SET',
+      });
+
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
+        console.error('Missing required secrets');
         res.status(500).json({
           error:
             'Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager.',
@@ -143,6 +152,7 @@ export const createDriveFolder = onRequest(
       }
 
       // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
+      console.info('Creating OAuth2 client...');
       const oauth2Client = new google.auth.OAuth2(
         oauthClientId,
         oauthClientSecret,
@@ -155,18 +165,34 @@ export const createDriveFolder = onRequest(
       });
 
       // アクセストークンを取得（必要に応じて自動的にリフレッシュされる）
-      const accessToken = await oauth2Client.getAccessToken();
-      if (!accessToken.token) {
+      console.info('Getting access token...');
+      try {
+        const accessToken = await oauth2Client.getAccessToken();
+        if (!accessToken.token) {
+          console.error('Access token is null or undefined');
+          res.status(401).json({
+            error: 'Google Drive認証トークンの取得に失敗しました。設定ページで再認証してください。',
+            requiresAuth: true,
+          });
+          return;
+        }
+        console.info('Access token obtained successfully');
+      } catch (tokenError) {
+        console.error('Failed to get access token:', tokenError);
         res.status(401).json({
-          error: 'Google Drive認証トークンの取得に失敗しました。設定ページで再認証してください。',
+          error: `Google Drive認証トークンの取得に失敗しました: ${
+            tokenError instanceof Error ? tokenError.message : '不明なエラー'
+          }`,
           requiresAuth: true,
         });
         return;
       }
 
+      console.info('Initializing Google Drive API client...');
       const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
       // 親フォルダが共有ドライブかどうかを確認
+      console.info('Checking parent folder:', driveParentId);
       const parentFolder = await drive.files.get({
         fileId: driveParentId,
         fields: 'id, name, driveId',
@@ -175,8 +201,15 @@ export const createDriveFolder = onRequest(
 
       const isSharedDrive = !!parentFolder.data.driveId;
       const driveId = parentFolder.data.driveId || undefined;
+      console.info('Parent folder info:', {
+        id: parentFolder.data.id,
+        name: parentFolder.data.name,
+        isSharedDrive,
+        driveId,
+      });
 
       // 同名フォルダ検索
+      console.info('Searching for existing folder:', folderName);
       const searchResponse = await drive.files.list({
         q: `name='${folderName.replace(/'/g, "\\'")}' and parents in '${driveParentId}' and trashed=false`,
         fields: 'files(id, name)',
@@ -184,6 +217,9 @@ export const createDriveFolder = onRequest(
         includeItemsFromAllDrives: true,
         corpora: isSharedDrive ? 'drive' : 'user',
         driveId: isSharedDrive ? driveId : undefined,
+      });
+      console.info('Search result:', {
+        foundFiles: searchResponse.data.files?.length || 0,
       });
 
       let folderId: string;
@@ -193,8 +229,10 @@ export const createDriveFolder = onRequest(
         // 既存フォルダを使用
         folderId = searchResponse.data.files[0].id!;
         folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+        console.info('Using existing folder:', { folderId, folderUrl });
       } else {
         // 新規フォルダ作成
+        console.info('Creating new folder:', folderName);
         const folderResponse = await drive.files.create({
           requestBody: {
             name: folderName,
@@ -207,6 +245,7 @@ export const createDriveFolder = onRequest(
 
         folderId = folderResponse.data.id!;
         folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+        console.info('Folder created successfully:', { folderId, folderUrl });
 
         // チェックシートテンプレートを複製
         let checksheetError: Error | null = null;
@@ -342,7 +381,34 @@ export const createDriveFolder = onRequest(
       });
     } catch (error) {
       console.error('Create Drive folder error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+
+      // エラーの詳細情報を抽出
+      let errorMessage = 'Internal server error';
+      let errorDetails: any = {};
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorDetails.message = error.message;
+        errorDetails.stack = error.stack;
+        errorDetails.name = error.name;
+      }
+
+      // Google APIエラーの場合は詳細情報を取得
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as any;
+        errorDetails.apiError = {
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          data: apiError.response?.data,
+        };
+        console.error('Google API Error details:', errorDetails.apiError);
+      }
+
+      console.error('Error details:', errorDetails);
+      res.status(500).json({
+        error: errorMessage,
+        details: errorDetails,
+      });
     }
   }
 );
