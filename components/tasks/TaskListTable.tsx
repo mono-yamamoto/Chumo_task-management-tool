@@ -147,7 +147,16 @@ export function TaskListTable({
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell>{getAssigneeNames(task.assigneeIds)}</TableCell>
+                  <TableCell
+                    sx={{
+                      maxWidth: '200px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {getAssigneeNames(task.assigneeIds)}
+                  </TableCell>
                   <TableCell>{task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
