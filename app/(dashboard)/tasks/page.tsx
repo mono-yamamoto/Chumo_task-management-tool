@@ -30,6 +30,8 @@ import {
   DialogActions,
   DialogContentText,
   Grid,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
@@ -71,6 +73,10 @@ function TasksPageContent() {
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // コンポーネントマウント時の時刻を保持（1週間判定用）
   // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
@@ -358,26 +364,48 @@ function TasksPageContent() {
       return;
     }
 
-    // 変更があるかチェック
+    // 変更があるかチェック（改善版: Date型と配列の正確な比較）
     const hasChanges = Object.keys(taskFormDataValue).some((key) => {
       const formValue = taskFormDataValue[key as keyof Task];
       const taskValue = selectedTask[key as keyof Task];
+
+      // Date型の比較
+      if (formValue instanceof Date && taskValue instanceof Date) {
+        return formValue.getTime() !== taskValue.getTime();
+      }
+
+      // 配列の比較 (assigneeIds等)
+      if (Array.isArray(formValue) && Array.isArray(taskValue)) {
+        return JSON.stringify(formValue) !== JSON.stringify(taskValue);
+      }
+
       return formValue !== taskValue;
     });
 
     // 変更がある場合のみ保存
     if (hasChanges) {
+      setIsSavingOnClose(true);
       try {
         await updateTask.mutateAsync({
           projectType,
           taskId: selectedTask.id,
           updates: taskFormDataValue,
         });
+        setSnackbarMessage('タスクを保存しました');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
         resetSelection();
       } catch (error) {
         console.error('保存に失敗しました:', error);
-        alert('保存に失敗しました。もう一度お試しください。');
+        const errorMessage = error instanceof Error
+          ? error.message
+          : '保存に失敗しました。もう一度お試しください。';
+        setSnackbarMessage(errorMessage);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
         // エラー時はDrawerを開いたまま
+      } finally {
+        setIsSavingOnClose(false);
       }
     } else {
       resetSelection();
@@ -669,13 +697,13 @@ function TasksPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskIdValue}
+        open={!!selectedTaskIdValue && !isSavingOnClose}
         onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormDataValue}
         onTaskFormDataChange={setTaskFormDataValue}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending}
+        isSaving={updateTask.isPending || isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSessionValue}
@@ -729,6 +757,22 @@ function TasksPageContent() {
           </CustomButton>
         </DialogActions>
       </Dialog>
+
+      {/* 保存通知用Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

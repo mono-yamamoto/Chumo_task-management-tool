@@ -14,6 +14,7 @@ import {
   Checkbox,
   ListItemText,
   Drawer,
+  CircularProgress,
 } from '@mui/material';
 import {
   Close,
@@ -66,7 +67,7 @@ export function TaskDetailDrawer({
   taskFormData,
   onTaskFormDataChange,
   onDelete,
-  isSaving: _isSaving,
+  isSaving,
   taskLabels,
   allUsers,
   activeSession,
@@ -154,9 +155,19 @@ export function TaskDetailDrawer({
             flexShrink: 0,
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            タスク詳細
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              タスク詳細
+            </Typography>
+            {isSaving && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={20} />
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  保存中...
+                </Typography>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <CustomButton
               variant="destructive"
