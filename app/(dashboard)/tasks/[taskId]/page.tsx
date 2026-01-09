@@ -29,6 +29,7 @@ import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/back
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { queryKeys } from '@/lib/queryKeys';
 import { fetchActiveSessionForTask } from '@/lib/firestore/repositories/sessionRepository';
+import { useTaskStore } from '@/stores/taskStore';
 import {
   Button,
   Box,
@@ -67,27 +68,19 @@ export default function TaskDetailPage() {
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
-  const [activeSession, setActiveSession] = useState<{
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null>(null);
+
+  // Zustandのグローバル状態を使用
+  const { activeSession, setActiveSession } = useTaskStore();
 
   // 依存配列の安定化のため、extraInvalidateKeysとextraRefetchKeysをuseMemoでメモ化
   const extraInvalidateKeys = useMemo(() => {
-    return [
-      queryKeys.activeSession(user?.id ?? null, taskId),
-      queryKeys.sessionHistory(taskId),
-    ];
+    return [queryKeys.activeSession(user?.id ?? null, taskId), queryKeys.sessionHistory(taskId)];
   }, [taskId, user]);
 
   const extraRefetchKeys = useMemo(
     () =>
       user?.id
-        ? [
-            queryKeys.activeSession(user.id, taskId),
-            queryKeys.sessionHistory(taskId),
-          ]
+        ? [queryKeys.activeSession(user.id, taskId), queryKeys.sessionHistory(taskId)]
         : [queryKeys.sessionHistory(taskId)],
     [taskId, user]
   );

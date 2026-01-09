@@ -102,7 +102,12 @@ async function collectUserInfo(): Promise<{
   }
 
   // ロールを選択
-  const role = await selectOption(rl, '🔐 ロールを選択してください:', ['admin', 'member'], 'member');
+  const role = await selectOption(
+    rl,
+    '🔐 ロールを選択してください:',
+    ['admin', 'member'],
+    'member'
+  );
 
   // UIDを直接指定するか確認
   let uid: string | null = null;

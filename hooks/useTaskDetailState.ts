@@ -47,8 +47,7 @@ export function useTaskDetailState({
   const [internalTaskFormData, setInternalTaskFormData] = useState<Partial<Task> | null>(null);
   const resolvedSelectedTaskId =
     selectedTaskId !== undefined ? selectedTaskId : internalSelectedTaskId;
-  const resolvedTaskFormData =
-    taskFormData !== undefined ? taskFormData : internalTaskFormData;
+  const resolvedTaskFormData = taskFormData !== undefined ? taskFormData : internalTaskFormData;
   const setSelectedTaskIdValue = setSelectedTaskId ?? setInternalSelectedTaskId;
   const setTaskFormDataValue = setTaskFormData ?? setInternalTaskFormData;
 
@@ -59,8 +58,7 @@ export function useTaskDetailState({
   useEffect(() => {
     if (selectedTask && resolvedSelectedTaskId) {
       const shouldInitialize =
-        initializeMode === 'always' ||
-        (initializeMode === 'if-empty' && !resolvedTaskFormData);
+        initializeMode === 'always' || (initializeMode === 'if-empty' && !resolvedTaskFormData);
       if (shouldInitialize) {
         setTaskFormDataValue(buildTaskFormData(selectedTask));
       }

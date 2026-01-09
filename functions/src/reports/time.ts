@@ -146,7 +146,9 @@ export const getTimeReport = onRequest(
                     : (session.endedAt as any).toDate
                       ? (session.endedAt as any).toDate()
                       : new Date(session.endedAt);
-                taskDurationSec += Math.floor((endedAtDate.getTime() - startedAtDate.getTime()) / 1000);
+                taskDurationSec += Math.floor(
+                  (endedAtDate.getTime() - startedAtDate.getTime()) / 1000
+                );
               }
             }
           }
@@ -317,7 +319,9 @@ export const exportTimeReportCSV = onRequest(
                     : (session.endedAt as any).toDate
                       ? (session.endedAt as any).toDate()
                       : new Date(session.endedAt);
-                taskDurationSec += Math.floor((endedAtDate.getTime() - startedAtDate.getTime()) / 1000);
+                taskDurationSec += Math.floor(
+                  (endedAtDate.getTime() - startedAtDate.getTime()) / 1000
+                );
               }
             }
           }

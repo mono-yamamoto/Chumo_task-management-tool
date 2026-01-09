@@ -62,7 +62,9 @@ export function AdminUserList({
                   gap: 2,
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <ListItemText primary={userItem.displayName} secondary={userItem.email} />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Chip

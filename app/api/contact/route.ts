@@ -105,10 +105,7 @@ export async function POST(request: NextRequest) {
       if (!errorReportDetails.issue || !errorReportDetails.issue.trim()) {
         return NextResponse.json({ error: '事象は必須です' }, { status: 400 });
       }
-      if (
-        !errorReportDetails.reproductionSteps ||
-        !errorReportDetails.reproductionSteps.trim()
-      ) {
+      if (!errorReportDetails.reproductionSteps || !errorReportDetails.reproductionSteps.trim()) {
         return NextResponse.json({ error: '再現方法は必須です' }, { status: 400 });
       }
       if (!errorReportDetails.environment) {
@@ -273,10 +270,7 @@ export async function POST(request: NextRequest) {
         if (!errorReportDetails.issue || !errorReportDetails.issue.trim()) {
           return NextResponse.json({ error: '事象は必須です' }, { status: 400 });
         }
-        if (
-          !errorReportDetails.reproductionSteps ||
-          !errorReportDetails.reproductionSteps.trim()
-        ) {
+        if (!errorReportDetails.reproductionSteps || !errorReportDetails.reproductionSteps.trim()) {
           return NextResponse.json({ error: '再現方法は必須です' }, { status: 400 });
         }
         if (!errorReportDetails.environment) {

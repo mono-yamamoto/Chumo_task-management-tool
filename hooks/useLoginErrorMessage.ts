@@ -24,7 +24,7 @@ export function useLoginErrorMessage({ searchParams }: UseLoginErrorMessageOptio
       setError(ERROR_MESSAGES.NOT_ALLOWED);
     } else {
       // エラーパラメータが存在しない場合は状態をクリア
-       
+
       setError(null);
     }
   }, [searchParams]);

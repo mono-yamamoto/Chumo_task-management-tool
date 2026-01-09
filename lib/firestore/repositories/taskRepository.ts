@@ -81,7 +81,9 @@ export async function fetchTaskByIdAcrossProjects(taskId: string): Promise<Task 
  * @param userId アサインされたユーザーのID
  * @returns ユーザーにアサインされた未完了タスクのリスト
  */
-export async function fetchAssignedOpenTasks(userId: string): Promise<(Task & { projectType: ProjectType })[]> {
+export async function fetchAssignedOpenTasks(
+  userId: string
+): Promise<(Task & { projectType: ProjectType })[]> {
   if (!db) return [];
 
   const allTasks: (Task & { projectType: ProjectType })[] = [];

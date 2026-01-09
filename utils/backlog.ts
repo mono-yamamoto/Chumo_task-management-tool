@@ -132,4 +132,3 @@ export function extractProjectTypeFromTitle(title: string): ProjectType | null {
 
   return null;
 }
-

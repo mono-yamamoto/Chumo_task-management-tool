@@ -23,4 +23,3 @@ export type ProjectType = (typeof PROJECT_TYPES)[number];
 export function isBRGREGProject(projectType: string): boolean {
   return projectType === 'BRGREG';
 }
-

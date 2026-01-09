@@ -44,8 +44,7 @@ export function useTaskDetailActions({
   setActiveSession,
 }: TaskDetailActionsOptions) {
   const [internalActiveSession, setInternalActiveSession] = useState<ActiveSession | null>(null);
-  const resolvedActiveSession =
-    activeSession !== undefined ? activeSession : internalActiveSession;
+  const resolvedActiveSession = activeSession !== undefined ? activeSession : internalActiveSession;
   const setActiveSessionValue = setActiveSession ?? setInternalActiveSession;
   const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
     userId: userId ?? undefined,

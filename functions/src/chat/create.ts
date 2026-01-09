@@ -194,9 +194,11 @@ export const createGoogleChatThread = onRequest(
         return;
       }
 
-      const webhookJson = (await webhookResponse.json().catch(() => null)) as
-        | { name?: string; thread?: { name?: string }; space?: { name?: string } }
-        | null;
+      const webhookJson = (await webhookResponse.json().catch(() => null)) as {
+        name?: string;
+        thread?: { name?: string };
+        space?: { name?: string };
+      } | null;
 
       // Webhookレスポンスをログに出力（デバッグ用）
       console.info('First webhook response:', JSON.stringify(webhookJson, null, 2));
@@ -209,15 +211,10 @@ export const createGoogleChatThread = onRequest(
 
       console.info('Built thread URL:', threadUrl);
 
-      await db
-        .collection('projects')
-        .doc(projectId)
-        .collection('tasks')
-        .doc(taskId)
-        .update({
-          googleChatThreadUrl: threadUrl,
-          updatedAt: new Date(),
-        });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+        googleChatThreadUrl: threadUrl,
+        updatedAt: new Date(),
+      });
 
       res.status(200).json({ success: true, url: threadUrl, messageName: firstMessageName });
     } catch (error) {
@@ -225,4 +222,4 @@ export const createGoogleChatThread = onRequest(
       res.status(500).json({ error: 'Internal server error' });
     }
   }
-);;
+);

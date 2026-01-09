@@ -74,10 +74,7 @@ async function createSampleTasks() {
   const db = getFirestore(app);
 
   // 既存の区分ラベルを取得（projectIdがnullのラベル）
-  const labelsSnapshot = await db
-    .collection('labels')
-    .where('projectId', '==', null)
-    .get();
+  const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
 
   if (labelsSnapshot.empty) {
     console.error('区分ラベルが存在しません。先に create-kubun-labels.ts を実行してください。');
@@ -104,7 +101,9 @@ async function createSampleTasks() {
 
   for (let i = 0; i < taskCount; i++) {
     // ランダムにプロジェクトタイプを選択
-    const projectType = PROJECT_TYPES[Math.floor(Math.random() * PROJECT_TYPES.length)] as ProjectType;
+    const projectType = PROJECT_TYPES[
+      Math.floor(Math.random() * PROJECT_TYPES.length)
+    ] as ProjectType;
 
     // ランダムにステータスを選択
     const flowStatus = FLOW_STATUS_OPTIONS[

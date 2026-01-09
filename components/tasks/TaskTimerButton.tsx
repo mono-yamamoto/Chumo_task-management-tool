@@ -48,9 +48,7 @@ export function TaskTimerButton({
         onClick={onStop}
         disabled={stopDisabled || isStopping}
         sx={{
-          animation: isStopping
-            ? 'none'
-            : 'pulse 2s ease-in-out infinite',
+          animation: isStopping ? 'none' : 'pulse 2s ease-in-out infinite',
           '@keyframes pulse': {
             '0%, 100%': {
               opacity: 1,

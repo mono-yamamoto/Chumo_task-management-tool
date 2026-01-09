@@ -33,15 +33,18 @@ export function useDriveIntegration() {
       const driveUrl = getCreateDriveFolderUrl();
       console.debug('Creating drive folder with:', { projectType, taskId, userId: user.id });
       try {
-        return await fetchJson<DriveFolderResult>(`${driveUrl}/projects/${projectType}/tasks/${taskId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: user.id,
-          }),
-        });
+        return await fetchJson<DriveFolderResult>(
+          `${driveUrl}/projects/${projectType}/tasks/${taskId}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id,
+            }),
+          }
+        );
       } catch (error) {
         if (
           error instanceof HttpError &&

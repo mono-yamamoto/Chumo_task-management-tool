@@ -76,15 +76,15 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData?.id]);
 
-  const updateField = useCallback(<K extends keyof TaskFormData>(
-    field: K,
-    value: TaskFormData[K]
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  }, []);
+  const updateField = useCallback(
+    <K extends keyof TaskFormData>(field: K, value: TaskFormData[K]) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
 
   const updateFields = useCallback((updates: Partial<TaskFormData>) => {
     setFormData((prev) => ({
@@ -124,4 +124,3 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
     validate,
   };
 }
-

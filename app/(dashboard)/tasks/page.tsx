@@ -369,7 +369,7 @@ function TasksPageContent() {
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectType) return;
 
-  const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
+    const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
     if (!taskToDelete) {
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
@@ -695,9 +695,7 @@ function TasksPageContent() {
           <CustomButton
             variant="destructive"
             onClick={handleDeleteTask}
-            disabled={
-              deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title
-            }
+            disabled={deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title}
           >
             削除
           </CustomButton>

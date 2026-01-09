@@ -41,20 +41,13 @@ export default function SettingsPage() {
     enabled: !!user && !!db,
   });
 
-  const {
-    oauthStatus,
-    githubUsername,
-    setGithubUsername,
-    chatId,
-    setChatId,
-    message,
-    setMessage,
-  } = useSettingsOauthStatus({
-    currentUser,
-    fallbackUser: user,
-    router,
-    searchParams,
-  });
+  const { oauthStatus, githubUsername, setGithubUsername, chatId, setChatId, message, setMessage } =
+    useSettingsOauthStatus({
+      currentUser,
+      fallbackUser: user,
+      router,
+      searchParams,
+    });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],

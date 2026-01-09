@@ -27,4 +27,3 @@ export function useKubunLabels() {
     enabled: !!db,
   });
 }
-

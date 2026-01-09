@@ -37,11 +37,13 @@ interface TaskStore {
     taskId: string;
     sessionId: string;
   } | null;
-  setActiveSession: (_session: {
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null) => void;
+  setActiveSession: (
+    _session: {
+      projectType: string;
+      taskId: string;
+      sessionId: string;
+    } | null
+  ) => void;
 
   // フィルタリセット
   resetFilters: () => void;
@@ -87,4 +89,3 @@ export const useTaskStore = create<TaskStore>((set) => ({
       filterTitle: '',
     }),
 }));
-

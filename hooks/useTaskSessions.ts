@@ -34,11 +34,13 @@ export function useTaskSessions(projectType: string | null, taskId: string | nul
  */
 export function useActiveSession(
   userId: string | null,
-  onActiveSessionChange?: (_session: {
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null) => void
+  onActiveSessionChange?: (
+    _session: {
+      projectType: string;
+      taskId: string;
+      sessionId: string;
+    } | null
+  ) => void
 ) {
   return useQuery({
     queryKey: queryKeys.activeSession(userId ?? null),
@@ -227,14 +229,16 @@ export function useDeleteSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (variables: {
-      projectType: string;
-      sessionId: string;
-      taskId: string;
-    }) => {
+    mutationFn: async (variables: { projectType: string; sessionId: string; taskId: string }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
-      const sessionRef = doc(db, 'projects', variables.projectType, 'taskSessions', variables.sessionId);
+      const sessionRef = doc(
+        db,
+        'projects',
+        variables.projectType,
+        'taskSessions',
+        variables.sessionId
+      );
       await deleteDoc(sessionRef);
     },
     onSuccess: (_result, variables) => {

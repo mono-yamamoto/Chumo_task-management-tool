@@ -308,11 +308,10 @@ export const createDriveFolder = onRequest(
         }
 
         // タスクにURLを保存
-        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
-          .update({
-            googleDriveUrl: folderUrl,
-            updatedAt: new Date(),
-          });
+        await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+          googleDriveUrl: folderUrl,
+          updatedAt: new Date(),
+        });
 
         // チェックシート作成エラーがある場合は警告付きで返す
         if (checksheetError) {
@@ -332,11 +331,10 @@ export const createDriveFolder = onRequest(
       }
 
       // 既存フォルダの場合もURLを保存
-      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId)
-        .update({
-          googleDriveUrl: folderUrl,
-          updatedAt: new Date(),
-        });
+      await db.collection('projects').doc(projectId).collection('tasks').doc(taskId).update({
+        googleDriveUrl: folderUrl,
+        updatedAt: new Date(),
+      });
 
       res.status(200).json({
         success: true,

@@ -30,4 +30,3 @@ export function formatDuration(seconds: number): string {
 export function hasActiveSession(sessions: TaskSession[]): boolean {
   return sessions.some((session) => session.endedAt === null);
 }
-

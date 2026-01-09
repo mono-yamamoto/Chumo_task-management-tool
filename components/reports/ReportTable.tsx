@@ -1,7 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
 import type { ReportResponse } from '@/types/report';
 import { formatDuration } from '@/utils/timer';
 
@@ -25,7 +35,8 @@ export function ReportTable({ reportData, totalDurationSec }: ReportTableProps) 
           <TableBody>
             {reportData?.items && reportData.items.length > 0 ? (
               reportData.items.map((item, index) => {
-                const hasTaskId = item.taskId && typeof item.taskId === 'string' && item.taskId.trim() !== '';
+                const hasTaskId =
+                  item.taskId && typeof item.taskId === 'string' && item.taskId.trim() !== '';
                 return (
                   <TableRow key={item.taskId || item.title || `item-${index}`}>
                     <TableCell>

@@ -8,13 +8,23 @@ import {
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
-import { addDoc, updateDoc, deleteDoc, doc, collection, QueryDocumentSnapshot } from 'firebase/firestore';
+import {
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  collection,
+  QueryDocumentSnapshot,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { queryKeys } from '@/lib/queryKeys';
-import { fetchTaskByIdAcrossProjects, fetchTaskPage } from '@/lib/firestore/repositories/taskRepository';
+import {
+  fetchTaskByIdAcrossProjects,
+  fetchTaskPage,
+} from '@/lib/firestore/repositories/taskRepository';
 type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
 type TaskPage = {
   tasks: (Task & { projectType: ProjectType })[];
@@ -61,10 +71,8 @@ export function useTasks(
           ProjectType,
           QueryDocumentSnapshot[]
         >;
-        const perProjectTasks: Record<ProjectType, (Task & { projectType: ProjectType })[]> = {} as Record<
-          ProjectType,
-          (Task & { projectType: ProjectType })[]
-        >;
+        const perProjectTasks: Record<ProjectType, (Task & { projectType: ProjectType })[]> =
+          {} as Record<ProjectType, (Task & { projectType: ProjectType })[]>;
 
         for (const projectType of PROJECT_TYPES) {
           const cursor = cursorMap[projectType] || null;
@@ -241,13 +249,7 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      projectType,
-      taskId,
-    }: {
-      projectType: ProjectType;
-      taskId: string;
-    }) => {
+    mutationFn: async ({ projectType, taskId }: { projectType: ProjectType; taskId: string }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
       const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);

@@ -50,7 +50,8 @@ export const syncBacklog = onRequest(
 
       if (!targetProjectType) {
         res.status(400).json({
-          error: 'Project type is required. Either provide projectType in request body or configure BACKLOG_PROJECT_KEY_MAP.',
+          error:
+            'Project type is required. Either provide projectType in request body or configure BACKLOG_PROJECT_KEY_MAP.',
         });
         return;
       }
@@ -102,17 +103,26 @@ export const syncBacklog = onRequest(
 
       if (tasksSnapshot.empty) {
         // 新規作成
-        await db.collection('projects').doc(targetProjectType).collection('tasks').add(taskDataWithProjectType);
+        await db
+          .collection('projects')
+          .doc(targetProjectType)
+          .collection('tasks')
+          .add(taskDataWithProjectType);
       } else {
         // 更新（外部情報のみ）
         const taskId = tasksSnapshot.docs[0].id;
-        await db.collection('projects').doc(targetProjectType).collection('tasks').doc(taskId).update({
-          external: taskData.external,
-          title: taskData.title,
-          description: taskData.description,
-          projectType: targetProjectType,
-          updatedAt: new Date(),
-        });
+        await db
+          .collection('projects')
+          .doc(targetProjectType)
+          .collection('tasks')
+          .doc(taskId)
+          .update({
+            external: taskData.external,
+            title: taskData.title,
+            description: taskData.description,
+            projectType: targetProjectType,
+            updatedAt: new Date(),
+          });
       }
 
       res.status(200).json({ success: true });

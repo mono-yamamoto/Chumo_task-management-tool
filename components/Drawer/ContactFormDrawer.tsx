@@ -318,7 +318,7 @@ export function ContactFormDrawer({
                       type="file"
                       onChange={onImageSelect}
                     />
-                    { }
+                    {}
                     <label htmlFor="screenshot-upload-drawer">
                       <Button
                         component="span"

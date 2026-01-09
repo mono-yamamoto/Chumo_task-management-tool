@@ -61,7 +61,6 @@ interface TaskDetailDrawerProps {
   taskSessions: any[];
 
   formatDuration: (
-
     durationSec: number | undefined | null,
 
     startedAt?: Date,
@@ -178,7 +177,7 @@ export function TaskDetailDrawer({
               variant="destructive"
               size="sm"
               onClick={() => {
-                const { projectType } = (selectedTask as any);
+                const { projectType } = selectedTask as any;
                 onDelete(selectedTask.id, projectType);
               }}
             >
@@ -343,7 +342,7 @@ export function TaskDetailDrawer({
               <TaskTimerButton
                 isActive={activeSession?.taskId === selectedTask.id}
                 onStart={() => {
-                  const { projectType } = (selectedTask as any);
+                  const { projectType } = selectedTask as any;
                   onStartTimer(projectType, selectedTask.id);
                 }}
                 onStop={onStopTimer}
@@ -375,7 +374,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = (selectedTask as any);
+                    const { projectType } = selectedTask as any;
                     onDriveCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingDrive}
@@ -401,7 +400,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = (selectedTask as any);
+                    const { projectType } = selectedTask as any;
                     onFireCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingFire}

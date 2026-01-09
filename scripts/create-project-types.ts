@@ -55,4 +55,3 @@ async function createProjectTypes() {
 }
 
 createProjectTypes().catch(console.error);
-
