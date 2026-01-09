@@ -15,6 +15,8 @@ import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
+import { hasTaskChanges } from '@/utils/taskUtils';
+import { useToast } from '@/hooks/useToast';
 import {
   Box,
   Typography,
@@ -36,11 +38,12 @@ import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
 
-const TASKS_PER_PAGE = 10;
+const TASKS_PER_PAGE = 30;
 
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const {
     selectedProjectType,
     setSelectedProjectType,
@@ -71,6 +74,7 @@ function TasksPageContent() {
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
 
   // コンポーネントマウント時の時刻を保持（1週間判定用）
   // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
@@ -346,15 +350,53 @@ function TasksPageContent() {
 
   const updateTask = useUpdateTask();
 
-  const handleSave = () => {
-    if (!taskFormDataValue || !selectedTask) return;
+  const handleDrawerClose = async () => {
+    // 競合状態の防止: 既に保存中の場合は何もしない
+    if (isSavingOnClose) return;
+
+    if (!taskFormDataValue || !selectedTask) {
+      resetSelection();
+      return;
+    }
+
     const projectType = selectedTask?.projectType;
-    if (!projectType) return;
-    updateTask.mutate({
-      projectType,
-      taskId: selectedTask.id,
-      updates: taskFormDataValue,
-    });
+    if (!projectType) {
+      resetSelection();
+      return;
+    }
+
+    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
+    const changeDetected = hasTaskChanges(taskFormDataValue, selectedTask);
+
+    // 変更がある場合のみ保存
+    if (changeDetected) {
+      setIsSavingOnClose(true);
+      try {
+        await updateTask.mutateAsync({
+          projectType,
+          taskId: selectedTask.id,
+          updates: taskFormDataValue,
+        });
+
+        // 保存成功時にキャッシュを無効化してリアルタイム反映
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
+        success('タスクを保存しました');
+        resetSelection();
+      } catch (error) {
+        console.error('保存に失敗しました:', error);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : '保存に失敗しました。もう一度お試しください。';
+        showError(errorMessage);
+        // エラー時はDrawerを開いたまま
+      } finally {
+        setIsSavingOnClose(false);
+      }
+    } else {
+      resetSelection();
+    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -642,14 +684,13 @@ function TasksPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskIdValue}
-        onClose={resetSelection}
+        open={!!selectedTaskIdValue && !isSavingOnClose}
+        onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormDataValue}
         onTaskFormDataChange={setTaskFormDataValue}
-        onSave={handleSave}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending}
+        isSaving={updateTask.isPending || isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSessionValue}

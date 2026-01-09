@@ -12,6 +12,8 @@ import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { Button as CustomButton } from '@/components/ui/button';
+import { hasTaskChanges } from '@/utils/taskUtils';
+import { useToast } from '@/hooks/useToast';
 import {
   Box,
   Typography,
@@ -31,10 +33,12 @@ import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskReposit
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
+  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
@@ -114,20 +118,58 @@ function DashboardPageContent() {
   }, [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
-  const selectedTaskProjectType = (selectedTask as any)?.projectType;
+  const selectedTaskProjectType = selectedTask?.projectType ?? null;
   const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
 
   const updateTask = useUpdateTask();
 
-  const handleSave = () => {
-    if (!taskFormData || !selectedTask) return;
-    const projectType = (selectedTask as any)?.projectType;
-    if (!projectType) return;
-    updateTask.mutate({
-      projectType,
-      taskId: selectedTask.id,
-      updates: taskFormData,
-    });
+  const handleDrawerClose = async () => {
+    // 競合状態の防止: 既に保存中の場合は何もしない
+    if (isSavingOnClose) return;
+
+    if (!taskFormData || !selectedTask) {
+      resetSelection();
+      return;
+    }
+
+    const projectType = selectedTask?.projectType;
+    if (!projectType) {
+      resetSelection();
+      return;
+    }
+
+    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
+    const changeDetected = hasTaskChanges(taskFormData, selectedTask);
+
+    // 変更がある場合のみ保存
+    if (changeDetected) {
+      setIsSavingOnClose(true);
+      try {
+        await updateTask.mutateAsync({
+          projectType,
+          taskId: selectedTask.id,
+          updates: taskFormData,
+        });
+
+        // 保存成功時にキャッシュを無効化してリアルタイム反映
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
+        success('タスクを保存しました');
+        resetSelection();
+      } catch (error) {
+        console.error('保存に失敗しました:', error);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : '保存に失敗しました。もう一度お試しください。';
+        showError(errorMessage);
+        // エラー時はDrawerを開いたまま
+      } finally {
+        setIsSavingOnClose(false);
+      }
+    } else {
+      resetSelection();
+    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -220,14 +262,13 @@ function DashboardPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskId}
-        onClose={resetSelection}
+        open={!!selectedTaskId && !isSavingOnClose}
+        onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormData}
         onTaskFormDataChange={setTaskFormData}
-        onSave={handleSave}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending}
+        isSaving={updateTask.isPending || isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSession}
