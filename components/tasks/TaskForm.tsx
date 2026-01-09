@@ -75,7 +75,9 @@ export function TaskForm({
         onChange={(e) => updateField('title', e.target.value)}
         variant="outlined"
         error={!formData.title.trim() && formData.title !== ''}
-        helperText={!formData.title.trim() && formData.title !== '' ? 'タイトルを入力してください' : ''}
+        helperText={
+          !formData.title.trim() && formData.title !== '' ? 'タイトルを入力してください' : ''
+        }
       />
 
       <TextField
@@ -143,7 +145,9 @@ export function TaskForm({
             <InputLabel>優先度</InputLabel>
             <Select
               value={formData.priority || ''}
-              onChange={(e) => updateField('priority', e.target.value ? (e.target.value as Priority) : null)}
+              onChange={(e) =>
+                updateField('priority', e.target.value ? (e.target.value as Priority) : null)
+              }
               label="優先度"
             >
               <MenuItem value="">
@@ -170,15 +174,14 @@ export function TaskForm({
           disabled={
             isSubmitting ||
             !formData.projectType ||
-                !formData.title.trim() ||
-                !formData.kubunLabelId ||
-                labelsLoading
-              }
-            >
-              {isSubmitting ? '保存中...' : submitLabel}
-            </CustomButton>
-        </Box>
+            !formData.title.trim() ||
+            !formData.kubunLabelId ||
+            labelsLoading
+          }
+        >
+          {isSubmitting ? '保存中...' : submitLabel}
+        </CustomButton>
+      </Box>
     </Box>
   );
 }
-

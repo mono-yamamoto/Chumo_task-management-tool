@@ -8,9 +8,7 @@ import { mapContactDoc } from '@/lib/firestore/mappers/contactMapper';
  * @param status 取得したいお問い合わせのステータス（pending | resolved）
  * @returns ステータスでフィルタリングされたお問い合わせリスト
  */
-export async function fetchContactsByStatus(
-  status: 'pending' | 'resolved'
-): Promise<Contact[]> {
+export async function fetchContactsByStatus(status: 'pending' | 'resolved'): Promise<Contact[]> {
   if (!db) return [];
 
   const contactsRef = collection(db, 'contacts');

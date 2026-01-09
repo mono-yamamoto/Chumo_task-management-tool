@@ -66,6 +66,8 @@ export function getTimeReportUrl(): string {
  * タイムレポートCSVエクスポート関数のURLを取得
  */
 export function getExportTimeReportCsvUrl(): string {
-  return getFunctionUrl('exportTimeReportCsv', 'https://exporttimereportcsv-zbk3yr5vta-uc.a.run.app');
+  return getFunctionUrl(
+    'exportTimeReportCsv',
+    'https://exporttimereportcsv-zbk3yr5vta-uc.a.run.app'
+  );
 }
-

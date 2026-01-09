@@ -22,11 +22,7 @@ export function TaskStatusSelect({
   return (
     <FormControl fullWidth={fullWidth} disabled={disabled}>
       <InputLabel>{label}</InputLabel>
-      <Select
-        value={value}
-        onChange={(e) => onChange(e.target.value as FlowStatus)}
-        label={label}
-      >
+      <Select value={value} onChange={(e) => onChange(e.target.value as FlowStatus)} label={label}>
         {FLOW_STATUS_OPTIONS.map((status) => (
           <MenuItem key={status} value={status}>
             {status}
@@ -36,4 +32,3 @@ export function TaskStatusSelect({
     </FormControl>
   );
 }
-

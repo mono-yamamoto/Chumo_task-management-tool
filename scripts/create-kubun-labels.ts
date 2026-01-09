@@ -26,9 +26,7 @@ async function createKubunLabels() {
 
   // 既存の区分ラベルを確認（projectIdがnullのラベル）
   const existingLabelsRef = db.collection('labels');
-  const existingLabelsSnapshot = await existingLabelsRef
-    .where('projectId', '==', null)
-    .get();
+  const existingLabelsSnapshot = await existingLabelsRef.where('projectId', '==', null).get();
 
   const existingLabelNames = existingLabelsSnapshot.docs.map((doc) => doc.data().name);
 

@@ -13,6 +13,7 @@ import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { Button as CustomButton } from '@/components/ui/button';
 import { hasTaskChanges } from '@/utils/taskUtils';
+import { useToast } from '@/hooks/useToast';
 import {
   Box,
   Typography,
@@ -23,8 +24,6 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
@@ -34,14 +33,12 @@ import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskReposit
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [isSavingOnClose, setIsSavingOnClose] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
@@ -158,18 +155,14 @@ function DashboardPageContent() {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
 
-        setSnackbarMessage('タスクを保存しました');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        success('タスクを保存しました');
         resetSelection();
       } catch (error) {
         console.error('保存に失敗しました:', error);
         const errorMessage = error instanceof Error
           ? error.message
           : '保存に失敗しました。もう一度お試しください。';
-        setSnackbarMessage(errorMessage);
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        showError(errorMessage);
         // エラー時はDrawerを開いたまま
       } finally {
         setIsSavingOnClose(false);
@@ -327,22 +320,6 @@ function DashboardPageContent() {
           </CustomButton>
         </DialogActions>
       </Dialog>
-
-      {/* 保存通知用Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

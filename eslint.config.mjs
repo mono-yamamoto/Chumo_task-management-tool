@@ -139,7 +139,13 @@ export default [
     },
   },
   {
-    files: ['app/**/*.ts', 'app/**/*.tsx', 'components/**/*.ts', 'components/**/*.tsx', 'lib/**/*.ts'],
+    files: [
+      'app/**/*.ts',
+      'app/**/*.tsx',
+      'components/**/*.ts',
+      'components/**/*.tsx',
+      'lib/**/*.ts',
+    ],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -176,4 +182,3 @@ export default [
   },
   // functionsはignoresで除外しているため、この設定は不要
 ];
-

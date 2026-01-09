@@ -3,6 +3,7 @@
 
 import { ProjectType } from '@/constants/projectTypes';
 
+export type { ProjectType };
 export type UserRole = 'admin' | 'member';
 
 export type FlowStatus =
@@ -95,6 +96,16 @@ export interface TaskSession {
   endedAt: Date | null;
   durationSec: number;
   note?: string;
+}
+
+/**
+ * アクティブなタイマーセッションの状態
+ * localStorageに永続化され、ページリロード時に復元される
+ */
+export interface ActiveSession {
+  projectType: ProjectType;
+  taskId: string;
+  sessionId: string;
 }
 
 export interface TaskActivity {

@@ -37,9 +37,10 @@ export function useTimerTitle() {
       if (typeof document === 'undefined') return;
 
       const now = new Date();
-      const startTime = activeSession.startedAt instanceof Date
-        ? activeSession.startedAt
-        : new Date(activeSession.startedAt);
+      const startTime =
+        activeSession.startedAt instanceof Date
+          ? activeSession.startedAt
+          : new Date(activeSession.startedAt);
 
       const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 

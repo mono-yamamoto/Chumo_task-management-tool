@@ -1,5 +1,14 @@
 import { User } from '@/types';
-import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 /**

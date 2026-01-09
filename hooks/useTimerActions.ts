@@ -4,17 +4,13 @@ import { useCallback } from 'react';
 import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { useTimer } from '@/hooks/useTimer';
 import { queryKeys } from '@/lib/queryKeys';
-
-type ActiveSession = {
-  projectType: string;
-  taskId: string;
-  sessionId: string;
-} | null;
+import { ActiveSession, ProjectType } from '@/types';
+import { useToast } from '@/hooks/useToast';
 
 interface UseTimerActionsOptions {
   userId?: string;
   queryClient: QueryClient;
-  setActiveSession: (_session: ActiveSession) => void;
+  setActiveSession: (_session: ActiveSession | null) => void;
   extraInvalidateKeys?: QueryKey[];
   extraRefetchKeys?: QueryKey[];
 }
@@ -27,6 +23,7 @@ export function useTimerActions({
   extraRefetchKeys = [],
 }: UseTimerActionsOptions) {
   const { startTimer, stopTimer } = useTimer();
+  const toast = useToast();
 
   const invalidateKeys = useCallback(
     (keys: QueryKey[]) => {
@@ -47,7 +44,7 @@ export function useTimerActions({
   );
 
   const startTimerWithOptimistic = useCallback(
-    async (projectType: string, taskId: string) => {
+    async (projectType: ProjectType, taskId: string) => {
       if (!userId) return;
       setActiveSession({ projectType, taskId, sessionId: 'pending' });
       try {
@@ -68,9 +65,9 @@ export function useTimerActions({
         console.error('Timer start error:', error);
         setActiveSession(null);
         if (error.message?.includes('稼働中')) {
-          window.alert('他のタイマーが稼働中です。停止してから開始してください。');
+          toast.warning('他のタイマーが稼働中です。停止してから開始してください。');
         } else {
-          window.alert(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
+          toast.error(`タイマーの開始に失敗しました: ${error.message || '不明なエラー'}`);
         }
       }
     },
@@ -82,11 +79,12 @@ export function useTimerActions({
       refetchKeys,
       extraInvalidateKeys,
       extraRefetchKeys,
+      toast,
     ]
   );
 
   const stopActiveSession = useCallback(
-    async (activeSession: ActiveSession) => {
+    async (activeSession: ActiveSession | null) => {
       if (!activeSession || activeSession.sessionId === 'pending') return;
       try {
         await stopTimer.mutateAsync({
@@ -101,7 +99,7 @@ export function useTimerActions({
         refetchKeys(extraRefetchKeys);
       } catch (error: any) {
         console.error('Timer stop error:', error);
-        window.alert(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
+        toast.error(`タイマーの停止に失敗しました: ${error.message || '不明なエラー'}`);
       }
     },
     [
@@ -112,6 +110,7 @@ export function useTimerActions({
       refetchKeys,
       extraInvalidateKeys,
       extraRefetchKeys,
+      toast,
     ]
   );
 

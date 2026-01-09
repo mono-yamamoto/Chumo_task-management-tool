@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
-import { FlowStatus, TaskSession } from '@/types';
+import { FlowStatus, TaskSession, ProjectType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useUsers } from '@/hooks/useUsers';
@@ -29,6 +29,7 @@ import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/back
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { queryKeys } from '@/lib/queryKeys';
 import { fetchActiveSessionForTask } from '@/lib/firestore/repositories/sessionRepository';
+import { useTaskStore } from '@/stores/taskStore';
 import {
   Button,
   Box,
@@ -67,27 +68,19 @@ export default function TaskDetailPage() {
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
-  const [activeSession, setActiveSession] = useState<{
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null>(null);
+
+  // Zustandのグローバル状態を使用
+  const { activeSession, setActiveSession } = useTaskStore();
 
   // 依存配列の安定化のため、extraInvalidateKeysとextraRefetchKeysをuseMemoでメモ化
   const extraInvalidateKeys = useMemo(() => {
-    return [
-      queryKeys.activeSession(user?.id ?? null, taskId),
-      queryKeys.sessionHistory(taskId),
-    ];
+    return [queryKeys.activeSession(user?.id ?? null, taskId), queryKeys.sessionHistory(taskId)];
   }, [taskId, user]);
 
   const extraRefetchKeys = useMemo(
     () =>
       user?.id
-        ? [
-            queryKeys.activeSession(user.id, taskId),
-            queryKeys.sessionHistory(taskId),
-          ]
+        ? [queryKeys.activeSession(user.id, taskId), queryKeys.sessionHistory(taskId)]
         : [queryKeys.sessionHistory(taskId)],
     [taskId, user]
   );
@@ -99,8 +92,7 @@ export default function TaskDetailPage() {
     extraInvalidateKeys,
     extraRefetchKeys,
   });
-  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
+
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
   const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TaskSession | null>(null);
@@ -140,7 +132,7 @@ export default function TaskDetailPage() {
       });
       if (activeSessionInfo) {
         setActiveSession({
-          projectType: activeSessionInfo.projectType,
+          projectType: activeSessionInfo.projectType as ProjectType,
           taskId,
           sessionId: activeSessionInfo.sessionId,
         });

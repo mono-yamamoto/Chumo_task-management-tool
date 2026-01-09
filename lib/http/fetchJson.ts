@@ -13,7 +13,12 @@ export class HttpError extends Error {
    * @param statusText HTTPステータステキスト
    * @param details 追加のエラー詳細情報
    */
-  constructor(message: string, status: number, statusText: string, details?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    status: number,
+    statusText: string,
+    details?: Record<string, unknown>
+  ) {
     super(message);
     this.name = 'HttpError';
     this.status = status;

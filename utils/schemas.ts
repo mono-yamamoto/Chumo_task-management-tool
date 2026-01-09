@@ -102,4 +102,3 @@ export const reportFilterSchema = z.object({
   taskId: z.string().optional(),
   type: z.enum(['normal', 'brg']).optional(),
 });
-

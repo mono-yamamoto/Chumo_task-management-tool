@@ -190,7 +190,10 @@ function ContactCard({
                         cursor: 'pointer',
                       }}
                       onClick={() => {
-                        const newWindow = window.open(contact.errorReportDetails?.screenshotUrl || '', '_blank');
+                        const newWindow = window.open(
+                          contact.errorReportDetails?.screenshotUrl || '',
+                          '_blank'
+                        );
                         if (newWindow) {
                           newWindow.opener = null;
                         }
@@ -286,7 +289,9 @@ export function ContactListSection({
           <CircularProgress />
         </Box>
       )}
-      {!isLoading && contacts && contacts.length === 0 && <Alert severity="info">{emptyMessage}</Alert>}
+      {!isLoading && contacts && contacts.length === 0 && (
+        <Alert severity="info">{emptyMessage}</Alert>
+      )}
       {!isLoading && contacts && contacts.length > 0 && (
         <List>
           {contacts.map((contact) => (

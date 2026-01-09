@@ -27,7 +27,7 @@ import {
 import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
-import { Task, FlowStatus, User, Label } from '@/types';
+import { Task, FlowStatus, User, Label, ProjectType } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
@@ -38,24 +38,31 @@ interface TaskDetailDrawerProps {
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
   onTaskFormDataChange: (data: Partial<Task>) => void;
-  onDelete: (taskId: string, projectId: string) => void;
+  onDelete: (taskId: string, projectId: ProjectType) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
-  activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-  onStartTimer: (projectId: string, taskId: string) => void;
+  activeSession: { projectType: ProjectType; taskId: string; sessionId: string } | null;
+
+  onStartTimer: (projectId: ProjectType, taskId: string) => void;
   onStopTimer: () => void;
   isStoppingTimer: boolean;
-  onDriveCreate: (projectId: string, taskId: string) => void;
+
+  onDriveCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingDrive: boolean;
-  onFireCreate: (projectId: string, taskId: string) => void;
+
+  onFireCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingFire: boolean;
-  onChatThreadCreate: (projectId: string, taskId: string) => void;
+
+  onChatThreadCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
+
   formatDuration: (
     durationSec: number | undefined | null,
+
     startedAt?: Date,
+
     endedAt?: Date | null
   ) => string;
 }
@@ -81,7 +88,8 @@ export function TaskDetailDrawer({
   onChatThreadCreate,
   isCreatingChatThread,
   taskSessions,
-  formatDuration,
+
+  formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
   // taskFormDataがnullの場合はローディング状態を表示
   if (!selectedTask) return null;
@@ -173,7 +181,7 @@ export function TaskDetailDrawer({
               variant="destructive"
               size="sm"
               onClick={() => {
-                const { projectType } = (selectedTask as any);
+                const { projectType } = selectedTask;
                 onDelete(selectedTask.id, projectType);
               }}
             >
@@ -338,7 +346,7 @@ export function TaskDetailDrawer({
               <TaskTimerButton
                 isActive={activeSession?.taskId === selectedTask.id}
                 onStart={() => {
-                  const { projectType } = (selectedTask as any);
+                  const { projectType } = selectedTask;
                   onStartTimer(projectType, selectedTask.id);
                 }}
                 onStop={onStopTimer}
@@ -370,7 +378,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = (selectedTask as any);
+                    const { projectType } = selectedTask;
                     onDriveCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingDrive}
@@ -396,7 +404,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = (selectedTask as any);
+                    const { projectType } = selectedTask;
                     onFireCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingFire}
@@ -518,7 +526,7 @@ export function TaskDetailDrawer({
                         }}
                       >
                         {session.endedAt
-                          ? formatDuration(session.durationSec, session.startedAt, session.endedAt)
+                          ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)
                           : '-'}
                       </Typography>
                     </Box>

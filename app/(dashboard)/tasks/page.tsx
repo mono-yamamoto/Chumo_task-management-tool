@@ -16,6 +16,7 @@ import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstan
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
 import { hasTaskChanges } from '@/utils/taskUtils';
+import { useToast } from '@/hooks/useToast';
 import {
   Box,
   Typography,
@@ -31,8 +32,6 @@ import {
   DialogActions,
   DialogContentText,
   Grid,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
@@ -44,6 +43,7 @@ const TASKS_PER_PAGE = 30;
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const {
     selectedProjectType,
     setSelectedProjectType,
@@ -75,9 +75,6 @@ function TasksPageContent() {
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isSavingOnClose, setIsSavingOnClose] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // コンポーネントマウント時の時刻を保持（1週間判定用）
   // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
@@ -385,18 +382,14 @@ function TasksPageContent() {
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
         queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
 
-        setSnackbarMessage('タスクを保存しました');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        success('タスクを保存しました');
         resetSelection();
       } catch (error) {
         console.error('保存に失敗しました:', error);
         const errorMessage = error instanceof Error
           ? error.message
           : '保存に失敗しました。もう一度お試しください。';
-        setSnackbarMessage(errorMessage);
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        showError(errorMessage);
         // エラー時はDrawerを開いたまま
       } finally {
         setIsSavingOnClose(false);
@@ -418,7 +411,7 @@ function TasksPageContent() {
   const handleDeleteTask = async () => {
     if (!deleteTaskId || !deleteProjectType) return;
 
-  const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
+    const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
     if (!taskToDelete) {
       alert('タスクが見つかりません');
       setDeleteDialogOpen(false);
@@ -743,30 +736,12 @@ function TasksPageContent() {
           <CustomButton
             variant="destructive"
             onClick={handleDeleteTask}
-            disabled={
-              deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title
-            }
+            disabled={deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title}
           >
             削除
           </CustomButton>
         </DialogActions>
       </Dialog>
-
-      {/* 保存通知用Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

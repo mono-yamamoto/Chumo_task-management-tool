@@ -47,7 +47,9 @@ async function deleteOldProjects() {
       }
 
       // 古いプロジェクトドキュメントを削除
-      console.info(`古いプロジェクト "${projectId}" (${projectDoc.data().name || '名前なし'}) を削除中...`);
+      console.info(
+        `古いプロジェクト "${projectId}" (${projectDoc.data().name || '名前なし'}) を削除中...`
+      );
 
       // 注意: サブコレクション（tasks, taskSessions）は既にdelete-old-tasks.tsで削除済みのはず
       // 念のため、サブコレクションが空であることを確認
@@ -108,4 +110,3 @@ deleteOldProjects()
     console.error('エラー:', error);
     process.exit(1);
   });
-

@@ -1,10 +1,4 @@
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-} from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { PROJECT_TYPES } from '@/constants/projectTypes';
 import { TaskSession } from '@/types';
@@ -35,8 +29,15 @@ export async function fetchTaskSessions(
     return snapshot.docs.map((docItem) => mapSessionDoc(docItem.id, docItem.data()));
   } catch (error: unknown) {
     const isIndexError =
-      (error && typeof error === 'object' && 'code' in error && error.code === 'failed-precondition') ||
-      (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('index'));
+      (error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'failed-precondition') ||
+      (error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string' &&
+        error.message.includes('index'));
     if (isIndexError) {
       try {
         const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');

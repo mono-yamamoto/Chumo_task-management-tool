@@ -11,12 +11,7 @@ import {
 } from '@/hooks/useIntegrations';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
-
-type ActiveSession = {
-  projectType: string;
-  taskId: string;
-  sessionId: string;
-};
+import { ActiveSession, ProjectType } from '@/types';
 
 type TaskDetailActionsOptions = {
   userId?: string | null;
@@ -44,8 +39,7 @@ export function useTaskDetailActions({
   setActiveSession,
 }: TaskDetailActionsOptions) {
   const [internalActiveSession, setInternalActiveSession] = useState<ActiveSession | null>(null);
-  const resolvedActiveSession =
-    activeSession !== undefined ? activeSession : internalActiveSession;
+  const resolvedActiveSession = activeSession !== undefined ? activeSession : internalActiveSession;
   const setActiveSessionValue = setActiveSession ?? setInternalActiveSession;
   const { stopTimer, startTimerWithOptimistic, stopActiveSession } = useTimerActions({
     userId: userId ?? undefined,
@@ -88,7 +82,7 @@ export function useTaskDetailActions({
     queryClient.refetchQueries({ queryKey });
   };
 
-  const handleStartTimer = async (projectType: string, taskId: string) => {
+  const handleStartTimer = async (projectType: ProjectType, taskId: string) => {
     await startTimerWithOptimistic(projectType, taskId);
   };
 
@@ -96,7 +90,7 @@ export function useTaskDetailActions({
     await stopActiveSession(resolvedActiveSession);
   };
 
-  const handleDriveCreate = async (projectType: string, taskId: string) => {
+  const handleDriveCreate = async (projectType: ProjectType, taskId: string) => {
     try {
       const result = await createDriveFolder.mutateAsync({ projectType, taskId });
       invalidateListQueries();
@@ -120,7 +114,7 @@ export function useTaskDetailActions({
     }
   };
 
-  const handleFireCreate = async (projectType: string, taskId: string) => {
+  const handleFireCreate = async (projectType: ProjectType, taskId: string) => {
     try {
       await createFireIssue.mutateAsync({ projectType: projectType, taskId });
       invalidateListQueries();
@@ -132,7 +126,7 @@ export function useTaskDetailActions({
     }
   };
 
-  const handleChatThreadCreate = async (projectType: string, taskId: string) => {
+  const handleChatThreadCreate = async (projectType: ProjectType, taskId: string) => {
     try {
       const taskUrl = buildTaskDetailUrl(taskId);
       if (!taskUrl) {

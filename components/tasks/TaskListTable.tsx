@@ -25,8 +25,8 @@ interface TaskListTableProps {
   selectedProjectType?: ProjectType | 'all';
   allUsers?: User[];
   allLabels?: Label[];
-  activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-  onStartTimer: (projectType: string, taskId: string) => void;
+  activeSession: { projectType: ProjectType; taskId: string; sessionId: string } | null;
+  onStartTimer: (projectType: ProjectType, taskId: string) => void;
   onStopTimer: () => void;
   isStoppingTimer: boolean;
   kobetsuLabelId: string | null;

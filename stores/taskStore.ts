@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { Task, FlowStatus } from '@/types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { Task, FlowStatus, ActiveSession } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
+import { TASK_STORAGE_KEY } from '@/constants/timer';
 
 interface TaskStore {
   // 選択中のタスクID
@@ -32,59 +34,63 @@ interface TaskStore {
   setFilterTitle: (_title: string) => void;
 
   // アクティブセッション
-  activeSession: {
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null;
-  setActiveSession: (_session: {
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null) => void;
+  activeSession: ActiveSession | null;
+  setActiveSession: (_session: ActiveSession | null) => void;
 
   // フィルタリセット
   resetFilters: () => void;
 }
 
-export const useTaskStore = create<TaskStore>((set) => ({
-  selectedTaskId: null,
-  setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
+export const useTaskStore = create<TaskStore>()(
+  persist(
+    (set) => ({
+      selectedTaskId: null,
+      setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
 
-  selectedProjectType: 'all',
-  setSelectedProjectType: (projectType) => set({ selectedProjectType: projectType }),
-
-  taskFormData: null,
-  setTaskFormData: (formData) => set({ taskFormData: formData }),
-
-  filterStatus: 'not-completed',
-  setFilterStatus: (status) => set({ filterStatus: status }),
-  filterAssignee: 'all',
-  setFilterAssignee: (assignee) => set({ filterAssignee: assignee }),
-  filterLabel: 'all',
-  setFilterLabel: (label) => set({ filterLabel: label }),
-  filterTimerActive: 'all',
-  setFilterTimerActive: (active) => set({ filterTimerActive: active }),
-  filterItUpDateMonth: '',
-  setFilterItUpDateMonth: (month) => set({ filterItUpDateMonth: month }),
-  filterReleaseDateMonth: '',
-  setFilterReleaseDateMonth: (month) => set({ filterReleaseDateMonth: month }),
-  filterTitle: '',
-  setFilterTitle: (title) => set({ filterTitle: title }),
-
-  activeSession: null,
-  setActiveSession: (session) => set({ activeSession: session }),
-
-  resetFilters: () =>
-    set({
       selectedProjectType: 'all',
-      filterStatus: 'not-completed',
-      filterAssignee: 'all',
-      filterLabel: 'all',
-      filterTimerActive: 'all',
-      filterItUpDateMonth: '',
-      filterReleaseDateMonth: '',
-      filterTitle: '',
-    }),
-}));
+      setSelectedProjectType: (projectType) => set({ selectedProjectType: projectType }),
 
+      taskFormData: null,
+      setTaskFormData: (formData) => set({ taskFormData: formData }),
+
+      filterStatus: 'not-completed',
+      setFilterStatus: (status) => set({ filterStatus: status }),
+      filterAssignee: 'all',
+      setFilterAssignee: (assignee) => set({ filterAssignee: assignee }),
+      filterLabel: 'all',
+      setFilterLabel: (label) => set({ filterLabel: label }),
+      filterTimerActive: 'all',
+      setFilterTimerActive: (active) => set({ filterTimerActive: active }),
+      filterItUpDateMonth: '',
+      setFilterItUpDateMonth: (month) => set({ filterItUpDateMonth: month }),
+      filterReleaseDateMonth: '',
+      setFilterReleaseDateMonth: (month) => set({ filterReleaseDateMonth: month }),
+      filterTitle: '',
+      setFilterTitle: (title) => set({ filterTitle: title }),
+
+      activeSession: null,
+      setActiveSession: (session) => set({ activeSession: session }),
+
+      resetFilters: () =>
+        set({
+          selectedProjectType: 'all',
+          filterStatus: 'not-completed',
+          filterAssignee: 'all',
+          filterLabel: 'all',
+          filterTimerActive: 'all',
+          filterItUpDateMonth: '',
+          filterReleaseDateMonth: '',
+          filterTitle: '',
+        }),
+    }),
+    {
+      name: TASK_STORAGE_KEY, // ストレージのキー名
+      storage: createJSONStorage(() => localStorage), // localStorageを使用
+      // activeSessionのみを永続化（他のフィルタ状態などは永続化しない）
+      // ページリロード時に実行中のタイマー状態を復元するため
+      partialize: (state) => ({
+        activeSession: state.activeSession,
+      }),
+    }
+  )
+);

@@ -44,4 +44,3 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   high: '高',
   urgent: '緊急',
 };
-

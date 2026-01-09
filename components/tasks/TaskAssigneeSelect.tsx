@@ -1,6 +1,14 @@
 'use client';
 
-import { FormControl, InputLabel, Select, MenuItem, OutlinedInput, Checkbox, ListItemText } from '@mui/material';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
+} from '@mui/material';
 import { User } from '@/types';
 
 interface TaskAssigneeSelectProps {
@@ -25,7 +33,8 @@ export function TaskAssigneeSelect({
         multiple
         value={value}
         onChange={(e) => {
-          const newValue = typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value;
+          const newValue =
+            typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value;
           onChange(newValue);
         }}
         input={<OutlinedInput label={label} />}
@@ -49,4 +58,3 @@ export function TaskAssigneeSelect({
     </FormControl>
   );
 }
-

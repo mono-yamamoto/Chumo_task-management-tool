@@ -8,7 +8,6 @@ export interface ButtonProps extends Omit<MUIButtonProps, 'variant' | 'size' | '
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'default', size = 'default', ...props }, ref) => {
-
     let muiVariant: 'contained' | 'outlined' | 'text';
     if (variant === 'default' || variant === 'destructive' || variant === 'secondary') {
       muiVariant = 'contained';
@@ -36,16 +35,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       muiSize = 'medium';
     }
 
-    return (
-      <MUIButton
-        ref={ref}
-        variant={muiVariant}
-        color={muiColor}
-        size={muiSize}
-
-        {...props}
-      />
-    );
+    return <MUIButton ref={ref} variant={muiVariant} color={muiColor} size={muiSize} {...props} />;
   }
 );
 Button.displayName = 'Button';

@@ -8,11 +8,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useRouter } from 'next/navigation';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
-import {
-  FLOW_STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  PRIORITY_LABELS,
-} from '@/constants/taskConstants';
+import { FLOW_STATUS_OPTIONS, PRIORITY_OPTIONS, PRIORITY_LABELS } from '@/constants/taskConstants';
 import { Button } from '@/components/ui/button';
 import {
   generateBacklogUrlFromTitle,
@@ -225,11 +221,11 @@ export default function NewTaskPage() {
                     onChange={(e) => setFlowStatus(e.target.value as FlowStatus)}
                     label="ステータス"
                   >
-                {FLOW_STATUS_OPTIONS.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
+                    {FLOW_STATUS_OPTIONS.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
