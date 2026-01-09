@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Task, FlowStatus } from '@/types';
+import { Task, FlowStatus, ActiveSession } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
+import { TASK_STORAGE_KEY } from '@/constants/timer';
 
 interface TaskStore {
   // 選択中のタスクID
@@ -33,18 +34,8 @@ interface TaskStore {
   setFilterTitle: (_title: string) => void;
 
   // アクティブセッション
-  activeSession: {
-    projectType: string;
-    taskId: string;
-    sessionId: string;
-  } | null;
-  setActiveSession: (
-    _session: {
-      projectType: string;
-      taskId: string;
-      sessionId: string;
-    } | null
-  ) => void;
+  activeSession: ActiveSession | null;
+  setActiveSession: (_session: ActiveSession | null) => void;
 
   // フィルタリセット
   resetFilters: () => void;
@@ -93,9 +84,10 @@ export const useTaskStore = create<TaskStore>()(
         }),
     }),
     {
-      name: 'task-storage', // ストレージのキー名
+      name: TASK_STORAGE_KEY, // ストレージのキー名
       storage: createJSONStorage(() => localStorage), // localStorageを使用
       // activeSessionのみを永続化（他のフィルタ状態などは永続化しない）
+      // ページリロード時に実行中のタイマー状態を復元するため
       partialize: (state) => ({
         activeSession: state.activeSession,
       }),

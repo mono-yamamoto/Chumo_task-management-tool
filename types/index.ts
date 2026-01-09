@@ -97,6 +97,16 @@ export interface TaskSession {
   note?: string;
 }
 
+/**
+ * アクティブなタイマーセッションの状態
+ * localStorageに永続化され、ページリロード時に復元される
+ */
+export interface ActiveSession {
+  projectType: ProjectType;
+  taskId: string;
+  sessionId: string;
+}
+
 export interface TaskActivity {
   id: string;
   taskId: string;

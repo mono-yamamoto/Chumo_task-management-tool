@@ -4,16 +4,25 @@ import React from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimerTitle } from '@/hooks/useTimerTitle';
+import { useActiveSessionValidator } from '@/hooks/useActiveSessionValidator';
+import { useTaskStore } from '@/stores/taskStore';
 import { Button } from '@/components/ui/button';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 import { AppBar, Toolbar, Typography, Box, Link as MUILink } from '@mui/material';
 import Link from 'next/link';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { activeSession, setActiveSession } = useTaskStore();
+
   useTimerTitle(); // タイマータイトル更新を有効化
+
+  // localStorage内のactiveSessionをFirestoreと照合し、不一致の場合はクリア
+  useActiveSessionValidator(user?.id, activeSession, setActiveSession);
 
   return (
     <AuthGuard>
+      <ToastContainer />
       <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar

@@ -3,8 +3,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, doc, updateDoc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { TaskSession } from '@/types';
+import { TaskSession, ActiveSession } from '@/types';
 import { queryKeys } from '@/lib/queryKeys';
+import { ACTIVE_SESSION_REFETCH_INTERVAL_MS } from '@/constants/timer';
 import {
   fetchActiveSessionsByUser,
   fetchTaskSessions,
@@ -34,13 +35,7 @@ export function useTaskSessions(projectType: string | null, taskId: string | nul
  */
 export function useActiveSession(
   userId: string | null,
-  onActiveSessionChange?: (
-    _session: {
-      projectType: string;
-      taskId: string;
-      sessionId: string;
-    } | null
-  ) => void
+  onActiveSessionChange?: (_session: ActiveSession | null) => void
 ) {
   return useQuery({
     queryKey: queryKeys.activeSession(userId ?? null),
@@ -63,7 +58,8 @@ export function useActiveSession(
       return null;
     },
     enabled: !!userId && !!db,
-    refetchInterval: 5000, // 5秒ごとに再取得
+    // Zustandでグローバル状態を管理しているため、ポーリング頻度を削減してFirestore読み取りコストを最適化
+    refetchInterval: ACTIVE_SESSION_REFETCH_INTERVAL_MS,
   });
 }
 
