@@ -14,6 +14,7 @@ import {
   Checkbox,
   ListItemText,
   Drawer,
+  CircularProgress,
 } from '@mui/material';
 import {
   Close,
@@ -36,36 +37,25 @@ interface TaskDetailDrawerProps {
   onClose: () => void;
   selectedTask: Task | null;
   taskFormData: Partial<Task> | null;
-
   onTaskFormDataChange: (data: Partial<Task>) => void;
-  onSave: () => void;
-
   onDelete: (taskId: string, projectId: string) => void;
   isSaving: boolean;
   taskLabels: Label[];
   allUsers: User[] | undefined;
   activeSession: { projectType: string; taskId: string; sessionId: string } | null;
-
   onStartTimer: (projectId: string, taskId: string) => void;
   onStopTimer: () => void;
   isStoppingTimer: boolean;
-
   onDriveCreate: (projectId: string, taskId: string) => void;
   isCreatingDrive: boolean;
-
   onFireCreate: (projectId: string, taskId: string) => void;
   isCreatingFire: boolean;
-
   onChatThreadCreate: (projectId: string, taskId: string) => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
-
   formatDuration: (
-
     durationSec: number | undefined | null,
-
     startedAt?: Date,
-
     endedAt?: Date | null
   ) => string;
 }
@@ -76,7 +66,6 @@ export function TaskDetailDrawer({
   selectedTask,
   taskFormData,
   onTaskFormDataChange,
-  onSave,
   onDelete,
   isSaving,
   taskLabels,
@@ -92,8 +81,7 @@ export function TaskDetailDrawer({
   onChatThreadCreate,
   isCreatingChatThread,
   taskSessions,
-
-  formatDuration: _formatDuration, // 未使用だがpropsとして必要
+  formatDuration,
 }: TaskDetailDrawerProps) {
   // taskFormDataがnullの場合はローディング状態を表示
   if (!selectedTask) return null;
@@ -167,13 +155,20 @@ export function TaskDetailDrawer({
             flexShrink: 0,
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            タスク詳細
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              タスク詳細
+            </Typography>
+            {isSaving && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={20} />
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  保存中...
+                </Typography>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <CustomButton onClick={onSave} size="sm" disabled={isSaving}>
-              {isSaving ? '保存中...' : '保存'}
-            </CustomButton>
             <CustomButton
               variant="destructive"
               size="sm"
@@ -523,7 +518,7 @@ export function TaskDetailDrawer({
                         }}
                       >
                         {session.endedAt
-                          ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)
+                          ? formatDuration(session.durationSec, session.startedAt, session.endedAt)
                           : '-'}
                       </Typography>
                     </Box>

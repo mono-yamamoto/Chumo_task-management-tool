@@ -15,6 +15,7 @@ import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
+import { hasTaskChanges } from '@/utils/taskUtils';
 import {
   Box,
   Typography,
@@ -30,6 +31,8 @@ import {
   DialogActions,
   DialogContentText,
   Grid,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
@@ -71,6 +74,10 @@ function TasksPageContent() {
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // コンポーネントマウント時の時刻を保持（1週間判定用）
   // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
@@ -346,15 +353,57 @@ function TasksPageContent() {
 
   const updateTask = useUpdateTask();
 
-  const handleSave = () => {
-    if (!taskFormDataValue || !selectedTask) return;
+  const handleDrawerClose = async () => {
+    // 競合状態の防止: 既に保存中の場合は何もしない
+    if (isSavingOnClose) return;
+
+    if (!taskFormDataValue || !selectedTask) {
+      resetSelection();
+      return;
+    }
+
     const projectType = selectedTask?.projectType;
-    if (!projectType) return;
-    updateTask.mutate({
-      projectType,
-      taskId: selectedTask.id,
-      updates: taskFormDataValue,
-    });
+    if (!projectType) {
+      resetSelection();
+      return;
+    }
+
+    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
+    const changeDetected = hasTaskChanges(taskFormDataValue, selectedTask);
+
+    // 変更がある場合のみ保存
+    if (changeDetected) {
+      setIsSavingOnClose(true);
+      try {
+        await updateTask.mutateAsync({
+          projectType,
+          taskId: selectedTask.id,
+          updates: taskFormDataValue,
+        });
+
+        // 保存成功時にキャッシュを無効化してリアルタイム反映
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
+        setSnackbarMessage('タスクを保存しました');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        resetSelection();
+      } catch (error) {
+        console.error('保存に失敗しました:', error);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : '保存に失敗しました。もう一度お試しください。';
+        setSnackbarMessage(errorMessage);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        // エラー時はDrawerを開いたまま
+      } finally {
+        setIsSavingOnClose(false);
+      }
+    } else {
+      resetSelection();
+    }
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -642,14 +691,13 @@ function TasksPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskIdValue}
-        onClose={resetSelection}
+        open={!!selectedTaskIdValue && !isSavingOnClose}
+        onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormDataValue}
         onTaskFormDataChange={setTaskFormDataValue}
-        onSave={handleSave}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending}
+        isSaving={updateTask.isPending || isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSessionValue}
@@ -703,6 +751,22 @@ function TasksPageContent() {
           </CustomButton>
         </DialogActions>
       </Dialog>
+
+      {/* 保存通知用Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
