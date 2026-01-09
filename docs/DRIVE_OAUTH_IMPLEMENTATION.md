@@ -23,10 +23,10 @@
 6. 名前: `chumo-task-management-oauth`
 7. 承認済みの JavaScript 生成元:
    - `http://localhost:3000` (開発環境)
-   - `https://your-production-domain.com` (本番環境)
+   - `https://chumo-task.vercel.app` (本番環境)
 8. 承認済みのリダイレクト URI:
    - `http://localhost:3000/api/auth/google/callback` (開発環境)
-   - `https://your-production-domain.com/api/auth/google/callback` (本番環境)
+   - `https://chumo-task.vercel.app/api/auth/google/callback` (本番環境)
 9. 「作成」をクリック
 10. クライアントIDとクライアントシークレットをコピー
 

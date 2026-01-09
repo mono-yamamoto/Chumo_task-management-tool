@@ -56,6 +56,9 @@ FIREBASE_PRIVATE_KEY=ここにサービスアカウントの秘密鍵を貼り�
 GOOGLE_OAUTH_CLIENT_ID=ここにOAuth 2.0クライアントIDを貼り付け
 GOOGLE_OAUTH_CLIENT_SECRET=ここにOAuth 2.0クライアントシークレットを貼り付け
 GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
+# 本番環境（Vercel）では以下を設定:
+# GOOGLE_OAUTH_REDIRECT_URI=https://chumo-task.vercel.app/api/auth/google/callback
 ```
 
 **注意**: 
