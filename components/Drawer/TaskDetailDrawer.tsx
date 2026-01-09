@@ -177,7 +177,7 @@ export function TaskDetailDrawer({
               variant="destructive"
               size="sm"
               onClick={() => {
-                const { projectType } = selectedTask as any;
+                const { projectType } = selectedTask;
                 onDelete(selectedTask.id, projectType);
               }}
             >
@@ -342,7 +342,7 @@ export function TaskDetailDrawer({
               <TaskTimerButton
                 isActive={activeSession?.taskId === selectedTask.id}
                 onStart={() => {
-                  const { projectType } = selectedTask as any;
+                  const { projectType } = selectedTask;
                   onStartTimer(projectType, selectedTask.id);
                 }}
                 onStop={onStopTimer}
@@ -374,7 +374,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = selectedTask as any;
+                    const { projectType } = selectedTask;
                     onDriveCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingDrive}
@@ -400,7 +400,7 @@ export function TaskDetailDrawer({
                   fullWidth
                   variant="outline"
                   onClick={() => {
-                    const { projectType } = selectedTask as any;
+                    const { projectType } = selectedTask;
                     onFireCreate(projectType, selectedTask.id);
                   }}
                   disabled={isCreatingFire}

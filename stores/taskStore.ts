@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Task, FlowStatus } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
 
@@ -49,43 +50,55 @@ interface TaskStore {
   resetFilters: () => void;
 }
 
-export const useTaskStore = create<TaskStore>((set) => ({
-  selectedTaskId: null,
-  setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
+export const useTaskStore = create<TaskStore>()(
+  persist(
+    (set) => ({
+      selectedTaskId: null,
+      setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
 
-  selectedProjectType: 'all',
-  setSelectedProjectType: (projectType) => set({ selectedProjectType: projectType }),
-
-  taskFormData: null,
-  setTaskFormData: (formData) => set({ taskFormData: formData }),
-
-  filterStatus: 'not-completed',
-  setFilterStatus: (status) => set({ filterStatus: status }),
-  filterAssignee: 'all',
-  setFilterAssignee: (assignee) => set({ filterAssignee: assignee }),
-  filterLabel: 'all',
-  setFilterLabel: (label) => set({ filterLabel: label }),
-  filterTimerActive: 'all',
-  setFilterTimerActive: (active) => set({ filterTimerActive: active }),
-  filterItUpDateMonth: '',
-  setFilterItUpDateMonth: (month) => set({ filterItUpDateMonth: month }),
-  filterReleaseDateMonth: '',
-  setFilterReleaseDateMonth: (month) => set({ filterReleaseDateMonth: month }),
-  filterTitle: '',
-  setFilterTitle: (title) => set({ filterTitle: title }),
-
-  activeSession: null,
-  setActiveSession: (session) => set({ activeSession: session }),
-
-  resetFilters: () =>
-    set({
       selectedProjectType: 'all',
+      setSelectedProjectType: (projectType) => set({ selectedProjectType: projectType }),
+
+      taskFormData: null,
+      setTaskFormData: (formData) => set({ taskFormData: formData }),
+
       filterStatus: 'not-completed',
+      setFilterStatus: (status) => set({ filterStatus: status }),
       filterAssignee: 'all',
+      setFilterAssignee: (assignee) => set({ filterAssignee: assignee }),
       filterLabel: 'all',
+      setFilterLabel: (label) => set({ filterLabel: label }),
       filterTimerActive: 'all',
+      setFilterTimerActive: (active) => set({ filterTimerActive: active }),
       filterItUpDateMonth: '',
+      setFilterItUpDateMonth: (month) => set({ filterItUpDateMonth: month }),
       filterReleaseDateMonth: '',
+      setFilterReleaseDateMonth: (month) => set({ filterReleaseDateMonth: month }),
       filterTitle: '',
+      setFilterTitle: (title) => set({ filterTitle: title }),
+
+      activeSession: null,
+      setActiveSession: (session) => set({ activeSession: session }),
+
+      resetFilters: () =>
+        set({
+          selectedProjectType: 'all',
+          filterStatus: 'not-completed',
+          filterAssignee: 'all',
+          filterLabel: 'all',
+          filterTimerActive: 'all',
+          filterItUpDateMonth: '',
+          filterReleaseDateMonth: '',
+          filterTitle: '',
+        }),
     }),
-}));
+    {
+      name: 'task-storage', // ストレージのキー名
+      storage: createJSONStorage(() => localStorage), // localStorageを使用
+      // activeSessionのみを永続化（他のフィルタ状態などは永続化しない）
+      partialize: (state) => ({
+        activeSession: state.activeSession,
+      }),
+    }
+  )
+);

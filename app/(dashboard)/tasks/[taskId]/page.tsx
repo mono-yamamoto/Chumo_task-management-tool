@@ -92,8 +92,7 @@ export default function TaskDetailPage() {
     extraInvalidateKeys,
     extraRefetchKeys,
   });
-  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  // const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
+
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
   const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TaskSession | null>(null);
