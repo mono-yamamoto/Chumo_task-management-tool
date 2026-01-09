@@ -15,6 +15,7 @@ import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
+import { hasTaskChanges } from '@/utils/taskUtils';
 import {
   Box,
   Typography,
@@ -353,6 +354,9 @@ function TasksPageContent() {
   const updateTask = useUpdateTask();
 
   const handleDrawerClose = async () => {
+    // 競合状態の防止: 既に保存中の場合は何もしない
+    if (isSavingOnClose) return;
+
     if (!taskFormDataValue || !selectedTask) {
       resetSelection();
       return;
@@ -364,26 +368,11 @@ function TasksPageContent() {
       return;
     }
 
-    // 変更があるかチェック（改善版: Date型と配列の正確な比較）
-    const hasChanges = Object.keys(taskFormDataValue).some((key) => {
-      const formValue = taskFormDataValue[key as keyof Task];
-      const taskValue = selectedTask[key as keyof Task];
-
-      // Date型の比較
-      if (formValue instanceof Date && taskValue instanceof Date) {
-        return formValue.getTime() !== taskValue.getTime();
-      }
-
-      // 配列の比較 (assigneeIds等)
-      if (Array.isArray(formValue) && Array.isArray(taskValue)) {
-        return JSON.stringify(formValue) !== JSON.stringify(taskValue);
-      }
-
-      return formValue !== taskValue;
-    });
+    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
+    const changeDetected = hasTaskChanges(taskFormDataValue, selectedTask);
 
     // 変更がある場合のみ保存
-    if (hasChanges) {
+    if (changeDetected) {
       setIsSavingOnClose(true);
       try {
         await updateTask.mutateAsync({
@@ -391,6 +380,11 @@ function TasksPageContent() {
           taskId: selectedTask.id,
           updates: taskFormDataValue,
         });
+
+        // 保存成功時にキャッシュを無効化してリアルタイム反映
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
         setSnackbarMessage('タスクを保存しました');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);

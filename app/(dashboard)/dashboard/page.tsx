@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -13,6 +12,7 @@ import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { Button as CustomButton } from '@/components/ui/button';
+import { hasTaskChanges } from '@/utils/taskUtils';
 import {
   Box,
   Typography,
@@ -121,43 +121,31 @@ function DashboardPageContent() {
   }, [allLabels]);
 
   // 選択されたタスクのセッション履歴を取得
-  const selectedTaskProjectType = (selectedTask as any)?.projectType;
+  const selectedTaskProjectType = selectedTask?.projectType ?? null;
   const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
 
   const updateTask = useUpdateTask();
 
   const handleDrawerClose = async () => {
+    // 競合状態の防止: 既に保存中の場合は何もしない
+    if (isSavingOnClose) return;
+
     if (!taskFormData || !selectedTask) {
       resetSelection();
       return;
     }
 
-    const projectType = (selectedTask as any)?.projectType;
+    const projectType = selectedTask?.projectType;
     if (!projectType) {
       resetSelection();
       return;
     }
 
-    // 変更があるかチェック（改善版: Date型と配列の正確な比較）
-    const hasChanges = Object.keys(taskFormData).some((key) => {
-      const formValue = taskFormData[key as keyof Task];
-      const taskValue = selectedTask[key as keyof Task];
-
-      // Date型の比較
-      if (formValue instanceof Date && taskValue instanceof Date) {
-        return formValue.getTime() !== taskValue.getTime();
-      }
-
-      // 配列の比較 (assigneeIds等)
-      if (Array.isArray(formValue) && Array.isArray(taskValue)) {
-        return JSON.stringify(formValue) !== JSON.stringify(taskValue);
-      }
-
-      return formValue !== taskValue;
-    });
+    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
+    const changeDetected = hasTaskChanges(taskFormData, selectedTask);
 
     // 変更がある場合のみ保存
-    if (hasChanges) {
+    if (changeDetected) {
       setIsSavingOnClose(true);
       try {
         await updateTask.mutateAsync({
@@ -165,6 +153,11 @@ function DashboardPageContent() {
           taskId: selectedTask.id,
           updates: taskFormData,
         });
+
+        // 保存成功時にキャッシュを無効化してリアルタイム反映
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
         setSnackbarMessage('タスクを保存しました');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);

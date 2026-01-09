@@ -81,7 +81,7 @@ export function TaskDetailDrawer({
   onChatThreadCreate,
   isCreatingChatThread,
   taskSessions,
-  formatDuration: _formatDuration, // 未使用だがpropsとして必要
+  formatDuration,
 }: TaskDetailDrawerProps) {
   // taskFormDataがnullの場合はローディング状態を表示
   if (!selectedTask) return null;
@@ -518,7 +518,7 @@ export function TaskDetailDrawer({
                         }}
                       >
                         {session.endedAt
-                          ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)
+                          ? formatDuration(session.durationSec, session.startedAt, session.endedAt)
                           : '-'}
                       </Typography>
                     </Box>
