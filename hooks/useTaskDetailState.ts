@@ -33,6 +33,7 @@ const buildTaskFormDataOnSelect = (task: Task) => ({
   assigneeIds: task.assigneeIds,
   itUpDate: task.itUpDate,
   releaseDate: task.releaseDate,
+  dueDate: task.dueDate,
 });
 
 export function useTaskDetailState({
