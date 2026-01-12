@@ -11,13 +11,11 @@ export function hasTaskChanges(
   formData: Partial<Task>,
   originalTask: Task
 ): boolean {
-  // formDataとoriginalTaskの全フィールドを網羅
-  const allKeys = new Set([
-    ...Object.keys(formData),
-    ...Object.keys(originalTask),
-  ]);
+  // formDataに含まれるフィールドのみをチェック
+  // originalTaskのみにあるフィールドは無視する（これらは変更対象外）
+  const formKeys = Object.keys(formData);
 
-  return Array.from(allKeys).some((key) => {
+  return formKeys.some((key) => {
     const formValue = formData[key as keyof Task];
     const taskValue = originalTask[key as keyof Task];
 
