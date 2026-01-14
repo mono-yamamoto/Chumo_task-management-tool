@@ -19,7 +19,7 @@ export class ListTasksUseCase {
     const { tasks, filters, users, activeTaskId, mountTime } = params;
 
     // フィルタリング
-    let filtered = this.applyFilters(tasks, filters);
+    let filtered = this.applyFilters(tasks, filters, activeTaskId);
 
     // ソート
     filtered = this.applySorting(filtered, {
@@ -34,7 +34,11 @@ export class ListTasksUseCase {
   /**
    * フィルタリング適用
    */
-  private applyFilters(tasks: Task[], filters: TaskFiltersDTO): Task[] {
+  private applyFilters(
+    tasks: Task[],
+    filters: TaskFiltersDTO,
+    activeTaskId?: string
+  ): Task[] {
     let result = [...tasks];
 
     // ステータスフィルター
@@ -61,10 +65,14 @@ export class ListTasksUseCase {
     }
 
     // タイマーアクティブフィルター
-    if (filters.timerActive !== undefined) {
-      // タイマーアクティブなタスクのみ表示する場合
-      // hasActiveTimerはTask型にないため、後でタスク取得時に追加する必要がある
-      // ここでは仮実装としてフィルタリングを行う
+    if (filters.timerActive !== undefined && activeTaskId) {
+      if (filters.timerActive) {
+        // タイマーアクティブなタスクのみ
+        result = result.filter((task) => task.id === activeTaskId);
+      } else {
+        // タイマー停止中のタスクのみ
+        result = result.filter((task) => task.id !== activeTaskId);
+      }
     }
 
     // IT UP日フィルター

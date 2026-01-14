@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Task } from '@/types';
 import { ListTasksUseCase } from '@/lib/application/usecases/listTasks.usecase';
 import { TaskFiltersDTO } from '@/lib/presentation/dtos/task.dto';
@@ -9,13 +9,11 @@ import { TaskFiltersDTO } from '@/lib/presentation/dtos/task.dto';
  */
 export function useTasksList(params: {
   tasks: Task[];
+  filters?: TaskFiltersDTO;
   activeTaskId?: string;
   mountTime?: number;
 }) {
-  const { tasks, activeTaskId, mountTime = Date.now() } = params;
-  const [filters, setFilters] = useState<TaskFiltersDTO>({
-    status: 'not-completed',
-  });
+  const { tasks, filters = { status: 'not-completed' }, activeTaskId, mountTime = Date.now() } = params;
 
   const useCase = useMemo(() => new ListTasksUseCase(), []);
 
@@ -31,7 +29,5 @@ export function useTasksList(params: {
 
   return {
     sortedTasks,
-    filters,
-    setFilters,
   };
 }

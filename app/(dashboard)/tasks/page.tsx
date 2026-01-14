@@ -1,49 +1,34 @@
 'use client';
 
-import { useState, Suspense, useMemo, useEffect } from 'react';
+import { useState, Suspense, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { FlowStatus, Task } from '@/types';
+import { Task } from '@/types';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
-import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { useTaskStore } from '@/stores/taskStore';
-import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
-import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
-import { hasTaskChanges } from '@/utils/taskUtils';
-import { useToast } from '@/hooks/useToast';
-import {
-  Box,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  DialogContentText,
-  Grid,
-} from '@mui/material';
+import { useTasksList } from '@/hooks/useTasksList';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { useTaskPagination } from '@/hooks/useTaskPagination';
+import { useTaskDelete } from '@/hooks/useTaskDelete';
+import { useTaskDrawer } from '@/hooks/useTaskDrawer';
+import { ProjectType } from '@/constants/projectTypes';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
-import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
-
-const TASKS_PER_PAGE = 30;
+import { TaskFilters } from '@/components/tasks/TaskFilters';
+import { TaskDeleteDialog } from '@/components/tasks/TaskDeleteDialog';
 
 function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { success, error: showError } = useToast();
   const {
     selectedProjectType,
     setSelectedProjectType,
@@ -69,21 +54,11 @@ function TasksPageContent() {
     setActiveSession,
     resetFilters,
   } = useTaskStore();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
-  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
-
-  // コンポーネントマウント時の時刻を保持（1週間判定用）
-  // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
   const [mountTime] = useState(() => Date.now());
 
   // タスク一覧を取得（ページネーション対応）
   const tasksQuery = useTasks(selectedProjectType);
-
-  // useInfiniteQueryのpagesをフラット化
   const tasks = useMemo<Task[]>(() => {
     if (!tasksQuery.data) return [];
     return tasksQuery.data.pages.flatMap((page) => page.tasks);
@@ -91,16 +66,14 @@ function TasksPageContent() {
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
-  const isFetchingNextPage =
-    'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
+  const isFetchingNextPage = 'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
   const fetchNextPage = 'fetchNextPage' in tasksQuery ? tasksQuery.fetchNextPage : undefined;
 
-  // すべてのユーザーを取得（アサイン表示用）
+  // ユーザー・ラベル取得
   const { data: allUsers } = useUsers();
-
-  // 区分ラベルは全プロジェクト共通
   const { data: allLabels } = useKubunLabels();
 
+  // タスク詳細アクション
   const {
     activeSession: activeSessionValue,
     handleStartTimer,
@@ -122,118 +95,62 @@ function TasksPageContent() {
     setActiveSession,
   });
 
-  // フィルタリングされたタスクを取得
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return [];
-
-    return tasks.filter((task: Task) => {
-      // ステータスフィルタ
-      if (filterStatus === 'not-completed' && task.flowStatus === '完了') {
-        return false;
-      }
-      if (
-        filterStatus !== 'all' &&
-        filterStatus !== 'not-completed' &&
-        task.flowStatus !== filterStatus
-      ) {
-        return false;
-      }
-
-      // アサインフィルタ
-      if (filterAssignee !== 'all' && !task.assigneeIds.includes(filterAssignee)) {
-        return false;
-      }
-
-      // 区分フィルタ
-      if (filterLabel !== 'all' && task.kubunLabelId !== filterLabel) {
-        return false;
-      }
-
-      // タイトル検索フィルタ
-      if (filterTitle && !task.title.toLowerCase().includes(filterTitle.toLowerCase())) {
-        return false;
-      }
-
-      // タイマー稼働中フィルタ
-      if (filterTimerActive === 'active' && activeSessionValue?.taskId !== task.id) {
-        return false;
-      }
-      if (filterTimerActive === 'inactive' && activeSessionValue?.taskId === task.id) {
-        return false;
-      }
-
-      // ITアップ日フィルタ（月指定）
-      if (filterItUpDateMonth && task.itUpDate) {
-        const [year, month] = filterItUpDateMonth.split('-');
-        const taskDate = new Date(task.itUpDate);
-        const taskYear = taskDate.getFullYear();
-        const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
-        if (taskYear !== parseInt(year, 10) || taskMonth !== parseInt(month, 10)) {
-          return false;
-        }
-      }
-      // ITアップ日が未設定の場合、月フィルタが設定されていれば除外
-      if (filterItUpDateMonth && !task.itUpDate) {
-        return false;
-      }
-
-      // リリース日フィルタ（月指定）
-      if (filterReleaseDateMonth && task.releaseDate) {
-        const [year, month] = filterReleaseDateMonth.split('-');
-        const taskDate = new Date(task.releaseDate);
-        const taskYear = taskDate.getFullYear();
-        const taskMonth = taskDate.getMonth() + 1; // getMonth()は0始まりなので+1
-        if (taskYear !== parseInt(year, 10) || taskMonth !== parseInt(month, 10)) {
-          return false;
-        }
-      }
-      // リリース日が未設定の場合、月フィルタが設定されていれば除外
-      if (filterReleaseDateMonth && !task.releaseDate) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [
-    tasks,
+  // フィルター管理
+  const {
+    filters,
+    handleFilterTitleChange,
+    handleFilterStatusChange,
+    handleFilterAssigneeChange,
+    handleFilterLabelChange,
+    handleFilterTimerActiveChange,
+    handleFilterItUpDateMonthChange,
+    handleFilterReleaseDateMonthChange,
+    handleResetFilters,
+  } = useTaskFilters({
     filterStatus,
+    setFilterStatus,
     filterAssignee,
+    setFilterAssignee,
     filterLabel,
-    filterTitle,
+    setFilterLabel,
     filterTimerActive,
+    setFilterTimerActive,
     filterItUpDateMonth,
+    setFilterItUpDateMonth,
     filterReleaseDateMonth,
-    activeSessionValue,
-  ]);
+    setFilterReleaseDateMonth,
+    filterTitle,
+    setFilterTitle,
+    setCurrentPage,
+    resetFilters,
+  });
 
-  // ソートロジック: 未アサインかつ作成から1週間以内のタスクを上位表示
-  const sortedTasks = useMemo(() => {
-    if (!filteredTasks) return [];
+  // UseCase経由でフィルタリング・ソート済みタスクを取得
+  const { sortedTasks } = useTasksList({
+    tasks,
+    filters,
+    activeTaskId: activeSessionValue?.taskId,
+    mountTime,
+  });
 
-    // マウント時の時刻から1週間前を計算（子コンポーネントと同じ基準時刻を使用）
-    const oneWeekAgo = mountTime - 7 * 24 * 60 * 60 * 1000;
+  // ページネーション管理
+  const {
+    paginatedTasks,
+    canGoPrev,
+    canGoNext,
+    rangeLabel,
+    handlePrevPage,
+    handleNextPage,
+  } = useTaskPagination({
+    sortedTasks,
+    currentPage,
+    setCurrentPage,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
-    const isNewTask = (task: Task) => {
-      return (
-        task.assigneeIds.length === 0 && task.createdAt && task.createdAt.getTime() >= oneWeekAgo
-      );
-    };
-
-    return [...filteredTasks].sort((a, b) => {
-      const aIsNew = isNewTask(a);
-      const bIsNew = isNewTask(b);
-
-      // 条件に合うタスクを最優先
-      if (aIsNew && !bIsNew) return -1;
-      if (!aIsNew && bIsNew) return 1;
-
-      // それ以外は既存のソート順（createdAt降順）を維持
-      const aTime = a.createdAt?.getTime() || 0;
-      const bTime = b.createdAt?.getTime() || 0;
-      return bTime - aTime;
-    });
-  }, [filteredTasks, mountTime]);
-
+  // タスク詳細選択状態
   const {
     selectedTaskId: selectedTaskIdValue,
     selectedTask,
@@ -250,222 +167,53 @@ function TasksPageContent() {
     setTaskFormData,
   });
 
-  const handleFilterTitleChange = (value: string) => {
-    setFilterTitle(value);
-    setCurrentPage(1);
-  };
+  // Drawer管理
+  const { isSavingOnClose, handleDrawerClose } = useTaskDrawer({
+    queryClient,
+    selectedTask,
+    taskFormDataValue,
+    resetSelection,
+  });
 
-  const handleProjectTypeChange = (value: ProjectType | 'all') => {
-    setSelectedProjectType(value);
-    setCurrentPage(1);
-  };
+  // 削除管理
+  const {
+    deleteDialogOpen,
+    deleteTaskId,
+    deleteConfirmTitle,
+    setDeleteConfirmTitle,
+    handleDeleteClick,
+    handleDeleteTask,
+    handleDialogClose,
+  } = useTaskDelete({
+    tasks,
+    selectedTaskIdValue,
+    resetSelection,
+  });
 
-  const handleFilterStatusChange = (value: FlowStatus | 'all' | 'not-completed') => {
-    setFilterStatus(value);
-    setCurrentPage(1);
-  };
+  // その他の計算
+  const taskLabels = useMemo(() => allLabels || [], [allLabels]);
+  const kobetsuLabelId = useMemo(() => {
+    return allLabels?.find((label) => label.name === '個別')?.id || null;
+  }, [allLabels]);
 
-  const handleFilterAssigneeChange = (value: string) => {
-    setFilterAssignee(value);
-    setCurrentPage(1);
-  };
+  const selectedTaskProjectType = selectedTask?.projectType ?? null;
+  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskIdValue);
 
-  const handleFilterLabelChange = (value: string) => {
-    setFilterLabel(value);
-    setCurrentPage(1);
-  };
-
-  const handleFilterTimerActiveChange = (value: string) => {
-    setFilterTimerActive(value);
-    setCurrentPage(1);
-  };
-
-  const handleFilterItUpDateMonthChange = (value: string) => {
-    setFilterItUpDateMonth(value);
-    setCurrentPage(1);
-  };
-
-  const handleFilterReleaseDateMonthChange = (value: string) => {
-    setFilterReleaseDateMonth(value);
-    setCurrentPage(1);
-  };
-
-  const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
-  const shouldRequestMoreData = hasNextPage && sortedTasks.length < requiredItemsForCurrentPage;
-
-  useEffect(() => {
-    if (!fetchNextPage || !shouldRequestMoreData || isFetchingNextPage) {
-      return;
-    }
-    fetchNextPage();
-  }, [fetchNextPage, shouldRequestMoreData, isFetchingNextPage]);
-
-  const paginatedTasks = useMemo<Task[]>(() => {
-    const start = (currentPage - 1) * TASKS_PER_PAGE;
-    return sortedTasks.slice(start, start + TASKS_PER_PAGE);
-  }, [sortedTasks, currentPage]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / TASKS_PER_PAGE));
-  const canGoPrev = currentPage > 1;
-  const canGoNext = hasNextPage || currentPage < totalPages;
-
-  const paginatedRangeStart =
-    paginatedTasks.length > 0 ? (currentPage - 1) * TASKS_PER_PAGE + 1 : 0;
-  const paginatedRangeEnd =
-    paginatedTasks.length > 0 ? paginatedRangeStart + paginatedTasks.length - 1 : 0;
-
-  const totalKnownCount = sortedTasks.length;
-  const rangeLabel =
-    paginatedTasks.length === 0
-      ? hasNextPage || isFetchingNextPage
-        ? '表示中: 読み込み中...'
-        : '表示中: 0件'
-      : `表示中: ${paginatedRangeStart}-${paginatedRangeEnd}件 / ${
-          hasNextPage ? `${totalKnownCount}+` : totalKnownCount
-        }件`;
-
+  const shouldRequestMoreData = hasNextPage && sortedTasks.length < currentPage * 30;
   const fallbackEmptyMessage =
     tasks && tasks.length === 0
       ? selectedProjectType === 'all'
         ? 'タスクがありません'
         : 'このプロジェクトにタスクがありません'
       : 'フィルタ条件に一致するタスクがありません';
-
   const effectiveEmptyMessage =
     paginatedTasks.length === 0 && (shouldRequestMoreData || isFetchingNextPage)
       ? '読み込み中...'
       : fallbackEmptyMessage;
 
-  // 区分ラベルは全プロジェクト共通なので、そのまま使用
-  const taskLabels = useMemo(() => allLabels || [], [allLabels]);
-
-  // 「個別」ラベルのIDを取得
-  const kobetsuLabelId = useMemo(() => {
-    return allLabels?.find((label) => label.name === '個別')?.id || null;
-  }, [allLabels]);
-
-  // 選択されたタスクのセッション履歴を取得
-  const selectedTaskProjectType = selectedTask?.projectType ?? null;
-  const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskIdValue);
-
-  const updateTask = useUpdateTask();
-
-  const handleDrawerClose = async () => {
-    // 競合状態の防止: 既に保存中の場合は何もしない
-    if (isSavingOnClose) return;
-
-    if (!taskFormDataValue || !selectedTask) {
-      resetSelection();
-      return;
-    }
-
-    const projectType = selectedTask?.projectType;
-    if (!projectType) {
-      resetSelection();
-      return;
-    }
-
-    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
-    const changeDetected = hasTaskChanges(taskFormDataValue, selectedTask);
-
-    // 変更がある場合のみ保存
-    if (changeDetected) {
-      setIsSavingOnClose(true);
-      try {
-        await updateTask.mutateAsync({
-          projectType,
-          taskId: selectedTask.id,
-          updates: taskFormDataValue,
-        });
-
-        // 保存成功時にキャッシュを無効化してリアルタイム反映
-        queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
-        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
-
-        success('タスクを保存しました');
-        resetSelection();
-      } catch (error) {
-        console.error('保存に失敗しました:', error);
-        const errorMessage = error instanceof Error
-          ? error.message
-          : '保存に失敗しました。もう一度お試しください。';
-        showError(errorMessage);
-        // エラー時はDrawerを開いたまま
-      } finally {
-        setIsSavingOnClose(false);
-      }
-    } else {
-      resetSelection();
-    }
-  };
-
-  const handleDeleteClick = (taskId: string, projectType: string) => {
-    setDeleteTaskId(taskId);
-    setDeleteProjectType(projectType);
-    setDeleteDialogOpen(true);
-    setDeleteConfirmTitle('');
-  };
-
-  const deleteTask = useDeleteTask();
-
-  const handleDeleteTask = async () => {
-    if (!deleteTaskId || !deleteProjectType) return;
-
-    const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
-    if (!taskToDelete) {
-      alert('タスクが見つかりません');
-      setDeleteDialogOpen(false);
-      return;
-    }
-
-    // タイトルが一致しない場合は削除しない
-    if (deleteConfirmTitle !== taskToDelete.title) {
-      alert('タイトルが一致しません。削除をキャンセルしました。');
-      setDeleteDialogOpen(false);
-      setDeleteConfirmTitle('');
-      return;
-    }
-
-    deleteTask.mutate(
-      {
-        projectType: deleteProjectType as ProjectType,
-        taskId: deleteTaskId,
-      },
-      {
-        onSuccess: () => {
-          // 削除したタスクが選択されていた場合はサイドバーを閉じる
-          if (selectedTaskIdValue === deleteTaskId) {
-            resetSelection();
-          }
-          alert('タスクを削除しました');
-        },
-        onError: (error: Error) => {
-          console.error('Delete task error:', error);
-          alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
-        },
-        onSettled: () => {
-          setDeleteDialogOpen(false);
-          setDeleteTaskId(null);
-          setDeleteProjectType(null);
-          setDeleteConfirmTitle('');
-        },
-      }
-    );
-  };
-
-  const handleResetFilters = () => {
-    resetFilters();
+  const handleProjectTypeChange = (value: ProjectType | 'all') => {
+    setSelectedProjectType(value);
     setCurrentPage(1);
-  };
-
-  const handlePrevPage = () => {
-    if (!canGoPrev) return;
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    if (!canGoNext) return;
-    setCurrentPage((prev) => prev + 1);
   };
 
   if (isLoading) {
@@ -479,14 +227,7 @@ function TasksPageContent() {
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             タスク一覧
           </Typography>
@@ -500,137 +241,26 @@ function TasksPageContent() {
           </Box>
         </Box>
 
-        <Box sx={{ mb: 3 }}>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12 }}>
-              <TaskSearchForm
-                value={filterTitle}
-                onChange={handleFilterTitleChange}
-                placeholder="タイトルで検索..."
-                label="タイトル検索"
-              />
-            </Grid>
-          </Grid>
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>プロジェクト</InputLabel>
-                <Select
-                  value={selectedProjectType}
-                  onChange={(e) => handleProjectTypeChange(e.target.value as ProjectType | 'all')}
-                  label="プロジェクト"
-                >
-                  <MenuItem value="all">すべて</MenuItem>
-                  {PROJECT_TYPES.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>ステータス</InputLabel>
-                <Select
-                  value={filterStatus}
-                  onChange={(e) =>
-                    handleFilterStatusChange(e.target.value as FlowStatus | 'all' | 'not-completed')
-                  }
-                  label="ステータス"
-                >
-                  <MenuItem value="all">すべて</MenuItem>
-                  <MenuItem value="not-completed">完了以外</MenuItem>
-                  {FLOW_STATUS_OPTIONS.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {FLOW_STATUS_LABELS[status]}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>アサイン</InputLabel>
-                <Select
-                  value={filterAssignee}
-                  onChange={(e) => handleFilterAssigneeChange(e.target.value)}
-                  label="アサイン"
-                >
-                  <MenuItem value="all">すべて</MenuItem>
-                  {allUsers?.map((userItem) => (
-                    <MenuItem key={userItem.id} value={userItem.id}>
-                      {userItem.displayName || userItem.email}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>区分</InputLabel>
-                <Select
-                  value={filterLabel}
-                  onChange={(e) => handleFilterLabelChange(e.target.value)}
-                  label="区分"
-                >
-                  <MenuItem value="all">すべて</MenuItem>
-                  {allLabels?.map((label) => (
-                    <MenuItem key={label.id} value={label.id}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            backgroundColor: label.color,
-                          }}
-                        />
-                        {label.name}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>タイマー</InputLabel>
-                <Select
-                  value={filterTimerActive}
-                  onChange={(e) => handleFilterTimerActiveChange(e.target.value)}
-                  label="タイマー"
-                >
-                  <MenuItem value="all">すべて</MenuItem>
-                  <MenuItem value="active">稼働中のみ</MenuItem>
-                  <MenuItem value="inactive">停止中のみ</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField
-                fullWidth
-                label="ITアップ日（月）"
-                type="month"
-                value={filterItUpDateMonth}
-                onChange={(e) => handleFilterItUpDateMonthChange(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField
-                fullWidth
-                label="リリース日（月）"
-                type="month"
-                value={filterReleaseDateMonth}
-                onChange={(e) => handleFilterReleaseDateMonthChange(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-          </Grid>
-        </Box>
+        <TaskFilters
+          filterTitle={filterTitle}
+          onFilterTitleChange={handleFilterTitleChange}
+          selectedProjectType={selectedProjectType}
+          onProjectTypeChange={handleProjectTypeChange}
+          filterStatus={filterStatus}
+          onFilterStatusChange={handleFilterStatusChange}
+          filterAssignee={filterAssignee}
+          onFilterAssigneeChange={handleFilterAssigneeChange}
+          filterLabel={filterLabel}
+          onFilterLabelChange={handleFilterLabelChange}
+          filterTimerActive={filterTimerActive}
+          onFilterTimerActiveChange={handleFilterTimerActiveChange}
+          filterItUpDateMonth={filterItUpDateMonth}
+          onFilterItUpDateMonthChange={handleFilterItUpDateMonthChange}
+          filterReleaseDateMonth={filterReleaseDateMonth}
+          onFilterReleaseDateMonthChange={handleFilterReleaseDateMonthChange}
+          allUsers={allUsers}
+          allLabels={allLabels}
+        />
 
         <TaskListTable
           tasks={paginatedTasks || []}
@@ -646,16 +276,7 @@ function TasksPageContent() {
           emptyMessage={effectiveEmptyMessage}
         />
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mt: 2,
-            gap: 2,
-            flexWrap: 'wrap',
-          }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {rangeLabel}
           </Typography>
@@ -665,24 +286,14 @@ function TasksPageContent() {
             </CustomButton>
             <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
               ページ {currentPage}
-              {!hasNextPage && filteredTasks.length > 0 ? ` / ${totalPages}` : ''}
             </Typography>
-            <CustomButton
-              variant="outline"
-              onClick={handleNextPage}
-              disabled={!canGoNext || isFetchingNextPage}
-            >
-              {isFetchingNextPage ? (
-                <CircularProgress size={14} sx={{ color: 'inherit' }} />
-              ) : (
-                '次へ'
-              )}
+            <CustomButton variant="outline" onClick={handleNextPage} disabled={!canGoNext || isFetchingNextPage}>
+              {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : '次へ'}
             </CustomButton>
           </Box>
         </Box>
       </Box>
 
-      {/* サイドバー */}
       <TaskDetailDrawer
         open={!!selectedTaskIdValue && !isSavingOnClose}
         onClose={handleDrawerClose}
@@ -690,7 +301,7 @@ function TasksPageContent() {
         taskFormData={taskFormDataValue}
         onTaskFormDataChange={setTaskFormDataValue}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending || isSavingOnClose}
+        isSaving={isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSessionValue}
@@ -707,41 +318,15 @@ function TasksPageContent() {
         formatDuration={formatDuration}
       />
 
-      {/* 削除確認ダイアログ */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>タスクを削除</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            この操作は取り消せません。タスクを削除するには、タイトルを正確に入力してください。
-          </DialogContentText>
-          <TextField
-            autoFocus
-            fullWidth
-            label="タイトルを入力"
-            value={deleteConfirmTitle}
-            onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-            placeholder={tasks?.find((t: Task) => t.id === deleteTaskId)?.title || ''}
-            variant="outlined"
-          />
-        </DialogContent>
-        <DialogActions>
-          <CustomButton
-            onClick={() => {
-              setDeleteDialogOpen(false);
-              setDeleteConfirmTitle('');
-            }}
-          >
-            キャンセル
-          </CustomButton>
-          <CustomButton
-            variant="destructive"
-            onClick={handleDeleteTask}
-            disabled={deleteConfirmTitle !== tasks?.find((t: Task) => t.id === deleteTaskId)?.title}
-          >
-            削除
-          </CustomButton>
-        </DialogActions>
-      </Dialog>
+      <TaskDeleteDialog
+        open={deleteDialogOpen}
+        onClose={handleDialogClose}
+        onDelete={handleDeleteTask}
+        deleteTaskId={deleteTaskId}
+        deleteConfirmTitle={deleteConfirmTitle}
+        setDeleteConfirmTitle={setDeleteConfirmTitle}
+        tasks={tasks}
+      />
     </Box>
   );
 }
