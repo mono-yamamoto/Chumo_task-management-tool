@@ -7,7 +7,7 @@ import {
   TextField,
   Grid,
 } from '@mui/material';
-import { FlowStatus, User, KubunLabel } from '@/types';
+import { FlowStatus, User, Label } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { FLOW_STATUS_OPTIONS, FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { TaskSearchForm } from '@/components/tasks/TaskSearchForm';
@@ -30,7 +30,7 @@ interface TaskFiltersProps {
   filterReleaseDateMonth: string;
   onFilterReleaseDateMonthChange: (value: string) => void;
   allUsers?: User[];
-  allLabels?: KubunLabel[];
+  allLabels?: Label[];
 }
 
 export function TaskFilters({

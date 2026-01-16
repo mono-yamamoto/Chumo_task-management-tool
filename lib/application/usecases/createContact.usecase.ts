@@ -50,7 +50,7 @@ export class CreateContactUseCase {
     };
 
     // エラー報告の場合、詳細情報を追加
-    if (request.contactType === 'エラー報告' && request.errorReportDetails) {
+    if (request.contactType === 'error' && request.errorReportDetails) {
       const details = request.errorReportDetails;
       contactData.errorReportDetails = {
         issue: details.errorMessage || '',

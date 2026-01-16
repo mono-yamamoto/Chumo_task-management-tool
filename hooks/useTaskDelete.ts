@@ -8,7 +8,7 @@ import { useDeleteTask } from '@/hooks/useTasks';
  */
 export function useTaskDelete(params: {
   tasks: Task[];
-  selectedTaskIdValue?: string;
+  selectedTaskIdValue: string | null;
   resetSelection: () => void;
 }) {
   const { tasks, selectedTaskIdValue, resetSelection } = params;

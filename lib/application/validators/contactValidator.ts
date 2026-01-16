@@ -51,7 +51,7 @@ export class ContactValidator {
     }
 
     // エラー報告の場合の追加検証
-    if (request.contactType === 'エラー報告' && request.errorReportDetails) {
+    if (request.contactType === 'error' && request.errorReportDetails) {
       const detailErrors = this.validateErrorReportDetails(
         request.errorReportDetails
       );
@@ -96,7 +96,7 @@ export class ContactValidator {
     }
 
     // スマホの場合、spOSとsmartphoneTypeの検証
-    if (details.deviceType === 'スマホ') {
+    if (details.deviceType === 'SP') {
       if (!details.spOS) {
         errors.push('スマホのOSを選択してください');
       }
@@ -112,7 +112,7 @@ export class ContactValidator {
    * ContactTypeの検証
    */
   private isValidContactType(type: string): type is ContactType {
-    const validTypes: ContactType[] = ['エラー報告', '機能改善要望', 'その他'];
+    const validTypes: ContactType[] = ['error', 'feature', 'other'];
     return validTypes.includes(type as ContactType);
   }
 
@@ -120,7 +120,7 @@ export class ContactValidator {
    * DeviceTypeの検証
    */
   private isValidDeviceType(type: string): type is DeviceType {
-    const validTypes: DeviceType[] = ['PC', 'スマホ', 'タブレット'];
+    const validTypes: DeviceType[] = ['PC', 'SP'];
     return validTypes.includes(type as DeviceType);
   }
 
@@ -128,7 +128,7 @@ export class ContactValidator {
    * BrowserTypeの検証
    */
   private isValidBrowserType(type: string): type is BrowserType {
-    const validTypes: BrowserType[] = ['Chrome', 'Safari', 'Edge', 'Firefox', 'その他'];
+    const validTypes: BrowserType[] = ['Chrome', 'Firefox', 'Safari', 'Arc', 'Comet', 'Dia', 'other'];
     return validTypes.includes(type as BrowserType);
   }
 }
