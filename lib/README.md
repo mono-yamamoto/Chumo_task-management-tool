@@ -4,7 +4,7 @@
 
 ## ディレクトリ構造
 
-```
+```plaintext
 lib/
 ├── application/               # Application Layer
 │   ├── usecases/             # UseCase (ビジネスロジック)

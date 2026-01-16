@@ -26,7 +26,7 @@
 
 ### レイヤー構成
 
-```
+```plaintext
 ┌─────────────────────────────────────────┐
 │       Presentation Layer (UI)           │  ← ページ、コンポーネント
 │  - DTOs (Data Transfer Objects)         │
@@ -56,7 +56,7 @@
 
 ## ディレクトリ構造
 
-```
+```plaintext
 lib/
 ├── domain/                    # Domain Layer
 │   ├── models/               # ドメインモデル (将来types/から移行)

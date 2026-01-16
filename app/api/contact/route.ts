@@ -97,11 +97,12 @@ export async function POST(request: NextRequest) {
     console.error('Error details:', error instanceof Error ? error.message : String(error));
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
+    const isDev = process.env.NODE_ENV === 'development';
     return NextResponse.json(
       {
         error: 'お問い合わせの送信に失敗しました',
-        details: error instanceof Error ? error.message : String(error),
-        ...(process.env.NODE_ENV === 'development' && {
+        ...(isDev && {
+          details: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         }),
       },

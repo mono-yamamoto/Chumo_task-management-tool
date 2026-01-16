@@ -28,7 +28,7 @@ export function TaskDeleteDialog({
   setDeleteConfirmTitle,
   tasks,
 }: TaskDeleteDialogProps) {
-  const taskToDelete = tasks?.find((t: Task) => t.id === deleteTaskId);
+  const taskToDelete = tasks?.find((t) => t.id === deleteTaskId);
 
   return (
     <Dialog open={open} onClose={onClose}>

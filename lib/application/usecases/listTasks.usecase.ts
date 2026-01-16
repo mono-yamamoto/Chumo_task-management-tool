@@ -65,8 +65,11 @@ export class ListTasksUseCase {
     }
 
     // タイマーアクティブフィルター
-    if (filters.timerActive !== undefined && activeTaskId) {
-      if (filters.timerActive) {
+    if (filters.timerActive !== undefined) {
+      if (!activeTaskId) {
+        // アクティブタスク未設定時の挙動を明示
+        result = filters.timerActive ? [] : result;
+      } else if (filters.timerActive) {
         // タイマーアクティブなタスクのみ
         result = result.filter((task) => task.id === activeTaskId);
       } else {
