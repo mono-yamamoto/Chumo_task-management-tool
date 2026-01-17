@@ -37,14 +37,17 @@ export class ContactValidator {
     }
 
     // titleの検証
-    if (!request.title || request.title.trim() === '') {
+    if (typeof request.title !== 'string' || request.title.trim() === '') {
       errors.push('タイトルを入力してください');
     } else if (request.title.length > 200) {
       errors.push('タイトルは200文字以内で入力してください');
     }
 
     // contactContentの検証
-    if (!request.contactContent || request.contactContent.trim() === '') {
+    if (
+      typeof request.contactContent !== 'string' ||
+      request.contactContent.trim() === ''
+    ) {
       errors.push('お問い合わせ内容を入力してください');
     } else if (request.contactContent.length > 5000) {
       errors.push('お問い合わせ内容は5000文字以内で入力してください');

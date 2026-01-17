@@ -14,12 +14,12 @@ export function useTaskDelete(params: {
   const { tasks, selectedTaskIdValue, resetSelection } = params;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
+  const [deleteProjectType, setDeleteProjectType] = useState<ProjectType | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
   const deleteTask = useDeleteTask();
 
-  const handleDeleteClick = useCallback((taskId: string, projectType: string) => {
+  const handleDeleteClick = useCallback((taskId: string, projectType: ProjectType) => {
     setDeleteTaskId(taskId);
     setDeleteProjectType(projectType);
     setDeleteDialogOpen(true);
@@ -46,7 +46,7 @@ export function useTaskDelete(params: {
 
     deleteTask.mutate(
       {
-        projectType: deleteProjectType as ProjectType,
+        projectType: deleteProjectType,
         taskId: deleteTaskId,
       },
       {

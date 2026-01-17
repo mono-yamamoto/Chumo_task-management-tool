@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 ### After (約80行)
 
 ```typescript
-// app/api/contact/route.refactored.ts
+// app/api/contact/route.ts
 import { AuthService } from '@/lib/application/services/authService';
 import { ContactValidator } from '@/lib/application/validators/contactValidator';
 import { CreateContactUseCase } from '@/lib/application/usecases/createContact.usecase';

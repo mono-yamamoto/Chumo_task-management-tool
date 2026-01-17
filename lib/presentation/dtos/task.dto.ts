@@ -50,11 +50,13 @@ export interface PaginationMetaDTO {
 
 /**
  * タスクDTO
+ * 表示用に簡略化されたタスク情報
  */
 export interface TaskDTO {
   id: string;
   title: string;
   flowStatus: FlowStatus;
+  /** 最初のアサインのみ（ドメインTaskは複数アサイン対応だが、DTOでは単一） */
   assigneeId?: string;
   assigneeName?: string;
   labelIds?: string[];
