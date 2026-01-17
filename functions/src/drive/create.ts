@@ -133,6 +133,7 @@ export const createDriveFolder = onRequest(
       const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
       const driveParentId = await getSecret('DRIVE_PARENT_ID');
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
+      const appBaseUrl = await getSecret('APP_BASE_URL');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
         res.status(500).json({
@@ -280,6 +281,25 @@ export const createDriveFolder = onRequest(
             console.info('Cell C7 updated successfully');
           } catch (error) {
             console.error('Failed to update cell C7:', error);
+            throw error;
+          }
+
+          // H9: タスク詳細ページURL
+          try {
+            const taskDetailUrl = appBaseUrl
+              ? `${appBaseUrl}/projects/${projectId}/tasks/${taskId}`
+              : '';
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: sheetId,
+              range: `${sheetName}!H9`,
+              valueInputOption: 'RAW',
+              requestBody: {
+                values: [[taskDetailUrl]],
+              },
+            });
+            console.info('Cell H9 updated successfully');
+          } catch (error) {
+            console.error('Failed to update cell H9:', error);
             throw error;
           }
 
