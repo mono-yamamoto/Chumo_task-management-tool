@@ -133,7 +133,6 @@ export const createDriveFolder = onRequest(
       const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
       const driveParentId = await getSecret('DRIVE_PARENT_ID');
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
-      const appBaseUrl = await getSecret('APP_BASE_URL');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
         res.status(500).json({
@@ -142,6 +141,9 @@ export const createDriveFolder = onRequest(
         });
         return;
       }
+
+      // 環境変数から取得
+      const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || '';
 
       // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
       const oauth2Client = new google.auth.OAuth2(
@@ -286,8 +288,8 @@ export const createDriveFolder = onRequest(
 
           // H9: タスク詳細ページURL
           try {
-            const taskDetailUrl = appBaseUrl
-              ? `${appBaseUrl}/projects/${projectId}/tasks/${taskId}`
+            const taskDetailUrl = appOrigin
+              ? `${appOrigin}/projects/${projectId}/tasks/${taskId}`
               : '';
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
