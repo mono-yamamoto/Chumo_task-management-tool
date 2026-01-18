@@ -152,7 +152,7 @@ export function CommentItem({
             inputProps={{ 'aria-label': 'コメントを編集' }}
           />
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-            <IconButton size="small" onClick={handleCancel} disabled={isUpdating}>
+            <IconButton size="small" onClick={handleCancel} disabled={isUpdating} aria-label="編集をキャンセル">
               <Close fontSize="small" />
             </IconButton>
             <IconButton
@@ -160,6 +160,7 @@ export function CommentItem({
               onClick={handleSave}
               disabled={isUpdating || !editContent.trim()}
               sx={{ color: 'primary.main' }}
+              aria-label="コメントを保存"
             >
               <Check fontSize="small" />
             </IconButton>
