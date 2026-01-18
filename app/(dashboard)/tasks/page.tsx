@@ -325,15 +325,24 @@ function TasksPageContent() {
             </Box>
           </>
         ) : (
-          <TaskPersonalView
-            tasks={sortedTasks || []}
-            onTaskSelect={handleTaskSelect}
-            selectedProjectType={selectedProjectType}
-            allUsers={allUsers}
-            allLabels={allLabels}
-            currentUserId={user?.id || null}
-            emptyMessage={effectiveEmptyMessage}
-          />
+          <>
+            <TaskPersonalView
+              tasks={sortedTasks || []}
+              onTaskSelect={handleTaskSelect}
+              selectedProjectType={selectedProjectType}
+              allUsers={allUsers}
+              allLabels={allLabels}
+              currentUserId={user?.id || null}
+              emptyMessage={effectiveEmptyMessage}
+            />
+            {hasNextPage && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CustomButton variant="outline" onClick={handleNextPage} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : 'さらに読み込む'}
+                </CustomButton>
+              </Box>
+            )}
+          </>
         )}
       </Box>
 

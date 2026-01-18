@@ -30,6 +30,16 @@ const STATUS_ORDER: FlowStatus[] = [
   '完了',
 ];
 
+// Mapにタスクを追加するヘルパー関数
+const pushTask = (map: Map<string, Task[]>, key: string, task: Task) => {
+  const list = map.get(key);
+  if (list) {
+    list.push(task);
+  } else {
+    map.set(key, [task]);
+  }
+};
+
 /**
  * タスクを担当者別→ステータス別にグルーピングする
  * @param tasks グルーピング対象のタスク
@@ -37,19 +47,20 @@ const STATUS_ORDER: FlowStatus[] = [
  * @returns 担当者別にグルーピングされたセクションの配列
  */
 export function groupTasksByAssignee(tasks: Task[], users: User[] | undefined): AssigneeSection[] {
+  // ユーザーIDから表示名へのマップを作成（O(n)の探索を回避）
+  const userMap = new Map(users?.map((u) => [u.id, u.displayName]) ?? []);
+
   // 担当者IDごとにタスクをグルーピング（複数担当者のタスクは各セクションに重複）
   const assigneeTaskMap = new Map<string, Task[]>();
 
   for (const task of tasks) {
     if (task.assigneeIds.length === 0) {
       // 未割り当てタスク
-      const existing = assigneeTaskMap.get(UNASSIGNED_ID) || [];
-      assigneeTaskMap.set(UNASSIGNED_ID, [...existing, task]);
+      pushTask(assigneeTaskMap, UNASSIGNED_ID, task);
     } else {
       // 各担当者のセクションにタスクを追加
       for (const assigneeId of task.assigneeIds) {
-        const existing = assigneeTaskMap.get(assigneeId) || [];
-        assigneeTaskMap.set(assigneeId, [...existing, task]);
+        pushTask(assigneeTaskMap, assigneeId, task);
       }
     }
   }
@@ -58,17 +69,19 @@ export function groupTasksByAssignee(tasks: Task[], users: User[] | undefined): 
   const sections: AssigneeSection[] = [];
 
   for (const [assigneeId, assigneeTasks] of assigneeTaskMap) {
-    // 担当者名を取得
+    // 担当者名を取得（userMapを使用してO(1)で取得）
     const assigneeName =
-      assigneeId === UNASSIGNED_ID
-        ? '未割り当て'
-        : users?.find((u) => u.id === assigneeId)?.displayName || '不明なユーザー';
+      assigneeId === UNASSIGNED_ID ? '未割り当て' : userMap.get(assigneeId) || '不明なユーザー';
 
     // ステータス別にグルーピング
     const statusMap = new Map<FlowStatus, Task[]>();
     for (const task of assigneeTasks) {
-      const existing = statusMap.get(task.flowStatus) || [];
-      statusMap.set(task.flowStatus, [...existing, task]);
+      const list = statusMap.get(task.flowStatus);
+      if (list) {
+        list.push(task);
+      } else {
+        statusMap.set(task.flowStatus, [task]);
+      }
     }
 
     // ステータス順序に従ってソート

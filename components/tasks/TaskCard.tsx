@@ -35,9 +35,12 @@ export function TaskCard({
 
   return (
     <Paper
+      component="button"
+      type="button"
       sx={{
         p: 1.5,
         cursor: 'pointer',
+        textAlign: 'left',
         transition: 'all 0.15s ease-in-out',
         border: '1px solid',
         borderColor: 'divider',
@@ -45,6 +48,11 @@ export function TaskCard({
         '&:hover': {
           bgcolor: 'action.hover',
           borderColor: 'grey.400',
+        },
+        '&:focus': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: 2,
         },
         minWidth: 180,
         maxWidth: 280,
