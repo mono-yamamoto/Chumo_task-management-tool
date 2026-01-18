@@ -168,3 +168,13 @@ export interface Contact {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  authorId: string; // コメント投稿者のUID
+  content: string;
+  readBy: string[]; // 既読ユーザーIDの配列
+  createdAt: Date;
+  updatedAt: Date;
+}

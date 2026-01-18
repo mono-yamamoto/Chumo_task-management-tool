@@ -31,6 +31,7 @@ import { Task, FlowStatus, ProgressStatus, User, Label, ProjectType } from '@/ty
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
+import { CommentList } from '@/components/comments/CommentList';
 
 interface TaskDetailDrawerProps {
   open: boolean;
@@ -57,6 +58,7 @@ interface TaskDetailDrawerProps {
   onChatThreadCreate: (projectId: ProjectType, taskId: string) => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
+  currentUserId: string | null;
 
   formatDuration: (
     durationSec: number | undefined | null,
@@ -88,6 +90,7 @@ export function TaskDetailDrawer({
   onChatThreadCreate,
   isCreatingChatThread,
   taskSessions,
+  currentUserId,
 
   formatDuration: _formatDuration, // 未使用だがpropsとして必要
 }: TaskDetailDrawerProps) {
@@ -481,6 +484,16 @@ export function TaskDetailDrawer({
               </CustomButton>
             </Link>
           </Box>
+
+          {/* コメントセクション */}
+          {currentUserId && (
+            <CommentList
+              projectType={selectedTask.projectType}
+              taskId={selectedTask.id}
+              currentUserId={currentUserId}
+              users={allUsers}
+            />
+          )}
 
           {/* セッション履歴 */}
           <Box

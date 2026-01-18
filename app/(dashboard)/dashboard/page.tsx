@@ -248,6 +248,7 @@ function DashboardPageContent() {
           onStopTimer={handleStopTimer}
           isStoppingTimer={isStoppingTimer}
           kobetsuLabelId={kobetsuLabelId}
+          currentUserId={user?.id || null}
           emptyMessage="自分のタスクがありません"
           rowSx={(task, isActive) =>
             isActive
@@ -282,6 +283,7 @@ function DashboardPageContent() {
         onChatThreadCreate={handleChatThreadCreate}
         isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
+        currentUserId={user?.id || null}
         formatDuration={formatDuration}
       />
 

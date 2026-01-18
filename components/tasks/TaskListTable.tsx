@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { Task, Label, User } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Badge } from '@/components/ui/badge';
+import { UnreadBadge } from '@/components/ui/UnreadBadge';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
+import { useUnreadComments } from '@/hooks/useUnreadComments';
 import {
   Typography,
   Table,
@@ -30,6 +32,7 @@ interface TaskListTableProps {
   onStopTimer: () => void;
   isStoppingTimer: boolean;
   kobetsuLabelId: string | null;
+  currentUserId?: string | null;
   emptyMessage?: string;
   rowSx?: (task: Task & { projectType: ProjectType }, isActive: boolean) => any;
 }
@@ -44,9 +47,12 @@ export function TaskListTable({
   onStartTimer,
   onStopTimer,
   isStoppingTimer,
+  currentUserId,
   emptyMessage = 'タスクがありません',
   rowSx,
 }: TaskListTableProps) {
+  // 未読コメントがあるタスクIDを取得
+  const { data: unreadTaskIds } = useUnreadComments(currentUserId ?? null);
   // アサインの表示名を取得
   const getAssigneeNames = (assigneeIds: string[]) => {
     if (!allUsers || assigneeIds.length === 0) return '-';
@@ -123,6 +129,9 @@ export function TaskListTable({
                   <TableCell sx={{ maxWidth: '400px' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {isNewTask(task) && <Badge variant="error">New</Badge>}
+                      {currentUserId &&
+                        task.assigneeIds.includes(currentUserId) &&
+                        unreadTaskIds?.has(task.id) && <UnreadBadge size="sm" />}
                       <Typography
                         sx={{
                           fontWeight: 'medium',

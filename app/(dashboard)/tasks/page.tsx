@@ -273,6 +273,7 @@ function TasksPageContent() {
           onStopTimer={handleStopTimer}
           isStoppingTimer={isStoppingTimer}
           kobetsuLabelId={kobetsuLabelId}
+          currentUserId={user?.id || null}
           emptyMessage={effectiveEmptyMessage}
         />
 
@@ -315,6 +316,7 @@ function TasksPageContent() {
         onChatThreadCreate={handleChatThreadCreate}
         isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
+        currentUserId={user?.id || null}
         formatDuration={formatDuration}
       />
 
