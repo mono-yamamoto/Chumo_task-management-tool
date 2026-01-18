@@ -58,6 +58,18 @@ service cloud.firestore {
         allow read: if isSignedIn() && isValidProjectType(projectId);
         allow create: if isSignedIn() && isValidProjectType(projectId);
       }
+
+      // タスクコメント（サブコレクション）
+      match /taskComments/{commentId} {
+        allow read: if isSignedIn() && isValidProjectType(projectId);
+        allow create: if isSignedIn() && isValidProjectType(projectId)
+                      && request.auth.uid == request.resource.data.authorId;
+        allow update: if isSignedIn() && isValidProjectType(projectId)
+                      && (request.auth.uid == resource.data.authorId
+                          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']));
+        allow delete: if isSignedIn() && isValidProjectType(projectId)
+                      && request.auth.uid == resource.data.authorId;
+      }
     }
 
     match /labels/{labelId} {
