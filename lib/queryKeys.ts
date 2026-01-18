@@ -7,4 +7,6 @@ export const queryKeys = {
   contacts: (status: 'pending' | 'resolved') => ['contacts', status] as const,
   sessionHistory: (taskId: string) => ['sessionHistory', taskId] as const,
   dashboardTasks: (userId?: string | null) => ['dashboard-tasks', userId ?? null] as const,
+  taskComments: (taskId: string) => ['taskComments', taskId] as const,
+  unreadComments: (userId?: string | null) => ['unreadComments', userId ?? null] as const,
 };
