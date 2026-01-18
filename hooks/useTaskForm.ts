@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Task, FlowStatus, Priority } from '@/types';
+import { Task, FlowStatus, Priority, ProgressStatus } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
 
 export interface TaskFormData {
@@ -9,6 +9,7 @@ export interface TaskFormData {
   title: string;
   description?: string;
   flowStatus: FlowStatus;
+  progressStatus?: ProgressStatus | null;
   assigneeIds: string[];
   itUpDate: Date | null;
   releaseDate: Date | null;
@@ -22,6 +23,7 @@ const initialFormData: TaskFormData = {
   title: '',
   description: '',
   flowStatus: '未着手',
+  progressStatus: '未着手',
   assigneeIds: [],
   itUpDate: null,
   releaseDate: null,
@@ -42,6 +44,7 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
         title: initialData.title || '',
         description: initialData.description || '',
         flowStatus: initialData.flowStatus || '未着手',
+        progressStatus: initialData.progressStatus || '未着手',
         assigneeIds: initialData.assigneeIds || [],
         itUpDate: initialData.itUpDate || null,
         releaseDate: initialData.releaseDate || null,
@@ -61,6 +64,7 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
         title: initialData.title || '',
         description: initialData.description || '',
         flowStatus: initialData.flowStatus || '未着手',
+        progressStatus: initialData.progressStatus || '未着手',
         assigneeIds: initialData.assigneeIds || [],
         itUpDate: initialData.itUpDate || null,
         releaseDate: initialData.releaseDate || null,
