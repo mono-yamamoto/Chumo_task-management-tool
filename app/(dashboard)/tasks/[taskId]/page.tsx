@@ -25,6 +25,7 @@ import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
+import { CommentList } from '@/components/comments/CommentList';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { queryKeys } from '@/lib/queryKeys';
@@ -702,6 +703,20 @@ export default function TaskDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* コメントセクション */}
+      {user && (
+        <Card>
+          <CardContent>
+            <CommentList
+              projectType={task.projectType}
+              taskId={task.id}
+              currentUserId={user.id}
+              users={allUsers}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent>
