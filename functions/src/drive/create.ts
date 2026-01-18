@@ -13,6 +13,7 @@ async function getSecret(secretName: string): Promise<string> {
   return version.payload?.data?.toString() || '';
 }
 
+
 export const createDriveFolder = onRequest(
   {
     cors: true,
@@ -133,6 +134,7 @@ export const createDriveFolder = onRequest(
       const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
       const driveParentId = await getSecret('DRIVE_PARENT_ID');
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
+      const appOrigin = await getSecret('APP_ORIGIN');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
         res.status(500).json({
@@ -140,6 +142,10 @@ export const createDriveFolder = onRequest(
             'Failed to retrieve secrets. Please configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, DRIVE_PARENT_ID, and CHECKSHEET_TEMPLATE_ID in Secret Manager.',
         });
         return;
+      }
+
+      if (!appOrigin) {
+        console.warn('APP_ORIGIN not configured in Secret Manager. Task detail URL will not be set.');
       }
 
       // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
@@ -280,6 +286,25 @@ export const createDriveFolder = onRequest(
             console.info('Cell C7 updated successfully');
           } catch (error) {
             console.error('Failed to update cell C7:', error);
+            throw error;
+          }
+
+          // H9: タスク詳細ページURL
+          try {
+            const taskDetailUrl = appOrigin
+              ? `${appOrigin}/tasks/${taskId}`
+              : '';
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: sheetId,
+              range: `${sheetName}!H9`,
+              valueInputOption: 'RAW',
+              requestBody: {
+                values: [[taskDetailUrl]],
+              },
+            });
+            console.info('Cell H9 updated successfully');
+          } catch (error) {
+            console.error('Failed to update cell H9:', error);
             throw error;
           }
 
