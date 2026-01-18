@@ -4,6 +4,162 @@ import { PROJECT_TYPES, isBRGREGProject } from './projectTypes';
 
 const db = getFirestore();
 
+// レポートアイテムの型定義
+interface ReportItem {
+  title: string;
+  durationSec: number;
+  over3hours?: string;
+  taskId: string;
+  projectType: string;
+}
+
+// タスク情報をキャッシュする型
+interface TaskInfo {
+  title: string;
+  over3Reason?: string;
+  projectType: string;
+}
+
+/**
+ * Timestampをミリ秒に変換するヘルパー関数
+ */
+function toMillis(value: Timestamp | { toDate?: () => Date } | Date | string): number {
+  if (value instanceof Timestamp) {
+    return value.toMillis();
+  }
+  if (value && typeof (value as any).toDate === 'function') {
+    return (value as any).toDate().getTime();
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  return new Date(value as string).getTime();
+}
+
+/**
+ * セッションの作業時間（秒）を計算
+ */
+function calculateSessionDuration(session: FirebaseFirestore.DocumentData): number {
+  if (!session.endedAt) return 0;
+
+  // durationSecが存在する場合はそれを使用
+  if (session.durationSec && session.durationSec > 0) {
+    return session.durationSec;
+  }
+
+  // 開始時刻と終了時刻から計算
+  if (session.startedAt && session.endedAt) {
+    const startMillis = toMillis(session.startedAt);
+    const endMillis = toMillis(session.endedAt);
+    return Math.floor((endMillis - startMillis) / 1000);
+  }
+
+  return 0;
+}
+
+/**
+ * レポートデータを取得する共通関数（最適化版）
+ * - 並列処理で複数プロジェクトのタスクとセッションを取得
+ * - N+1問題を解消
+ */
+async function fetchReportData(
+  fromDate: Date,
+  toDate: Date,
+  type: 'normal' | 'brg'
+): Promise<{ items: ReportItem[]; totalDurationSec: number }> {
+  // 1. 「運用」区分ラベルのIDを取得
+  const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
+  const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
+  if (!unyoLabel) {
+    throw new Error(
+      `「運用」ラベルが見つかりません。ラベルの初期設定を確認してください (type: ${type}, from: ${fromDate.toISOString()}, to: ${toDate.toISOString()})`
+    );
+  }
+  const unyoLabelId = unyoLabel.id;
+
+  // 2. 対象プロジェクトをフィルタ
+  const targetProjects = PROJECT_TYPES.filter((projectType) => {
+    if (type === 'brg') return isBRGREGProject(projectType);
+    return !isBRGREGProject(projectType);
+  });
+
+  // 3. 並列で各プロジェクトのタスクとセッションを取得
+  const projectPromises = targetProjects.map(async (projectType) => {
+    // 3a. 「運用」タスクを取得
+    const tasksSnapshot = await db
+      .collection('projects')
+      .doc(projectType)
+      .collection('tasks')
+      .where('kubunLabelId', '==', unyoLabelId)
+      .get();
+
+    if (tasksSnapshot.empty) {
+      return [];
+    }
+
+    // タスク情報をマップに格納
+    const taskMap = new Map<string, TaskInfo>();
+    for (const doc of tasksSnapshot.docs) {
+      const data = doc.data();
+      taskMap.set(doc.id, {
+        title: data.title as string,
+        over3Reason: data.over3Reason as string | undefined,
+        projectType,
+      });
+    }
+
+    // 3b. 日付範囲内のセッションを取得
+    const sessionsSnapshot = await db
+      .collection('projects')
+      .doc(projectType)
+      .collection('taskSessions')
+      .where('startedAt', '>=', fromDate)
+      .where('startedAt', '<=', toDate)
+      .get();
+
+    // 3c. セッションをタスクIDごとに集計
+    const durationByTaskId = new Map<string, number>();
+    for (const sessionDoc of sessionsSnapshot.docs) {
+      const session = sessionDoc.data();
+      const { taskId } = session;
+
+      // 対象タスク（運用）のセッションのみ処理
+      if (!taskId || !taskMap.has(taskId)) {
+        continue;
+      }
+
+      const duration = calculateSessionDuration(session);
+      if (duration > 0) {
+        durationByTaskId.set(taskId, (durationByTaskId.get(taskId) || 0) + duration);
+      }
+    }
+
+    // 3d. 結果を構築
+    const projectItems: ReportItem[] = [];
+    for (const [taskId, durationSec] of durationByTaskId) {
+      const taskInfo = taskMap.get(taskId);
+      if (!taskInfo) continue;
+
+      projectItems.push({
+        title: taskInfo.title,
+        durationSec,
+        over3hours: durationSec > 10800 ? taskInfo.over3Reason : undefined,
+        taskId,
+        projectType: taskInfo.projectType,
+      });
+    }
+
+    return projectItems;
+  });
+
+  // 4. 全プロジェクトの結果を集約
+  const allResults = await Promise.all(projectPromises);
+  const items = allResults.flat();
+  const totalDurationSec = items.reduce((sum, item) => sum + item.durationSec, 0);
+
+  return { items, totalDurationSec };
+}
+
 export const getTimeReport = onRequest(
   {
     cors: true,
@@ -35,136 +191,9 @@ export const getTimeReport = onRequest(
       // toDateをその日の終了時刻（23:59:59.999）まで含める
       toDate.setHours(23, 59, 59, 999);
 
-      // 「運用」区分ラベルのIDを取得
-      const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
-      const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
-      if (!unyoLabel) {
-        res.status(200).json({
-          items: [],
-          totalDurationSec: 0,
-        });
-        return;
-      }
-      const unyoLabelId = unyoLabel.id;
-
-      // 全プロジェクトタイプからタスクとセッションを取得
-      const items: Array<{
-        title: string;
-        durationSec: number;
-        over3hours?: string;
-        taskId: string;
-        projectType: string;
-      }> = [];
-      let totalDurationSec = 0;
-
-      for (const projectType of PROJECT_TYPES) {
-        const tasksSnapshot = await db
-          .collection('projects')
-          .doc(projectType)
-          .collection('tasks')
-          .get();
-
-        for (const taskDoc of tasksSnapshot.docs) {
-          const task = taskDoc.data();
-
-          // 区分が「運用」のタスクのみを集計
-          if (task.kubunLabelId !== unyoLabelId) {
-            continue;
-          }
-
-          // BRGフィルタ（プロジェクト名で判定）
-          if (type === 'brg' && !isBRGREGProject(projectType)) {
-            continue;
-          }
-          if (type === 'normal' && isBRGREGProject(projectType)) {
-            continue;
-          }
-
-          // セッション取得
-          // インデックスエラーを避けるため、まずtaskIdでフィルタしてから日付範囲でフィルタ
-          let sessionsSnapshot;
-          try {
-            sessionsSnapshot = await db
-              .collection('projects')
-              .doc(projectType)
-              .collection('taskSessions')
-              .where('taskId', '==', taskDoc.id)
-              .where('startedAt', '>=', fromDate)
-              .where('startedAt', '<=', toDate)
-              .get();
-          } catch (indexError: any) {
-            // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (
-              indexError?.code === 'failed-precondition' ||
-              indexError?.message?.includes('index')
-            ) {
-              const allSessionsSnapshot = await db
-                .collection('projects')
-                .doc(projectType)
-                .collection('taskSessions')
-                .where('taskId', '==', taskDoc.id)
-                .get();
-
-              // クライアント側で日付範囲をフィルタ
-              sessionsSnapshot = {
-                docs: allSessionsSnapshot.docs.filter((doc) => {
-                  const session = doc.data();
-                  const { startedAt } = session;
-                  if (!startedAt) return false;
-                  // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate =
-                    startedAt instanceof Timestamp
-                      ? startedAt.toDate()
-                      : (startedAt as any).toDate
-                        ? (startedAt as any).toDate()
-                        : new Date(startedAt);
-                  return startedAtDate >= fromDate && startedAtDate <= toDate;
-                }),
-              } as any;
-            } else {
-              throw indexError;
-            }
-          }
-
-          let taskDurationSec = 0;
-          for (const sessionDoc of sessionsSnapshot.docs) {
-            const session = sessionDoc.data();
-            if (session.endedAt) {
-              // durationSecが存在する場合はそれを使用、ない場合は開始時刻と終了時刻から計算
-              if (session.durationSec && session.durationSec > 0) {
-                taskDurationSec += session.durationSec;
-              } else if (session.startedAt && session.endedAt) {
-                const startedAtDate =
-                  session.startedAt instanceof Timestamp
-                    ? session.startedAt.toDate()
-                    : (session.startedAt as any).toDate
-                      ? (session.startedAt as any).toDate()
-                      : new Date(session.startedAt);
-                const endedAtDate =
-                  session.endedAt instanceof Timestamp
-                    ? session.endedAt.toDate()
-                    : (session.endedAt as any).toDate
-                      ? (session.endedAt as any).toDate()
-                      : new Date(session.endedAt);
-                taskDurationSec += Math.floor(
-                  (endedAtDate.getTime() - startedAtDate.getTime()) / 1000
-                );
-              }
-            }
-          }
-
-          if (taskDurationSec > 0) {
-            items.push({
-              title: task.title,
-              durationSec: taskDurationSec,
-              over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
-              taskId: taskDoc.id,
-              projectType: projectType,
-            });
-            totalDurationSec += taskDurationSec;
-          }
-        }
-      }
+      // 最適化された共通関数でデータを取得
+      const reportType = type === 'brg' ? 'brg' : 'normal';
+      const { items, totalDurationSec } = await fetchReportData(fromDate, toDate, reportType);
 
       res.status(200).json({
         items,
@@ -212,131 +241,9 @@ export const exportTimeReportCSV = onRequest(
       // toDateをその日の終了時刻（23:59:59.999）まで含める
       toDate.setHours(23, 59, 59, 999);
 
-      // 「運用」区分ラベルのIDを取得
-      const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
-      const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
-      if (!unyoLabel) {
-        res.status(200).send('');
-        return;
-      }
-      const unyoLabelId = unyoLabel.id;
-
-      // データ取得（getTimeReportと同じロジック）
-      const items: Array<{
-        title: string;
-        durationSec: number;
-        over3hours?: string;
-        taskId: string;
-        projectType: string;
-      }> = [];
-
-      for (const projectType of PROJECT_TYPES) {
-        const tasksSnapshot = await db
-          .collection('projects')
-          .doc(projectType)
-          .collection('tasks')
-          .get();
-
-        for (const taskDoc of tasksSnapshot.docs) {
-          const task = taskDoc.data();
-
-          // 区分が「運用」のタスクのみを集計
-          if (task.kubunLabelId !== unyoLabelId) {
-            continue;
-          }
-
-          // BRGフィルタ（プロジェクト名で判定）
-          if (type === 'brg' && !isBRGREGProject(projectType)) {
-            continue;
-          }
-          if (type === 'normal' && isBRGREGProject(projectType)) {
-            continue;
-          }
-
-          // セッション取得
-          // インデックスエラーを避けるため、まずtaskIdでフィルタしてから日付範囲でフィルタ
-          let sessionsSnapshot;
-          try {
-            sessionsSnapshot = await db
-              .collection('projects')
-              .doc(projectType)
-              .collection('taskSessions')
-              .where('taskId', '==', taskDoc.id)
-              .where('startedAt', '>=', fromDate)
-              .where('startedAt', '<=', toDate)
-              .get();
-          } catch (indexError: any) {
-            // インデックスエラーの場合、taskIdのみでフィルタしてクライアント側で日付フィルタ
-            if (
-              indexError?.code === 'failed-precondition' ||
-              indexError?.message?.includes('index')
-            ) {
-              const allSessionsSnapshot = await db
-                .collection('projects')
-                .doc(projectType)
-                .collection('taskSessions')
-                .where('taskId', '==', taskDoc.id)
-                .get();
-
-              // クライアント側で日付範囲をフィルタ
-              sessionsSnapshot = {
-                docs: allSessionsSnapshot.docs.filter((doc) => {
-                  const session = doc.data();
-                  const { startedAt } = session;
-                  if (!startedAt) return false;
-                  // Firestore Admin SDKではTimestampオブジェクトをDateに変換
-                  const startedAtDate =
-                    startedAt instanceof Timestamp
-                      ? startedAt.toDate()
-                      : (startedAt as any).toDate
-                        ? (startedAt as any).toDate()
-                        : new Date(startedAt);
-                  return startedAtDate >= fromDate && startedAtDate <= toDate;
-                }),
-              } as any;
-            } else {
-              throw indexError;
-            }
-          }
-
-          let taskDurationSec = 0;
-          for (const sessionDoc of sessionsSnapshot.docs) {
-            const session = sessionDoc.data();
-            if (session.endedAt) {
-              // durationSecが存在する場合はそれを使用、ない場合は開始時刻と終了時刻から計算
-              if (session.durationSec && session.durationSec > 0) {
-                taskDurationSec += session.durationSec;
-              } else if (session.startedAt && session.endedAt) {
-                const startedAtDate =
-                  session.startedAt instanceof Timestamp
-                    ? session.startedAt.toDate()
-                    : (session.startedAt as any).toDate
-                      ? (session.startedAt as any).toDate()
-                      : new Date(session.startedAt);
-                const endedAtDate =
-                  session.endedAt instanceof Timestamp
-                    ? session.endedAt.toDate()
-                    : (session.endedAt as any).toDate
-                      ? (session.endedAt as any).toDate()
-                      : new Date(session.endedAt);
-                taskDurationSec += Math.floor(
-                  (endedAtDate.getTime() - startedAtDate.getTime()) / 1000
-                );
-              }
-            }
-          }
-
-          if (taskDurationSec > 0) {
-            items.push({
-              title: task.title,
-              durationSec: taskDurationSec,
-              over3hours: taskDurationSec > 10800 ? task.over3Reason : undefined, // 3時間 = 10800秒
-              taskId: taskDoc.id,
-              projectType: projectType,
-            });
-          }
-        }
-      }
+      // 最適化された共通関数でデータを取得
+      const reportType = type === 'brg' ? 'brg' : 'normal';
+      const { items } = await fetchReportData(fromDate, toDate, reportType);
 
       // CSV生成（UTF-8+BOM/CRLF）
       const BOM = '\uFEFF';
