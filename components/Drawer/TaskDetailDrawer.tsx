@@ -26,8 +26,8 @@ import {
 } from '@mui/icons-material';
 import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
-import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
-import { Task, FlowStatus, User, Label, ProjectType } from '@/types';
+import { FLOW_STATUS_OPTIONS, PROGRESS_STATUS_OPTIONS } from '@/constants/taskConstants';
+import { Task, FlowStatus, ProgressStatus, User, Label, ProjectType } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
@@ -98,6 +98,7 @@ export function TaskDetailDrawer({
     title: selectedTask.title || '',
     description: selectedTask.description || '',
     flowStatus: selectedTask.flowStatus || '未着手',
+    progressStatus: selectedTask.progressStatus || null,
     kubunLabelId: selectedTask.kubunLabelId || '',
     assigneeIds: selectedTask.assigneeIds || [],
     itUpDate: selectedTask.itUpDate || null,
@@ -233,6 +234,26 @@ export function TaskDetailDrawer({
               label="ステータス"
             >
               {FLOW_STATUS_OPTIONS.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {status}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>進捗</InputLabel>
+            <Select
+              value={formData.progressStatus || ''}
+              onChange={(e) => {
+                onTaskFormDataChange({
+                  ...formData,
+                  progressStatus: (e.target.value as ProgressStatus) || null,
+                });
+              }}
+              label="進捗"
+            >
+              {PROGRESS_STATUS_OPTIONS.map((status) => (
                 <MenuItem key={status} value={status}>
                   {status}
                 </MenuItem>

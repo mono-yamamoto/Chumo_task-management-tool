@@ -7,6 +7,7 @@ import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { PRIORITY_OPTIONS, PRIORITY_LABELS } from '@/constants/taskConstants';
 import { useTaskForm, TaskFormData } from '@/hooks/useTaskForm';
 import { TaskStatusSelect } from './TaskStatusSelect';
+import { TaskProgressSelect } from './TaskProgressSelect';
 import { TaskLabelSelect } from './TaskLabelSelect';
 import { TaskAssigneeSelect } from './TaskAssigneeSelect';
 import { TaskDateField } from './TaskDateField';
@@ -95,6 +96,13 @@ export function TaskForm({
           <TaskStatusSelect
             value={formData.flowStatus}
             onChange={(value) => updateField('flowStatus', value)}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <TaskProgressSelect
+            value={formData.progressStatus || null}
+            onChange={(value) => updateField('progressStatus', value)}
           />
         </Grid>
 
