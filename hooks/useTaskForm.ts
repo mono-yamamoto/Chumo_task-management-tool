@@ -44,13 +44,13 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
         title: initialData.title || '',
         description: initialData.description || '',
         flowStatus: initialData.flowStatus || '未着手',
-        progressStatus: initialData.progressStatus || '未着手',
+        progressStatus: initialData.progressStatus ?? '未着手',
         assigneeIds: initialData.assigneeIds || [],
-        itUpDate: initialData.itUpDate || null,
-        releaseDate: initialData.releaseDate || null,
-        dueDate: initialData.dueDate || null,
+        itUpDate: initialData.itUpDate ?? null,
+        releaseDate: initialData.releaseDate ?? null,
+        dueDate: initialData.dueDate ?? null,
         kubunLabelId: initialData.kubunLabelId || '',
-        priority: initialData.priority || null,
+        priority: initialData.priority ?? null,
       };
     }
     return initialFormData;
@@ -64,13 +64,13 @@ export function useTaskForm(initialData?: Partial<Task> | null) {
         title: initialData.title || '',
         description: initialData.description || '',
         flowStatus: initialData.flowStatus || '未着手',
-        progressStatus: initialData.progressStatus || '未着手',
+        progressStatus: initialData.progressStatus ?? '未着手',
         assigneeIds: initialData.assigneeIds || [],
-        itUpDate: initialData.itUpDate || null,
-        releaseDate: initialData.releaseDate || null,
-        dueDate: initialData.dueDate || null,
+        itUpDate: initialData.itUpDate ?? null,
+        releaseDate: initialData.releaseDate ?? null,
+        dueDate: initialData.dueDate ?? null,
         kubunLabelId: initialData.kubunLabelId || '',
-        priority: initialData.priority || null,
+        priority: initialData.priority ?? null,
       });
     } else {
       setFormData(initialFormData);
