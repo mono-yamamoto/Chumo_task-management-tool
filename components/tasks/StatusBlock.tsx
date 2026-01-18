@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Task, Label } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { StatusGroup } from '@/lib/taskGrouping';
@@ -29,6 +30,7 @@ export function StatusBlock({
   oneWeekAgo,
   defaultExpanded = true,
 }: StatusBlockProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const { status, tasks } = statusGroup;
 
   // 未アサインかつ作成から1週間以内のタスクかどうかを判定
@@ -39,7 +41,11 @@ export function StatusBlock({
   };
 
   return (
-    <Accordion defaultExpanded={defaultExpanded} sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
+    <Accordion
+      expanded={expanded}
+      onChange={(_, isExpanded) => setExpanded(isExpanded)}
+      sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}
+    >
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
         sx={{

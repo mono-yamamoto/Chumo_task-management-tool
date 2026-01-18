@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Label } from '@/types';
 import { AssigneeSection, UNASSIGNED_ID } from '@/lib/taskGrouping';
 import { StatusBlock } from '@/components/tasks/StatusBlock';
@@ -29,12 +30,14 @@ export function PersonalTaskSection({
   oneWeekAgo,
   defaultExpanded = true,
 }: PersonalTaskSectionProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const isUnassigned = section.assigneeId === UNASSIGNED_ID;
   const isCurrentUser = section.assigneeId === currentUserId;
 
   return (
     <Accordion
-      defaultExpanded={defaultExpanded}
+      expanded={expanded}
+      onChange={(_, isExpanded) => setExpanded(isExpanded)}
       sx={{
         border: '1px solid',
         borderColor: isCurrentUser ? 'primary.200' : 'divider',
