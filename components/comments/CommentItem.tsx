@@ -149,6 +149,7 @@ export function CommentItem({
             onChange={(e) => setEditContent(e.target.value)}
             size="small"
             autoFocus
+            inputProps={{ 'aria-label': 'コメントを編集' }}
           />
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
             <IconButton size="small" onClick={handleCancel} disabled={isUpdating}>
