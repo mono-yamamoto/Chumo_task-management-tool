@@ -17,6 +17,21 @@ export type FlowStatus =
   | '月次報告'
   | '完了';
 
+export type ProgressStatus =
+  | '未着手'
+  | '仕様確認'
+  | '待ち'
+  | '調査'
+  | '見積'
+  | 'CO'
+  | 'ロック解除待ち'
+  | 'デザイン'
+  | 'コーディング'
+  | '品管チェック'
+  | 'IT連絡済み'
+  | 'ST連絡済み'
+  | 'SENJU登録';
+
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface User {
@@ -70,6 +85,7 @@ export interface Task {
   title: string;
   description?: string;
   flowStatus: FlowStatus;
+  progressStatus?: ProgressStatus | null;
   assigneeIds: string[];
   itUpDate: Date | null;
   releaseDate: Date | null;

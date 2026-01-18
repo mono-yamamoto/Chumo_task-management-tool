@@ -1,4 +1,4 @@
-import { FlowStatus, Priority } from '@/types';
+import { FlowStatus, Priority, ProgressStatus } from '@/types';
 
 /**
  * タスクのステータスオプション
@@ -29,6 +29,25 @@ export const FLOW_STATUS_LABELS: Record<FlowStatus, string> = {
   月次報告: '月次報告',
   完了: '完了',
 };
+
+/**
+ * タスクの進捗ステータスオプション
+ */
+export const PROGRESS_STATUS_OPTIONS: ProgressStatus[] = [
+  '未着手',
+  '仕様確認',
+  '待ち',
+  '調査',
+  '見積',
+  'CO',
+  'ロック解除待ち',
+  'デザイン',
+  'コーディング',
+  '品管チェック',
+  'IT連絡済み',
+  'ST連絡済み',
+  'SENJU登録',
+];
 
 /**
  * タスクの優先度オプション

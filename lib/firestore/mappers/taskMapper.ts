@@ -38,6 +38,7 @@ export function mapTaskDoc(
   }
 
   const description = readString(data.description);
+  const progressStatus = readNullableString(data.progressStatus);
   const external =
     typeof data.external === 'object' && data.external !== null
       ? (data.external as Task['external'])
@@ -56,6 +57,7 @@ export function mapTaskDoc(
     title,
     description,
     flowStatus: flowStatus as Task['flowStatus'],
+    progressStatus: progressStatus as Task['progressStatus'],
     assigneeIds,
     itUpDate: toNullableDate((data as { itUpDate?: unknown }).itUpDate),
     releaseDate: toNullableDate((data as { releaseDate?: unknown }).releaseDate),

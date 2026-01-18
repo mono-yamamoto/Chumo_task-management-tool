@@ -93,6 +93,7 @@ export function TaskListTable({
             <TableCell>アサイン</TableCell>
             <TableCell>ITアップ</TableCell>
             <TableCell>ステータス</TableCell>
+            <TableCell>進捗</TableCell>
             <TableCell>区分</TableCell>
             <TableCell>タイマー</TableCell>
           </TableRow>
@@ -100,7 +101,7 @@ export function TaskListTable({
         <TableBody>
           {tasks && tasks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
+              <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {emptyMessage}
                 </Typography>
@@ -159,6 +160,7 @@ export function TaskListTable({
                   </TableCell>
                   <TableCell>{task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
+                  <TableCell>{task.progressStatus || '-'}</TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <TaskTimerButton

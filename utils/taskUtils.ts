@@ -28,9 +28,13 @@ export function hasTaskChanges(
       return formValue !== taskValue;
     }
 
-    // null/undefinedの明示的な比較
+    // null/undefinedの明示的な比較（nullとundefinedは同一視）
     if (formValue === null || formValue === undefined ||
         taskValue === null || taskValue === undefined) {
+      // 両方が「値なし」（null or undefined）なら変更なし
+      const formEmpty = formValue === null || formValue === undefined;
+      const taskEmpty = taskValue === null || taskValue === undefined;
+      if (formEmpty && taskEmpty) return false;
       return formValue !== taskValue;
     }
 
