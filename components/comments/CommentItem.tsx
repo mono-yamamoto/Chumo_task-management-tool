@@ -6,15 +6,17 @@ import { Edit, Delete, Check, Close } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { TaskComment, User } from '@/types';
 
-// URLを検出する正規表現
+// URLを検出する正規表現（split用）
 const URL_REGEX = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+// テスト用の正規表現（グローバルフラグなし、lastIndex問題を回避）
+const URL_TEST_REGEX = /^https?:\/\/[^\s<>"{}|\\^`[\]]+$/;
 
 // テキスト内のURLをリンクに変換する関数
 function renderContentWithLinks(content: string): React.ReactNode {
   const parts = content.split(URL_REGEX);
 
   return parts.map((part, index) => {
-    if (URL_REGEX.test(part)) {
+    if (URL_TEST_REGEX.test(part)) {
       // URLの場合はリンクとして表示
       return (
         <Link

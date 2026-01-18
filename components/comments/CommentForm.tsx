@@ -47,6 +47,7 @@ export function CommentForm({
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        inputProps={{ 'aria-label': 'コメントを入力' }}
         size="small"
         disabled={isSubmitting}
         sx={{ flex: 1 }}
@@ -56,6 +57,7 @@ export function CommentForm({
         variant="default"
         size="sm"
         disabled={!content.trim() || isSubmitting}
+        aria-label="コメントを送信"
         sx={{
           minWidth: 'auto',
           px: 2,

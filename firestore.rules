@@ -66,7 +66,14 @@ service cloud.firestore {
                       && request.auth.uid == request.resource.data.authorId;
         allow update: if isSignedIn() && isValidProjectType(projectId)
                       && (request.auth.uid == resource.data.authorId
-                          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']));
+                          || (
+                            // readByのみの更新かつ、自分のUIDを追加する操作のみ許可
+                            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
+                            request.resource.data.readBy is list &&
+                            request.resource.data.readBy.hasAll(resource.data.readBy) &&
+                            request.auth.uid in request.resource.data.readBy &&
+                            request.resource.data.readBy.size() <= resource.data.readBy.size() + 1
+                          ));
         allow delete: if isSignedIn() && isValidProjectType(projectId)
                       && request.auth.uid == resource.data.authorId;
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Box, Typography, CircularProgress, Divider } from '@mui/material';
 import { Comment as CommentIcon } from '@mui/icons-material';
 import { TaskComment, User, ProjectType } from '@/types';
@@ -16,6 +16,9 @@ interface CommentListProps {
 }
 
 export function CommentList({ projectType, taskId, currentUserId, users }: CommentListProps) {
+  // マウント時に一度だけ既読処理を実行するためのフラグ
+  const hasMarkedAsRead = useRef(false);
+
   const {
     comments,
     isLoading,
@@ -26,16 +29,18 @@ export function CommentList({ projectType, taskId, currentUserId, users }: Comme
     markAsRead,
   } = useTaskCommentsManager(projectType, taskId, currentUserId);
 
-  // コンポーネントがマウントされたとき、または未読コメントがある場合に既読にする
+  // コンポーネントがマウントされたとき、未読コメントがあれば一度だけ既読にする
   useEffect(() => {
-    if (unreadCount > 0 && projectType && taskId && currentUserId) {
+    if (unreadCount > 0 && projectType && taskId && currentUserId && !hasMarkedAsRead.current) {
+      hasMarkedAsRead.current = true;
       markAsRead.mutate({
         projectType,
         taskId,
         userId: currentUserId,
       });
     }
-  }, [unreadCount, projectType, taskId, currentUserId, markAsRead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadCount, projectType, taskId, currentUserId]);
 
   const handleCreateComment = (content: string) => {
     createComment.mutate({
