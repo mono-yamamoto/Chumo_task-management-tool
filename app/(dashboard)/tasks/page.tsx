@@ -10,7 +10,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
-import { useTaskStore } from '@/stores/taskStore';
+import { useTaskStore, ViewMode } from '@/stores/taskStore';
 import { Button as CustomButton } from '@/components/ui/button';
 import { queryKeys } from '@/lib/queryKeys';
 import { useTasksList } from '@/hooks/useTasksList';
@@ -19,10 +19,13 @@ import { useTaskPagination } from '@/hooks/useTaskPagination';
 import { useTaskDelete } from '@/hooks/useTaskDelete';
 import { useTaskDrawer } from '@/hooks/useTaskDrawer';
 import { ProjectType } from '@/constants/projectTypes';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import TableRowsIcon from '@mui/icons-material/TableRows';
+import ViewKanbanIcon from '@mui/icons-material/ViewKanban';
 import Link from 'next/link';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
+import { TaskPersonalView } from '@/components/tasks/TaskPersonalView';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { TaskDeleteDialog } from '@/components/tasks/TaskDeleteDialog';
 
@@ -30,6 +33,8 @@ function TasksPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const {
+    viewMode,
+    setViewMode,
     selectedProjectType,
     setSelectedProjectType,
     selectedTaskId,
@@ -216,6 +221,13 @@ function TasksPageContent() {
     setCurrentPage(1);
   };
 
+  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+      setCurrentPage(1);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -228,9 +240,23 @@ function TasksPageContent() {
     <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-            タスク一覧
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+              タスク一覧
+            </Typography>
+            <ToggleButtonGroup value={viewMode} exclusive onChange={handleViewModeChange} size="small">
+              <ToggleButton value="table" aria-label="テーブル表示">
+                <Tooltip title="テーブル表示">
+                  <TableRowsIcon />
+                </Tooltip>
+              </ToggleButton>
+              <ToggleButton value="personal" aria-label="個人別表示">
+                <Tooltip title="個人別表示">
+                  <ViewKanbanIcon />
+                </Tooltip>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <CustomButton variant="outline" onClick={handleResetFilters}>
               フィルタリセット
@@ -262,37 +288,62 @@ function TasksPageContent() {
           allLabels={allLabels}
         />
 
-        <TaskListTable
-          tasks={paginatedTasks || []}
-          onTaskSelect={handleTaskSelect}
-          selectedProjectType={selectedProjectType}
-          allUsers={allUsers}
-          allLabels={allLabels}
-          activeSession={activeSessionValue}
-          onStartTimer={handleStartTimer}
-          onStopTimer={handleStopTimer}
-          isStoppingTimer={isStoppingTimer}
-          kobetsuLabelId={kobetsuLabelId}
-          currentUserId={user?.id || null}
-          emptyMessage={effectiveEmptyMessage}
-        />
+        {viewMode === 'table' ? (
+          <>
+            <TaskListTable
+              tasks={paginatedTasks || []}
+              onTaskSelect={handleTaskSelect}
+              selectedProjectType={selectedProjectType}
+              allUsers={allUsers}
+              allLabels={allLabels}
+              activeSession={activeSessionValue}
+              onStartTimer={handleStartTimer}
+              onStopTimer={handleStopTimer}
+              isStoppingTimer={isStoppingTimer}
+              kobetsuLabelId={kobetsuLabelId}
+              currentUserId={user?.id || null}
+              emptyMessage={effectiveEmptyMessage}
+            />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {rangeLabel}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CustomButton variant="outline" onClick={handlePrevPage} disabled={!canGoPrev}>
-              前へ
-            </CustomButton>
-            <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
-              ページ {currentPage}
-            </Typography>
-            <CustomButton variant="outline" onClick={handleNextPage} disabled={!canGoNext || isFetchingNextPage}>
-              {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : '次へ'}
-            </CustomButton>
-          </Box>
-        </Box>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, gap: 2, flexWrap: 'wrap' }}
+            >
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {rangeLabel}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CustomButton variant="outline" onClick={handlePrevPage} disabled={!canGoPrev}>
+                  前へ
+                </CustomButton>
+                <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
+                  ページ {currentPage}
+                </Typography>
+                <CustomButton variant="outline" onClick={handleNextPage} disabled={!canGoNext || isFetchingNextPage}>
+                  {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : '次へ'}
+                </CustomButton>
+              </Box>
+            </Box>
+          </>
+        ) : (
+          <>
+            <TaskPersonalView
+              tasks={sortedTasks || []}
+              onTaskSelect={handleTaskSelect}
+              selectedProjectType={selectedProjectType}
+              allUsers={allUsers}
+              allLabels={allLabels}
+              currentUserId={user?.id || null}
+              emptyMessage={effectiveEmptyMessage}
+            />
+            {hasNextPage && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CustomButton variant="outline" onClick={handleNextPage} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : 'さらに読み込む'}
+                </CustomButton>
+              </Box>
+            )}
+          </>
+        )}
       </Box>
 
       <TaskDetailDrawer

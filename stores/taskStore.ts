@@ -4,7 +4,13 @@ import { Task, FlowStatus, ActiveSession } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
 import { TASK_STORAGE_KEY } from '@/constants/timer';
 
+export type ViewMode = 'table' | 'personal';
+
 interface TaskStore {
+  // ビューモード
+  viewMode: ViewMode;
+  setViewMode: (_mode: ViewMode) => void;
+
   // 選択中のタスクID
   selectedTaskId: string | null;
   setSelectedTaskId: (_taskId: string | null) => void;
@@ -44,6 +50,9 @@ interface TaskStore {
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set) => ({
+      viewMode: 'table',
+      setViewMode: (mode) => set({ viewMode: mode }),
+
       selectedTaskId: null,
       setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
 
@@ -86,10 +95,12 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: TASK_STORAGE_KEY, // ストレージのキー名
       storage: createJSONStorage(() => localStorage), // localStorageを使用
-      // activeSessionのみを永続化（他のフィルタ状態などは永続化しない）
-      // ページリロード時に実行中のタイマー状態を復元するため
+      // activeSessionとviewModeを永続化
+      // activeSession: ページリロード時に実行中のタイマー状態を復元するため
+      // viewMode: ユーザーの表示モード選択を維持するため
       partialize: (state) => ({
         activeSession: state.activeSession,
+        viewMode: state.viewMode,
       }),
     }
   )
