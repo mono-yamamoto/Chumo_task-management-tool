@@ -71,7 +71,9 @@ async function fetchReportData(
   const labelsSnapshot = await db.collection('labels').where('projectId', '==', null).get();
   const unyoLabel = labelsSnapshot.docs.find((doc) => doc.data().name === '運用');
   if (!unyoLabel) {
-    return { items: [], totalDurationSec: 0 };
+    throw new Error(
+      `「運用」ラベルが見つかりません。ラベルの初期設定を確認してください (type: ${type}, from: ${fromDate.toISOString()}, to: ${toDate.toISOString()})`
+    );
   }
   const unyoLabelId = unyoLabel.id;
 
