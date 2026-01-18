@@ -13,6 +13,7 @@ async function getSecret(secretName: string): Promise<string> {
   return version.payload?.data?.toString() || '';
 }
 
+
 export const createDriveFolder = onRequest(
   {
     cors: true,
@@ -133,6 +134,7 @@ export const createDriveFolder = onRequest(
       const oauthClientSecret = await getSecret('GOOGLE_OAUTH_CLIENT_SECRET');
       const driveParentId = await getSecret('DRIVE_PARENT_ID');
       const checksheetTemplateId = await getSecret('CHECKSHEET_TEMPLATE_ID');
+      const appOrigin = await getSecret('APP_ORIGIN');
 
       if (!oauthClientId || !oauthClientSecret || !driveParentId || !checksheetTemplateId) {
         res.status(500).json({
@@ -142,8 +144,9 @@ export const createDriveFolder = onRequest(
         return;
       }
 
-      // 環境変数から取得
-      const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || '';
+      if (!appOrigin) {
+        console.warn('APP_ORIGIN not configured in Secret Manager. Task detail URL will not be set.');
+      }
 
       // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
       const oauth2Client = new google.auth.OAuth2(
@@ -289,7 +292,7 @@ export const createDriveFolder = onRequest(
           // H9: タスク詳細ページURL
           try {
             const taskDetailUrl = appOrigin
-              ? `${appOrigin}/projects/${projectId}/tasks/${taskId}`
+              ? `${appOrigin}/tasks/${taskId}`
               : '';
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
