@@ -47,6 +47,67 @@ interface TaskStore {
   resetFilters: () => void;
 }
 
+// ============================================
+// Selector Hooks
+// ============================================
+
+/**
+ * ビュー関連の状態を取得するセレクターフック
+ */
+export const useTaskViewState = () =>
+  useTaskStore((state) => ({
+    viewMode: state.viewMode,
+    setViewMode: state.setViewMode,
+    selectedProjectType: state.selectedProjectType,
+    setSelectedProjectType: state.setSelectedProjectType,
+  }));
+
+/**
+ * フィルター関連の状態を取得するセレクターフック
+ */
+export const useTaskFiltersState = () =>
+  useTaskStore((state) => ({
+    filterStatus: state.filterStatus,
+    setFilterStatus: state.setFilterStatus,
+    filterAssignee: state.filterAssignee,
+    setFilterAssignee: state.setFilterAssignee,
+    filterLabel: state.filterLabel,
+    setFilterLabel: state.setFilterLabel,
+    filterTimerActive: state.filterTimerActive,
+    setFilterTimerActive: state.setFilterTimerActive,
+    filterItUpDateMonth: state.filterItUpDateMonth,
+    setFilterItUpDateMonth: state.setFilterItUpDateMonth,
+    filterReleaseDateMonth: state.filterReleaseDateMonth,
+    setFilterReleaseDateMonth: state.setFilterReleaseDateMonth,
+    filterTitle: state.filterTitle,
+    setFilterTitle: state.setFilterTitle,
+    resetFilters: state.resetFilters,
+  }));
+
+/**
+ * タスク選択関連の状態を取得するセレクターフック
+ */
+export const useTaskSelectionState = () =>
+  useTaskStore((state) => ({
+    selectedTaskId: state.selectedTaskId,
+    setSelectedTaskId: state.setSelectedTaskId,
+    taskFormData: state.taskFormData,
+    setTaskFormData: state.setTaskFormData,
+  }));
+
+/**
+ * アクティブセッション関連の状態を取得するセレクターフック
+ */
+export const useActiveSessionState = () =>
+  useTaskStore((state) => ({
+    activeSession: state.activeSession,
+    setActiveSession: state.setActiveSession,
+  }));
+
+// ============================================
+// Store Definition
+// ============================================
+
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set) => ({
