@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
 
   // デバッグ情報をログ出力
   const redirectUri = getRedirectUri();
-  console.log('[OAuth Debug] Redirect URI being used:', redirectUri);
-  console.log('[OAuth Debug] Environment variables:', {
+  console.debug('[OAuth Debug] Redirect URI being used:', redirectUri);
+  console.debug('[OAuth Debug] Environment variables:', {
     GOOGLE_OAUTH_REDIRECT_URI: process.env.GOOGLE_OAUTH_REDIRECT_URI ? 'SET' : 'NOT SET',
     SERVER_URL: process.env.SERVER_URL ? 'SET' : 'NOT SET',
     NEXT_PUBLIC_FUNCTIONS_URL: process.env.NEXT_PUBLIC_FUNCTIONS_URL || 'NOT SET',

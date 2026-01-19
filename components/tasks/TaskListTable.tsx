@@ -5,6 +5,7 @@ import { Task, Label, User } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { Badge } from '@/components/ui/badge';
 import { UnreadBadge } from '@/components/ui/UnreadBadge';
+import { ProgressStatusBadge } from '@/components/ui/ProgressStatusBadge';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
 import {
@@ -169,7 +170,9 @@ export function TaskListTable({
                   </TableCell>
                   <TableCell>{task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
-                  <TableCell>{task.progressStatus || '-'}</TableCell>
+                  <TableCell>
+                    {task.progressStatus ? <ProgressStatusBadge status={task.progressStatus} /> : '-'}
+                  </TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <TaskTimerButton

@@ -15,7 +15,7 @@ interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
-  timers: Map<string, NodeJS.Timeout>;
+  timers: Map<string, ReturnType<typeof setTimeout>>;
   addToast: (_toast: Omit<Toast, 'id'>) => void;
   removeToast: (_id: string) => void;
 }
