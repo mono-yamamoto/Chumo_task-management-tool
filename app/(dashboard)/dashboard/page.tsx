@@ -251,16 +251,16 @@ function DashboardPageContent() {
             ダッシュボード
           </Typography>
           <ToggleButtonGroup value={dashboardViewMode} exclusive onChange={handleViewModeChange} size="small">
-            <ToggleButton value="table" aria-label="テーブル表示">
-              <Tooltip title="テーブル表示">
+            <Tooltip title="テーブル表示">
+              <ToggleButton value="table" aria-label="テーブル表示">
                 <TableRowsIcon />
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton value="card" aria-label="カード表示">
-              <Tooltip title="カード表示">
+              </ToggleButton>
+            </Tooltip>
+            <Tooltip title="カード表示">
+              <ToggleButton value="card" aria-label="カード表示">
                 <GridViewIcon />
-              </Tooltip>
-            </ToggleButton>
+              </ToggleButton>
+            </Tooltip>
           </ToggleButtonGroup>
         </Box>
 

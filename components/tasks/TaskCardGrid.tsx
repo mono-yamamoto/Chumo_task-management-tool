@@ -6,7 +6,7 @@ import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { ProjectType } from '@/constants/projectTypes';
 import { TaskCard } from './TaskCard';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 
 // ステータスの表示順序
 const STATUS_ORDER: FlowStatus[] = [
@@ -55,11 +55,14 @@ export function TaskCardGrid({
   }, [mountTime]);
 
   // 未アサインかつ作成から1週間以内のタスクかどうかを判定
-  const isNewTask = (task: Task & { projectType: ProjectType }): boolean => {
-    if (task.assigneeIds.length > 0) return false;
-    if (!task.createdAt) return false;
-    return task.createdAt.getTime() >= oneWeekAgo;
-  };
+  const isNewTask = useCallback(
+    (task: Task & { projectType: ProjectType }): boolean => {
+      if (task.assigneeIds.length > 0) return false;
+      if (!task.createdAt) return false;
+      return task.createdAt.getTime() >= oneWeekAgo;
+    },
+    [oneWeekAgo]
+  );
 
   // 全プロジェクト表示時にプロジェクトタイプを表示
   const shouldShowProjectType = selectedProjectType === 'all';
@@ -136,7 +139,7 @@ export function TaskCardGrid({
                 currentUserId={currentUserId}
                 showProjectType={shouldShowProjectType}
                 showProgressStatus={true}
-                hasUnreadComment={currentUserId && unreadTaskIds ? unreadTaskIds.has(task.id) : false}
+                hasUnreadComment={!!(currentUserId && unreadTaskIds?.has(task.id))}
                 isNewTask={isNewTask(task)}
               />
             ))}

@@ -39,7 +39,7 @@ export function ProgressStatusBadge({ status, size = 'sm', sx, ...props }: Progr
         flexShrink: 0,
         fontWeight: 'bold',
         backgroundColor,
-        color: 'white',
+        color: '#ffffff',
         ...sizeStyles[size],
         ...sx,
       }}
