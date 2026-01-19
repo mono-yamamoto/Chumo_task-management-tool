@@ -47,6 +47,8 @@ export default [
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
         File: 'readonly',
         Blob: 'readonly',
         FileReader: 'readonly',
