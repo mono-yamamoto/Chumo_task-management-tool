@@ -47,6 +47,7 @@ export const PROGRESS_STATUS_OPTIONS: ProgressStatus[] = [
   'IT連絡済み',
   'ST連絡済み',
   'SENJU登録',
+  '親課題',
 ];
 
 /**
