@@ -3,6 +3,7 @@
 import { Task, Label } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { UnreadBadge } from '@/components/ui/UnreadBadge';
+import { ProgressStatusBadge } from '@/components/ui/ProgressStatusBadge';
 import { Paper, Typography, Box, Chip } from '@mui/material';
 import { ProjectType } from '@/constants/projectTypes';
 
@@ -12,6 +13,7 @@ interface TaskCardProps {
   allLabels?: Label[];
   currentUserId?: string | null;
   showProjectType?: boolean;
+  showProgressStatus?: boolean;
   hasUnreadComment?: boolean;
   isNewTask?: boolean;
 }
@@ -22,6 +24,7 @@ export function TaskCard({
   allLabels,
   currentUserId,
   showProjectType = false,
+  showProgressStatus = false,
   hasUnreadComment = false,
   isNewTask = false,
 }: TaskCardProps) {
@@ -80,8 +83,8 @@ export function TaskCard({
         </Typography>
       </Box>
 
-      {/* メタ情報行（区分ラベルまたはプロジェクトタイプがある場合のみ表示） */}
-      {(label || (showProjectType && task.projectType)) && (
+      {/* メタ情報行（区分ラベル、進捗ステータス、またはプロジェクトタイプがある場合のみ表示） */}
+      {(label || (showProgressStatus && task.progressStatus) || (showProjectType && task.projectType)) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
           {/* 区分ラベル（バッジスタイル） */}
           {label && (
@@ -102,6 +105,9 @@ export function TaskCard({
               }}
             />
           )}
+
+          {/* 進捗ステータス */}
+          {showProgressStatus && task.progressStatus && <ProgressStatusBadge status={task.progressStatus} />}
 
           {/* プロジェクトタイプ */}
           {showProjectType && task.projectType && (
