@@ -24,21 +24,35 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
 } from '@mui/material';
+import TableRowsIcon from '@mui/icons-material/TableRows';
+import GridViewIcon from '@mui/icons-material/GridView';
 import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
+import { TaskCardGrid } from '@/components/tasks/TaskCardGrid';
 import { queryKeys } from '@/lib/queryKeys';
 import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskRepository';
+import { useTaskStore, DashboardViewMode } from '@/stores/taskStore';
 
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
+  const { dashboardViewMode, setDashboardViewMode } = useTaskStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [isSavingOnClose, setIsSavingOnClose] = useState(false);
+
+  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: DashboardViewMode | null) => {
+    if (newMode !== null) {
+      setDashboardViewMode(newMode);
+    }
+  };
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
@@ -232,33 +246,55 @@ function DashboardPageContent() {
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             ダッシュボード
           </Typography>
+          <ToggleButtonGroup value={dashboardViewMode} exclusive onChange={handleViewModeChange} size="small">
+            <ToggleButton value="table" aria-label="テーブル表示">
+              <Tooltip title="テーブル表示">
+                <TableRowsIcon />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="card" aria-label="カード表示">
+              <Tooltip title="カード表示">
+                <GridViewIcon />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
-        <TaskListTable
-          tasks={sortedTasks || []}
-          onTaskSelect={handleTaskSelect}
-          allUsers={allUsers}
-          allLabels={allLabels}
-          activeSession={activeSession}
-          onStartTimer={handleStartTimer}
-          onStopTimer={handleStopTimer}
-          isStoppingTimer={isStoppingTimer}
-          kobetsuLabelId={kobetsuLabelId}
-          currentUserId={user?.id || null}
-          emptyMessage="自分のタスクがありません"
-          rowSx={(task, isActive) =>
-            isActive
-              ? {
-                  bgcolor: 'rgba(76, 175, 80, 0.08)',
-                  '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
-                }
-              : {}
-          }
-        />
+        {dashboardViewMode === 'table' ? (
+          <TaskListTable
+            tasks={sortedTasks || []}
+            onTaskSelect={handleTaskSelect}
+            allUsers={allUsers}
+            allLabels={allLabels}
+            activeSession={activeSession}
+            onStartTimer={handleStartTimer}
+            onStopTimer={handleStopTimer}
+            isStoppingTimer={isStoppingTimer}
+            kobetsuLabelId={kobetsuLabelId}
+            currentUserId={user?.id || null}
+            emptyMessage="自分のタスクがありません"
+            rowSx={(task, isActive) =>
+              isActive
+                ? {
+                    bgcolor: 'rgba(76, 175, 80, 0.08)',
+                    '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
+                  }
+                : {}
+            }
+          />
+        ) : (
+          <TaskCardGrid
+            tasks={sortedTasks || []}
+            onTaskSelect={handleTaskSelect}
+            allLabels={allLabels}
+            currentUserId={user?.id || null}
+            emptyMessage="自分のタスクがありません"
+          />
+        )}
       </Box>
 
       {/* サイドバー */}

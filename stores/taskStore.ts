@@ -5,11 +5,16 @@ import { ProjectType } from '@/constants/projectTypes';
 import { TASK_STORAGE_KEY } from '@/constants/timer';
 
 export type ViewMode = 'table' | 'personal';
+export type DashboardViewMode = 'table' | 'card';
 
 interface TaskStore {
-  // ビューモード
+  // ビューモード（タスク一覧）
   viewMode: ViewMode;
   setViewMode: (_mode: ViewMode) => void;
+
+  // ダッシュボードビューモード
+  dashboardViewMode: DashboardViewMode;
+  setDashboardViewMode: (_mode: DashboardViewMode) => void;
 
   // 選択中のタスクID
   selectedTaskId: string | null;
@@ -53,6 +58,9 @@ export const useTaskStore = create<TaskStore>()(
       viewMode: 'table',
       setViewMode: (mode) => set({ viewMode: mode }),
 
+      dashboardViewMode: 'table',
+      setDashboardViewMode: (mode) => set({ dashboardViewMode: mode }),
+
       selectedTaskId: null,
       setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
 
@@ -95,12 +103,14 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: TASK_STORAGE_KEY, // ストレージのキー名
       storage: createJSONStorage(() => localStorage), // localStorageを使用
-      // activeSessionとviewModeを永続化
+      // activeSession、viewMode、dashboardViewModeを永続化
       // activeSession: ページリロード時に実行中のタイマー状態を復元するため
-      // viewMode: ユーザーの表示モード選択を維持するため
+      // viewMode: タスク一覧の表示モード選択を維持するため
+      // dashboardViewMode: ダッシュボードの表示モード選択を維持するため
       partialize: (state) => ({
         activeSession: state.activeSession,
         viewMode: state.viewMode,
+        dashboardViewMode: state.dashboardViewMode,
       }),
     }
   )
