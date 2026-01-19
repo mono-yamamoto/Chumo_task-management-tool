@@ -30,7 +30,8 @@ export type ProgressStatus =
   | '品管チェック'
   | 'IT連絡済み'
   | 'ST連絡済み'
-  | 'SENJU登録';
+  | 'SENJU登録'
+  | '親課題';
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
