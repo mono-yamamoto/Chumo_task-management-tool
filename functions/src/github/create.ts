@@ -109,7 +109,13 @@ export const createFireIssue = onRequest(
       }
 
       // Issue作成
-      const issueTitle = `${task.external?.issueKey || ''} ${task.title}`;
+      // task.titleが既にissueKeyで始まっている場合は、issueKeyを追加しない（重複防止）
+      const titleStartsWithIssueKey =
+        task.external?.issueKey && task.title.startsWith(task.external.issueKey);
+      const issueTitle =
+        task.external?.issueKey && !titleStartsWithIssueKey
+          ? `${task.external.issueKey} ${task.title}`
+          : task.title;
       const issueBody = [
         task.external?.url ? `Backlog: ${task.external.url}` : '',
         task.description || '',
