@@ -1,71 +1,80 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, TextField, CircularProgress } from '@mui/material';
+import { useRef } from 'react';
+import { Box, CircularProgress } from '@mui/material';
 import { Send } from '@mui/icons-material';
 import { Button } from '@/components/ui/button';
+import { CommentEditor, CommentEditorHandle } from './CommentEditor';
+import { User } from '@/types';
 
 interface CommentFormProps {
-  onSubmit: (content: string) => void;
+  users: User[];
+  projectType: string;
+  taskId: string;
+  onSubmit: (content: string, mentionedUserIds: string[]) => void;
   isSubmitting?: boolean;
   placeholder?: string;
 }
 
 export function CommentForm({
+  users,
+  projectType,
+  taskId,
   onSubmit,
   isSubmitting = false,
   placeholder = 'コメントを入力...',
 }: CommentFormProps) {
-  const [content, setContent] = useState('');
+  const editorRef = useRef<CommentEditorHandle>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim() && !isSubmitting) {
-      onSubmit(content.trim());
-      setContent('');
-    }
+    submitComment();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ctrl+Enter または Cmd+Enter で送信
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (content.trim() && !isSubmitting) {
-        onSubmit(content.trim());
-        setContent('');
-      }
+  const submitComment = () => {
+    if (!editorRef.current || editorRef.current.isEmpty() || isSubmitting) {
+      return;
     }
+
+    const html = editorRef.current.getHTML();
+    const mentionedUserIds = editorRef.current.getMentionedUserIds();
+
+    onSubmit(html, mentionedUserIds);
+    editorRef.current.clear();
+  };
+
+  const handleEditorSubmit = (html: string, mentionedUserIds: string[]) => {
+    if (isSubmitting) return;
+    onSubmit(html, mentionedUserIds);
+    editorRef.current?.clear();
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', gap: 1 }}>
-      <TextField
-        fullWidth
-        multiline
-        rows={2}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onKeyDown={handleKeyDown}
+    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <CommentEditor
+        ref={editorRef}
+        users={users}
+        projectType={projectType}
+        taskId={taskId}
         placeholder={placeholder}
-        inputProps={{ 'aria-label': 'コメントを入力' }}
-        size="small"
         disabled={isSubmitting}
-        sx={{ flex: 1 }}
+        onSubmit={handleEditorSubmit}
       />
-      <Button
-        type="submit"
-        variant="default"
-        size="sm"
-        disabled={!content.trim() || isSubmitting}
-        aria-label="コメントを送信"
-        sx={{
-          minWidth: 'auto',
-          px: 2,
-          alignSelf: 'flex-end',
-        }}
-      >
-        {isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Send fontSize="small" />}
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          type="submit"
+          variant="default"
+          size="sm"
+          disabled={isSubmitting}
+          aria-label="コメントを送信"
+          sx={{
+            minWidth: 'auto',
+            px: 2,
+          }}
+        >
+          {isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Send fontSize="small" />}
+        </Button>
+      </Box>
     </Box>
   );
 }

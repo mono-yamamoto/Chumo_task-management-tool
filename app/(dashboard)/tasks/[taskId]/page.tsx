@@ -49,6 +49,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   FolderOpen,
@@ -94,6 +96,7 @@ export default function TaskDetailPage() {
     extraRefetchKeys,
   });
 
+  const [activeTab, setActiveTab] = useState(0);
   const [sessionEditDialogOpen, setSessionEditDialogOpen] = useState(false);
   const [sessionAddDialogOpen, setSessionAddDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TaskSession | null>(null);
@@ -377,6 +380,7 @@ export default function TaskDetailPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* ヘッダー（タイトル + ボタン） - 常に表示 */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           {task.title}
@@ -397,7 +401,18 @@ export default function TaskDetailPage() {
         </Box>
       </Box>
 
-      <Card>
+      {/* タブ */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab label="タスク詳細" />
+          <Tab label="コメント" />
+        </Tabs>
+      </Box>
+
+      {/* タスク詳細タブ */}
+      {activeTab === 0 && (
+        <>
+          <Card>
         <CardContent>
           <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
             Backlog情報
@@ -704,20 +719,7 @@ export default function TaskDetailPage() {
         </Grid>
       </Grid>
 
-      {/* コメントセクション */}
-      {user && (
-        <Card>
-          <CardContent>
-            <CommentList
-              projectType={task.projectType}
-              taskId={task.id}
-              currentUserId={user.id}
-              users={allUsers}
-            />
-          </CardContent>
-        </Card>
-      )}
-
+      {/* セッション履歴 */}
       <Card>
         <CardContent>
           <Box
@@ -830,6 +832,22 @@ export default function TaskDetailPage() {
           </Box>
         </CardContent>
       </Card>
+        </>
+      )}
+
+      {/* コメントタブ */}
+      {activeTab === 1 && user && (
+        <Card sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 250px)' }}>
+          <CardContent sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <CommentList
+              projectType={task.projectType}
+              taskId={task.id}
+              currentUserId={user.id}
+              users={allUsers}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* セッション編集ダイアログ */}
       <Dialog

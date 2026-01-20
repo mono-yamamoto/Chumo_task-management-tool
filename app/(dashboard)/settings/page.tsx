@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsOauthStatus } from '@/hooks/useSettingsOauthStatus';
 import { AdminUserList } from '@/components/settings/AdminUserList';
+import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -195,6 +196,9 @@ export default function SettingsPage() {
           {message}
         </Alert>
       )}
+
+      {/* プッシュ通知設定 */}
+      <NotificationSettings />
 
       <Card>
         <CardContent>

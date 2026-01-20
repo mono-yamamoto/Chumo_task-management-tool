@@ -45,6 +45,7 @@ export interface User {
   googleRefreshToken?: string;
   googleOAuthUpdatedAt?: Date;
   chatId?: string; // Google ChatのユーザーID（メンション用）
+  fcmTokens?: string[]; // FCMプッシュ通知用トークン（複数デバイス対応）
   createdAt: Date;
   updatedAt: Date;
 }
@@ -174,7 +175,8 @@ export interface TaskComment {
   id: string;
   taskId: string;
   authorId: string; // コメント投稿者のUID
-  content: string;
+  content: string; // tiptap HTML形式（リンク・メンション含む）
+  mentionedUserIds?: string[]; // メンションされたユーザーIDの配列
   readBy: string[]; // 既読ユーザーIDの配列
   createdAt: Date;
   updatedAt: Date;
