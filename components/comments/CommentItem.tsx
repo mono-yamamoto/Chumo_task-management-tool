@@ -31,9 +31,20 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// HTML属性用にIDをエスケープ
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // 自分宛のメンションにハイライトクラスを追加
 function highlightSelfMentions(html: string, currentUserId: string): string {
   const escapedId = escapeRegExp(currentUserId);
+  const safeId = escapeHtmlAttribute(currentUserId);
   // data-id="currentUserId" を持つメンションに追加クラスを付与
   const regex = new RegExp(
     `<span([^>]*)class="comment-mention"([^>]*)data-id="${escapedId}"([^>]*)>`,
@@ -45,8 +56,8 @@ function highlightSelfMentions(html: string, currentUserId: string): string {
   );
 
   return html
-    .replace(regex, '<span$1class="comment-mention comment-mention-self"$2data-id="' + currentUserId + '"$3>')
-    .replace(regex2, '<span$1data-id="' + currentUserId + '"$2class="comment-mention comment-mention-self"$3>');
+    .replace(regex, '<span$1class="comment-mention comment-mention-self"$2data-id="' + safeId + '"$3>')
+    .replace(regex2, '<span$1data-id="' + safeId + '"$2class="comment-mention comment-mention-self"$3>');
 }
 
 interface CommentItemProps {
