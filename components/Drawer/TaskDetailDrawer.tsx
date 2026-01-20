@@ -52,13 +52,13 @@ interface TaskDetailDrawerProps {
   onStopTimer: () => void;
   isStoppingTimer: boolean;
 
-  onDriveCreate: (projectId: ProjectType, taskId: string) => void;
+  onDriveCreate: () => void;
   isCreatingDrive: boolean;
 
-  onFireCreate: (projectId: ProjectType, taskId: string) => void;
+  onFireCreate: () => void;
   isCreatingFire: boolean;
 
-  onChatThreadCreate: (projectId: ProjectType, taskId: string) => void;
+  onChatThreadCreate: () => void;
   isCreatingChatThread: boolean;
   taskSessions: any[];
   currentUserId: string | null;
@@ -412,10 +412,7 @@ export function TaskDetailDrawer({
                     <CustomButton
                       fullWidth
                       variant="outline"
-                      onClick={() => {
-                        const { projectType } = selectedTask;
-                        onDriveCreate(projectType, selectedTask.id);
-                      }}
+                      onClick={onDriveCreate}
                       disabled={isCreatingDrive}
                       sx={{ flex: 1 }}
                     >
@@ -438,10 +435,7 @@ export function TaskDetailDrawer({
                     <CustomButton
                       fullWidth
                       variant="outline"
-                      onClick={() => {
-                        const { projectType } = selectedTask;
-                        onFireCreate(projectType, selectedTask.id);
-                      }}
+                      onClick={onFireCreate}
                       disabled={isCreatingFire}
                       sx={{ flex: 1 }}
                     >
@@ -464,7 +458,7 @@ export function TaskDetailDrawer({
                     <CustomButton
                       fullWidth
                       variant="outline"
-                      onClick={() => onChatThreadCreate(selectedTask.projectType, selectedTask.id)}
+                      onClick={onChatThreadCreate}
                       disabled={isCreatingChatThread}
                       sx={{ flex: 1 }}
                     >
@@ -537,7 +531,11 @@ export function TaskDetailDrawer({
                             }}
                           >
                             {session.endedAt
-                              ? _formatDuration(session.durationSec, session.startedAt, session.endedAt)
+                              ? _formatDuration(
+                                  session.durationSec,
+                                  session.startedAt,
+                                  session.endedAt
+                                )
                               : '-'}
                           </Typography>
                         </Box>

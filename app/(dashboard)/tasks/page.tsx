@@ -19,7 +19,14 @@ import { useTaskPagination } from '@/hooks/useTaskPagination';
 import { useTaskDelete } from '@/hooks/useTaskDelete';
 import { useTaskDrawer } from '@/hooks/useTaskDrawer';
 import { ProjectType } from '@/constants/projectTypes';
-import { Box, Typography, CircularProgress, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
+} from '@mui/material';
 import TableRowsIcon from '@mui/icons-material/TableRows';
 import ViewKanbanIcon from '@mui/icons-material/ViewKanban';
 import Link from 'next/link';
@@ -71,7 +78,8 @@ function TasksPageContent() {
 
   const isLoading = tasksQuery.isLoading;
   const hasNextPage = 'hasNextPage' in tasksQuery ? tasksQuery.hasNextPage : false;
-  const isFetchingNextPage = 'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
+  const isFetchingNextPage =
+    'isFetchingNextPage' in tasksQuery ? tasksQuery.isFetchingNextPage : false;
   const fetchNextPage = 'fetchNextPage' in tasksQuery ? tasksQuery.fetchNextPage : undefined;
 
   // ユーザー・ラベル取得
@@ -139,21 +147,15 @@ function TasksPageContent() {
   });
 
   // ページネーション管理
-  const {
-    paginatedTasks,
-    canGoPrev,
-    canGoNext,
-    rangeLabel,
-    handlePrevPage,
-    handleNextPage,
-  } = useTaskPagination({
-    sortedTasks,
-    currentPage,
-    setCurrentPage,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  });
+  const { paginatedTasks, canGoPrev, canGoNext, rangeLabel, handlePrevPage, handleNextPage } =
+    useTaskPagination({
+      sortedTasks,
+      currentPage,
+      setCurrentPage,
+      hasNextPage,
+      isFetchingNextPage,
+      fetchNextPage,
+    });
 
   // タスク詳細選択状態
   const {
@@ -173,12 +175,43 @@ function TasksPageContent() {
   });
 
   // Drawer管理
-  const { isSavingOnClose, handleDrawerClose } = useTaskDrawer({
+  const { isSavingOnClose, saveCurrentChanges, handleDrawerClose } = useTaskDrawer({
     queryClient,
     selectedTask,
     taskFormDataValue,
     resetSelection,
   });
+
+  // チャット/Drive/Fire作成前に保存を行うラッパー関数
+  const handleDriveCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleDriveCreate(selectedTask.projectType, selectedTask.id);
+  };
+
+  const handleFireCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleFireCreate(selectedTask.projectType, selectedTask.id);
+  };
+
+  const handleChatThreadCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleChatThreadCreate(selectedTask.projectType, selectedTask.id);
+  };
 
   // 削除管理
   const {
@@ -221,7 +254,10 @@ function TasksPageContent() {
     setCurrentPage(1);
   };
 
-  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+  const handleViewModeChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newMode: ViewMode | null
+  ) => {
     if (newMode !== null) {
       setViewMode(newMode);
       setCurrentPage(1);
@@ -244,7 +280,12 @@ function TasksPageContent() {
             <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
               タスク一覧
             </Typography>
-            <ToggleButtonGroup value={viewMode} exclusive onChange={handleViewModeChange} size="small">
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
               <ToggleButton value="table" aria-label="テーブル表示">
                 <Tooltip title="テーブル表示">
                   <TableRowsIcon />
@@ -306,7 +347,14 @@ function TasksPageContent() {
             />
 
             <Box
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, gap: 2, flexWrap: 'wrap' }}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mt: 2,
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
             >
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {rangeLabel}
@@ -318,8 +366,16 @@ function TasksPageContent() {
                 <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
                   ページ {currentPage}
                 </Typography>
-                <CustomButton variant="outline" onClick={handleNextPage} disabled={!canGoNext || isFetchingNextPage}>
-                  {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : '次へ'}
+                <CustomButton
+                  variant="outline"
+                  onClick={handleNextPage}
+                  disabled={!canGoNext || isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                  ) : (
+                    '次へ'
+                  )}
                 </CustomButton>
               </Box>
             </Box>
@@ -337,8 +393,16 @@ function TasksPageContent() {
             />
             {hasNextPage && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <CustomButton variant="outline" onClick={handleNextPage} disabled={isFetchingNextPage}>
-                  {isFetchingNextPage ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : 'さらに読み込む'}
+                <CustomButton
+                  variant="outline"
+                  onClick={handleNextPage}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                  ) : (
+                    'さらに読み込む'
+                  )}
                 </CustomButton>
               </Box>
             )}
@@ -360,11 +424,11 @@ function TasksPageContent() {
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
         isStoppingTimer={isStoppingTimer}
-        onDriveCreate={handleDriveCreate}
+        onDriveCreate={handleDriveCreateWithSave}
         isCreatingDrive={isCreatingDrive}
-        onFireCreate={handleFireCreate}
+        onFireCreate={handleFireCreateWithSave}
         isCreatingFire={isCreatingFire}
-        onChatThreadCreate={handleChatThreadCreate}
+        onChatThreadCreate={handleChatThreadCreateWithSave}
         isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         currentUserId={user?.id || null}

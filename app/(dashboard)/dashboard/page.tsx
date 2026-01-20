@@ -48,7 +48,10 @@ function DashboardPageContent() {
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
   const [isSavingOnClose, setIsSavingOnClose] = useState(false);
 
-  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: DashboardViewMode | null) => {
+  const handleViewModeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newMode: DashboardViewMode | null
+  ) => {
     if (newMode !== null) {
       setDashboardViewMode(newMode);
     }
@@ -137,6 +140,72 @@ function DashboardPageContent() {
 
   const updateTask = useUpdateTask();
 
+  /**
+   * 現在の変更を保存する
+   * @returns 保存成功時はtrue、失敗時はfalse
+   */
+  const saveCurrentChanges = async (): Promise<boolean> => {
+    if (!taskFormData || !selectedTask) return true;
+
+    const projectType = selectedTask?.projectType;
+    if (!projectType) return true;
+
+    // 変更があるかチェック
+    const changeDetected = hasTaskChanges(taskFormData, selectedTask);
+    if (!changeDetected) return true;
+
+    setIsSavingOnClose(true);
+    try {
+      await updateTask.mutateAsync({
+        projectType,
+        taskId: selectedTask.id,
+        updates: taskFormData,
+      });
+
+      // 保存成功時にキャッシュを無効化してリアルタイム反映
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+
+      return true;
+    } catch (error) {
+      console.error('保存に失敗しました:', error);
+      return false;
+    } finally {
+      setIsSavingOnClose(false);
+    }
+  };
+
+  // チャット/Drive/Fire作成前に保存を行うラッパー関数
+  const handleDriveCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleDriveCreate(selectedTask.projectType, selectedTask.id);
+  };
+
+  const handleFireCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleFireCreate(selectedTask.projectType, selectedTask.id);
+  };
+
+  const handleChatThreadCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
+    }
+    await handleChatThreadCreate(selectedTask.projectType, selectedTask.id);
+  };
+
   const handleDrawerClose = async () => {
     // 競合状態の防止: 既に保存中の場合は何もしない
     if (isSavingOnClose) return;
@@ -173,9 +242,8 @@ function DashboardPageContent() {
         resetSelection();
       } catch (error) {
         console.error('保存に失敗しました:', error);
-        const errorMessage = error instanceof Error
-          ? error.message
-          : '保存に失敗しました。もう一度お試しください。';
+        const errorMessage =
+          error instanceof Error ? error.message : '保存に失敗しました。もう一度お試しください。';
         showError(errorMessage);
         // エラー時はDrawerを開いたまま
       } finally {
@@ -250,7 +318,12 @@ function DashboardPageContent() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             ダッシュボード
           </Typography>
-          <ToggleButtonGroup value={dashboardViewMode} exclusive onChange={handleViewModeChange} size="small">
+          <ToggleButtonGroup
+            value={dashboardViewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            size="small"
+          >
             <Tooltip title="テーブル表示">
               <ToggleButton value="table" aria-label="テーブル表示">
                 <TableRowsIcon />
@@ -312,11 +385,11 @@ function DashboardPageContent() {
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
         isStoppingTimer={isStoppingTimer}
-        onDriveCreate={handleDriveCreate}
+        onDriveCreate={handleDriveCreateWithSave}
         isCreatingDrive={isCreatingDrive}
-        onFireCreate={handleFireCreate}
+        onFireCreate={handleFireCreateWithSave}
         isCreatingFire={isCreatingFire}
-        onChatThreadCreate={handleChatThreadCreate}
+        onChatThreadCreate={handleChatThreadCreateWithSave}
         isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         currentUserId={user?.id || null}

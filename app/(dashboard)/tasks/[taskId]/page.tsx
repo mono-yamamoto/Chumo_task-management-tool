@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
-import { FlowStatus, TaskSession, ProjectType } from '@/types';
+import { FlowStatus, ProgressStatus, TaskSession, ProjectType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useUsers } from '@/hooks/useUsers';
@@ -21,7 +21,7 @@ import {
   useFireIntegration,
   useGoogleChatIntegration,
 } from '@/hooks/useIntegrations';
-import { FLOW_STATUS_OPTIONS } from '@/constants/taskConstants';
+import { FLOW_STATUS_OPTIONS, PROGRESS_STATUS_OPTIONS } from '@/constants/taskConstants';
 import { formatDuration as formatDurationUtil } from '@/utils/timer';
 import { Button as CustomButton } from '@/components/ui/button';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
@@ -51,6 +51,9 @@ import {
   DialogActions,
   Tabs,
   Tab,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
 } from '@mui/material';
 import {
   FolderOpen,
@@ -67,7 +70,7 @@ export default function TaskDetailPage() {
   const params = useParams();
   const taskId = params?.taskId as string;
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(true); // デフォルトで編集モード
+  // editing状態を削除し、常に編集可能に（即時保存のため）
   const { createDriveFolder } = useDriveIntegration();
   const { createFireIssue } = useFireIntegration();
   const { createGoogleChatThread } = useGoogleChatIntegration();
@@ -386,9 +389,6 @@ export default function TaskDetailPage() {
           {task.title}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <CustomButton onClick={() => setEditing(!editing)}>
-            {editing ? '保存' : '編集'}
-          </CustomButton>
           <CustomButton
             variant="destructive"
             onClick={() => {
@@ -413,425 +413,499 @@ export default function TaskDetailPage() {
       {activeTab === 0 && (
         <>
           <Card>
-        <CardContent>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
-            Backlog情報
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {(() => {
-              // バックログURLを取得（優先順位: backlogUrl > external.url > タイトルから生成）
-              const backlogUrl =
-                task.backlogUrl || task.external?.url || generateBacklogUrlFromTitle(task.title);
-              const issueKey = task.external?.issueKey || null;
-
-              if (backlogUrl) {
-                return (
-                  <MUILink
-                    href={backlogUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    {issueKey || backlogUrl}
-                  </MUILink>
-                );
-              }
-              return null;
-            })()}
-            {editing && (
-              <TextField
-                fullWidth
-                label="バックログURL"
-                value={task.backlogUrl || ''}
-                onBlur={(e) => {
-                  if (!task?.projectType) return;
-                  updateTask.mutate({
-                    projectType: task.projectType,
-                    taskId: task.id,
-                    updates: {
-                      backlogUrl: e.target.value || null,
-                    },
-                  });
-                }}
-                placeholder="https://ss-pj.jp/backlog/view/REG2017-2229"
-                helperText="バックログのURLを手動で入力できます。バックログからコピーした内容を貼り付けることもできます。"
-                size="small"
-                onPaste={async (e) => {
-                  const clipboardText = e.clipboardData.getData('text');
-                  const parsed = parseBacklogClipboard(clipboardText);
-
-                  if (parsed && task?.projectType) {
-                    e.preventDefault();
-                    // タイトルとURLを自動的に反映
-                    updateTask.mutate({
-                      projectType: task.projectType,
-                      taskId: task.id,
-                      updates: {
-                        title: parsed.title,
-                        backlogUrl: parsed.url,
-                      },
-                    });
-                  }
-                }}
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
             <CardContent>
               <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
-                基本情報
+                Backlog情報
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControl fullWidth>
-                  <InputLabel>ステータス</InputLabel>
-                  {editing ? (
-                    <Select
-                      value={task.flowStatus}
-                      onChange={(e) => {
-                        if (!task?.projectType) return;
-                        updateTask.mutate({
-                          projectType: task.projectType,
-                          taskId: task.id,
-                          updates: {
-                            flowStatus: e.target.value as FlowStatus,
-                          },
-                        });
-                      }}
-                      label="ステータス"
-                    >
-                      {FLOW_STATUS_OPTIONS.map((status) => (
-                        <MenuItem key={status} value={status}>
-                          {status}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  ) : (
-                    <Typography sx={{ mt: 1 }}>{task.flowStatus}</Typography>
-                  )}
-                </FormControl>
+                {(() => {
+                  // バックログURLを取得（優先順位: backlogUrl > external.url > タイトルから生成）
+                  const backlogUrl =
+                    task.backlogUrl ||
+                    task.external?.url ||
+                    generateBacklogUrlFromTitle(task.title);
+                  const issueKey = task.external?.issueKey || null;
+
+                  if (backlogUrl) {
+                    return (
+                      <MUILink
+                        href={backlogUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
+                      >
+                        {issueKey || backlogUrl}
+                      </MUILink>
+                    );
+                  }
+                  return null;
+                })()}
                 <TextField
-                  label="ITアップ日"
-                  type="date"
-                  value={task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => {
-                    if (!task?.projectType) return;
-                    updateTask.mutate({
-                      projectType: task.projectType,
-                      taskId: task.id,
-                      updates: {
-                        itUpDate: e.target.value ? new Date(e.target.value) : null,
-                      },
-                    });
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  disabled={!editing}
                   fullWidth
-                />
-                <TextField
-                  label="リリース日"
-                  type="date"
-                  value={task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => {
-                    if (!task?.projectType) return;
-                    updateTask.mutate({
-                      projectType: task.projectType,
-                      taskId: task.id,
-                      updates: {
-                        releaseDate: e.target.value ? new Date(e.target.value) : null,
-                      },
-                    });
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  disabled={!editing}
-                  fullWidth
-                />
-                <FormControl fullWidth>
-                  <InputLabel>区分</InputLabel>
-                  {editing ? (
-                    <Select
-                      value={task.kubunLabelId || ''}
-                      onChange={(e) => {
-                        if (!task?.projectType) return;
-                        updateTask.mutate({
-                          projectType: task.projectType,
-                          taskId: task.id,
-                          updates: { kubunLabelId: e.target.value },
-                        });
-                      }}
-                      label="区分"
-                      disabled={!labels || labels.length === 0}
-                    >
-                      {!labels || labels.length === 0 ? (
-                        <MenuItem value="" disabled>
-                          区分ラベルが設定されていません
-                        </MenuItem>
-                      ) : (
-                        labels.map((label) => (
-                          <MenuItem key={label.id} value={label.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box
-                                sx={{
-                                  width: 16,
-                                  height: 16,
-                                  borderRadius: '50%',
-                                  backgroundColor: label.color,
-                                }}
-                              />
-                              {label.name}
-                            </Box>
-                          </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  ) : (
-                    <Typography sx={{ mt: 1 }}>
-                      {labels?.find((l) => l.id === task.kubunLabelId)?.name || '-'}
-                    </Typography>
-                  )}
-                </FormControl>
-                <TextField
-                  label="3時間超過理由"
-                  value={task.over3Reason || ''}
+                  label="バックログURL"
+                  value={task.backlogUrl || ''}
                   onBlur={(e) => {
                     if (!task?.projectType) return;
                     updateTask.mutate({
                       projectType: task.projectType,
                       taskId: task.id,
                       updates: {
-                        over3Reason: e.target.value || undefined,
+                        backlogUrl: e.target.value || null,
                       },
                     });
                   }}
-                  variant="outlined"
-                  multiline
-                  rows={3}
-                  disabled={!editing}
-                  fullWidth
-                  helperText="タスクの作業時間が3時間を超過する場合の理由を記入してください"
+                  placeholder="https://ss-pj.jp/backlog/view/REG2017-2229"
+                  helperText="バックログのURLを手動で入力できます。バックログからコピーした内容を貼り付けることもできます。"
+                  size="small"
+                  onPaste={async (e) => {
+                    const clipboardText = e.clipboardData.getData('text');
+                    const parsed = parseBacklogClipboard(clipboardText);
+
+                    if (parsed && task?.projectType) {
+                      e.preventDefault();
+                      // タイトルとURLを自動的に反映
+                      updateTask.mutate({
+                        projectType: task.projectType,
+                        taskId: task.id,
+                        updates: {
+                          title: parsed.title,
+                          backlogUrl: parsed.url,
+                        },
+                      });
+                    }
+                  }}
                 />
               </Box>
             </CardContent>
           </Card>
-        </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
-                連携
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <TaskTimerButton
-                    isActive={activeSession?.taskId === task.id}
-                    onStart={handleStartTimer}
-                    onStop={handleStopTimer}
-                    isStopping={stopTimer.isPending}
-                    startDisabled={!!activeSession}
-                    fullWidth
-                  />
-                </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    gap: 1,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {task.googleDriveUrl ? (
-                    <Button
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
+                    基本情報
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
                       fullWidth
-                      variant="contained"
-                      color="primary"
-                      onClick={() => window.open(task.googleDriveUrl!, '_blank')}
-                      sx={{ flex: 1 }}
-                    >
-                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                      Driveを開く
-                    </Button>
-                  ) : (
-                    <CustomButton
+                      label="タイトル"
+                      value={task.title || ''}
+                      onBlur={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            title: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                    <TextField
                       fullWidth
-                      variant="outline"
-                      onClick={handleDriveCreate}
-                      disabled={createDriveFolder.isPending}
-                      sx={{ flex: 1 }}
-                    >
-                      <FolderOpen fontSize="small" sx={{ mr: 1 }} />
-                      Drive作成
-                    </CustomButton>
-                  )}
-                  {task.fireIssueUrl ? (
-                    <Button
+                      label="説明"
+                      value={task.description || ''}
+                      onBlur={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            description: e.target.value,
+                          },
+                        });
+                      }}
+                      multiline
+                      rows={4}
+                    />
+                    <FormControl fullWidth>
+                      <InputLabel>ステータス</InputLabel>
+                      <Select
+                        value={task.flowStatus}
+                        onChange={(e) => {
+                          if (!task?.projectType) return;
+                          updateTask.mutate({
+                            projectType: task.projectType,
+                            taskId: task.id,
+                            updates: {
+                              flowStatus: e.target.value as FlowStatus,
+                            },
+                          });
+                        }}
+                        label="ステータス"
+                      >
+                        {FLOW_STATUS_OPTIONS.map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {status}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel>進捗</InputLabel>
+                      <Select
+                        value={task.progressStatus || ''}
+                        onChange={(e) => {
+                          if (!task?.projectType) return;
+                          updateTask.mutate({
+                            projectType: task.projectType,
+                            taskId: task.id,
+                            updates: {
+                              progressStatus: (e.target.value as ProgressStatus) || null,
+                            },
+                          });
+                        }}
+                        label="進捗"
+                      >
+                        {PROGRESS_STATUS_OPTIONS.map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {status}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      label="ITアップ日"
+                      type="date"
+                      value={task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            itUpDate: e.target.value ? new Date(e.target.value) : null,
+                          },
+                        });
+                      }}
+                      InputLabelProps={{ shrink: true }}
                       fullWidth
-                      variant="contained"
-                      color="primary"
-                      onClick={() => window.open(task.fireIssueUrl!, '_blank')}
-                      sx={{ flex: 1 }}
-                    >
-                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                      Issueを開く
-                    </Button>
-                  ) : (
-                    <CustomButton
+                    />
+                    <TextField
+                      label="リリース日"
+                      type="date"
+                      value={task.releaseDate ? format(task.releaseDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            releaseDate: e.target.value ? new Date(e.target.value) : null,
+                          },
+                        });
+                      }}
+                      InputLabelProps={{ shrink: true }}
                       fullWidth
-                      variant="outline"
-                      onClick={handleFireCreate}
-                      disabled={createFireIssue.isPending}
-                      sx={{ flex: 1 }}
-                    >
-                      <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
-                      Issue作成
-                    </CustomButton>
-                  )}
-                  {task.googleChatThreadUrl ? (
-                    <Button
+                    />
+                    <FormControl fullWidth>
+                      <InputLabel>区分</InputLabel>
+                      <Select
+                        value={task.kubunLabelId || ''}
+                        onChange={(e) => {
+                          if (!task?.projectType) return;
+                          updateTask.mutate({
+                            projectType: task.projectType,
+                            taskId: task.id,
+                            updates: { kubunLabelId: e.target.value },
+                          });
+                        }}
+                        label="区分"
+                        disabled={!labels || labels.length === 0}
+                      >
+                        {!labels || labels.length === 0 ? (
+                          <MenuItem value="" disabled>
+                            区分ラベルが設定されていません
+                          </MenuItem>
+                        ) : (
+                          labels.map((label) => (
+                            <MenuItem key={label.id} value={label.id}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                  sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    backgroundColor: label.color,
+                                  }}
+                                />
+                                {label.name}
+                              </Box>
+                            </MenuItem>
+                          ))
+                        )}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel>アサイン</InputLabel>
+                      <Select
+                        multiple
+                        value={task.assigneeIds || []}
+                        onChange={(e) => {
+                          if (!task?.projectType) return;
+                          const value =
+                            typeof e.target.value === 'string' ? [e.target.value] : e.target.value;
+                          updateTask.mutate({
+                            projectType: task.projectType,
+                            taskId: task.id,
+                            updates: { assigneeIds: value },
+                          });
+                        }}
+                        input={<OutlinedInput label="アサイン" />}
+                        renderValue={(selected) => {
+                          if (!selected || selected.length === 0) return '-';
+                          return selected
+                            .map((id) => allUsers?.find((u) => u.id === id)?.displayName)
+                            .filter(Boolean)
+                            .join(', ');
+                        }}
+                      >
+                        {allUsers?.map((u) => (
+                          <MenuItem key={u.id} value={u.id}>
+                            <Checkbox checked={(task.assigneeIds || []).includes(u.id)} />
+                            <ListItemText primary={u.displayName || u.email} />
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      label="3時間超過理由"
+                      value={task.over3Reason || ''}
+                      onBlur={(e) => {
+                        if (!task?.projectType) return;
+                        updateTask.mutate({
+                          projectType: task.projectType,
+                          taskId: task.id,
+                          updates: {
+                            over3Reason: e.target.value || undefined,
+                          },
+                        });
+                      }}
+                      variant="outlined"
+                      multiline
+                      rows={3}
                       fullWidth
-                      variant="contained"
-                      color="primary"
-                      onClick={() => window.open(task.googleChatThreadUrl!, '_blank')}
-                      sx={{ flex: 1 }}
-                    >
-                      <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
-                      Chatを開く
-                    </Button>
-                  ) : (
-                    <CustomButton
-                      fullWidth
-                      variant="outline"
-                      onClick={handleChatThreadCreate}
-                      disabled={createGoogleChatThread.isPending}
-                      sx={{ flex: 1 }}
-                    >
-                      <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
-                      Chatスレッド作成
-                    </CustomButton>
-                  )}
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                      helperText="タスクの作業時間が3時間を超過する場合の理由を記入してください"
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-      {/* セッション履歴 */}
-      <Card>
-        <CardContent>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 2,
-            }}
-          >
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
-              セッション履歴
-            </Typography>
-            <CustomButton variant="outline" onClick={handleAddSession}>
-              <Add fontSize="small" sx={{ mr: 1 }} />
-              追加
-            </CustomButton>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {sessions && sessions.length > 0 ? (
-              sessions.map((session: TaskSession) => {
-                const sessionUser = allUsers?.find((u) => u.id === session.userId);
-                const formatDuration = (seconds: number | undefined | null) => {
-                  // durationSecが0または無効な場合、開始時刻と終了時刻から計算
-                  let secs = 0;
-                  if (
-                    seconds === undefined ||
-                    seconds === null ||
-                    Number.isNaN(seconds) ||
-                    seconds === 0
-                  ) {
-                    if (session.endedAt && session.startedAt) {
-                      secs = Math.floor(
-                        (session.endedAt.getTime() - session.startedAt.getTime()) / 1000
-                      );
-                    } else {
-                      return '0秒';
-                    }
-                  } else {
-                    secs = Math.floor(Number(seconds));
-                  }
-                  return formatDurationUtil(secs);
-                };
-                return (
-                  <Box
-                    key={session.id}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderBottom: 1,
-                      borderColor: 'divider',
-                      pb: 1,
-                    }}
-                  >
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2 }}>
+                    連携
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <TaskTimerButton
+                        isActive={activeSession?.taskId === task.id}
+                        onStart={handleStartTimer}
+                        onStop={handleStopTimer}
+                        isStopping={stopTimer.isPending}
+                        startDisabled={!!activeSession}
+                        fullWidth
+                      />
+                    </Box>
                     <Box
                       sx={{
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.5,
-                        flex: 1,
+                        gap: 1,
+                        flexWrap: 'wrap',
                       }}
                     >
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {sessionUser?.displayName || '不明なユーザー'}
-                      </Typography>
-                      <Typography>
-                        {format(session.startedAt, 'yyyy-MM-dd HH:mm:ss')}
-                        {' - '}
-                        {session.endedAt
-                          ? format(session.endedAt, 'yyyy-MM-dd HH:mm:ss')
-                          : '実行中'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography
-                        sx={{ fontWeight: 'medium', minWidth: '80px', textAlign: 'right' }}
-                      >
-                        {session.endedAt ? formatDuration(session.durationSec) : '-'}
-                      </Typography>
-                      {user?.id === session.userId && (
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Button
-                            size="small"
-                            onClick={() => handleEditSession(session)}
-                            sx={{ minWidth: 'auto', p: 0.5 }}
-                          >
-                            <Edit fontSize="small" />
-                          </Button>
-                          <Button
-                            size="small"
-                            onClick={() => handleDeleteSession(session.id)}
-                            color="error"
-                            sx={{ minWidth: 'auto', p: 0.5 }}
-                            disabled={deleteSession.isPending}
-                          >
-                            <Delete fontSize="small" />
-                          </Button>
-                        </Box>
+                      {task.googleDriveUrl ? (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="primary"
+                          onClick={() => window.open(task.googleDriveUrl!, '_blank')}
+                          sx={{ flex: 1 }}
+                        >
+                          <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                          Driveを開く
+                        </Button>
+                      ) : (
+                        <CustomButton
+                          fullWidth
+                          variant="outline"
+                          onClick={handleDriveCreate}
+                          disabled={createDriveFolder.isPending}
+                          sx={{ flex: 1 }}
+                        >
+                          <FolderOpen fontSize="small" sx={{ mr: 1 }} />
+                          Drive作成
+                        </CustomButton>
+                      )}
+                      {task.fireIssueUrl ? (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="primary"
+                          onClick={() => window.open(task.fireIssueUrl!, '_blank')}
+                          sx={{ flex: 1 }}
+                        >
+                          <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                          Issueを開く
+                        </Button>
+                      ) : (
+                        <CustomButton
+                          fullWidth
+                          variant="outline"
+                          onClick={handleFireCreate}
+                          disabled={createFireIssue.isPending}
+                          sx={{ flex: 1 }}
+                        >
+                          <LocalFireDepartment fontSize="small" sx={{ mr: 1 }} />
+                          Issue作成
+                        </CustomButton>
+                      )}
+                      {task.googleChatThreadUrl ? (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="primary"
+                          onClick={() => window.open(task.googleChatThreadUrl!, '_blank')}
+                          sx={{ flex: 1 }}
+                        >
+                          <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                          Chatを開く
+                        </Button>
+                      ) : (
+                        <CustomButton
+                          fullWidth
+                          variant="outline"
+                          onClick={handleChatThreadCreate}
+                          disabled={createGoogleChatThread.isPending}
+                          sx={{ flex: 1 }}
+                        >
+                          <ChatBubbleOutline fontSize="small" sx={{ mr: 1 }} />
+                          Chatスレッド作成
+                        </CustomButton>
                       )}
                     </Box>
                   </Box>
-                );
-              })
-            ) : (
-              <Typography sx={{ color: 'text.secondary', py: 2 }}>
-                セッション履歴がありません
-              </Typography>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* セッション履歴 */}
+          <Card>
+            <CardContent>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>
+                  セッション履歴
+                </Typography>
+                <CustomButton variant="outline" onClick={handleAddSession}>
+                  <Add fontSize="small" sx={{ mr: 1 }} />
+                  追加
+                </CustomButton>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {sessions && sessions.length > 0 ? (
+                  sessions.map((session: TaskSession) => {
+                    const sessionUser = allUsers?.find((u) => u.id === session.userId);
+                    const formatDuration = (seconds: number | undefined | null) => {
+                      // durationSecが0または無効な場合、開始時刻と終了時刻から計算
+                      let secs = 0;
+                      if (
+                        seconds === undefined ||
+                        seconds === null ||
+                        Number.isNaN(seconds) ||
+                        seconds === 0
+                      ) {
+                        if (session.endedAt && session.startedAt) {
+                          secs = Math.floor(
+                            (session.endedAt.getTime() - session.startedAt.getTime()) / 1000
+                          );
+                        } else {
+                          return '0秒';
+                        }
+                      } else {
+                        secs = Math.floor(Number(seconds));
+                      }
+                      return formatDurationUtil(secs);
+                    };
+                    return (
+                      <Box
+                        key={session.id}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: 1,
+                          borderColor: 'divider',
+                          pb: 1,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 0.5,
+                            flex: 1,
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {sessionUser?.displayName || '不明なユーザー'}
+                          </Typography>
+                          <Typography>
+                            {format(session.startedAt, 'yyyy-MM-dd HH:mm:ss')}
+                            {' - '}
+                            {session.endedAt
+                              ? format(session.endedAt, 'yyyy-MM-dd HH:mm:ss')
+                              : '実行中'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography
+                            sx={{ fontWeight: 'medium', minWidth: '80px', textAlign: 'right' }}
+                          >
+                            {session.endedAt ? formatDuration(session.durationSec) : '-'}
+                          </Typography>
+                          {user?.id === session.userId && (
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              <Button
+                                size="small"
+                                onClick={() => handleEditSession(session)}
+                                sx={{ minWidth: 'auto', p: 0.5 }}
+                              >
+                                <Edit fontSize="small" />
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() => handleDeleteSession(session.id)}
+                                color="error"
+                                sx={{ minWidth: 'auto', p: 0.5 }}
+                                disabled={deleteSession.isPending}
+                              >
+                                <Delete fontSize="small" />
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })
+                ) : (
+                  <Typography sx={{ color: 'text.secondary', py: 2 }}>
+                    セッション履歴がありません
+                  </Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
         </>
       )}
 
