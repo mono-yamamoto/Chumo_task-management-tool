@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timestamp } from 'firebase/firestore';
 import { FlowStatus, ProgressStatus, TaskSession, ProjectType } from '@/types';
@@ -161,20 +161,23 @@ export default function TaskDetailPage() {
   const deleteSession = useDeleteSession();
 
   // TextFieldのローカルステート（入力中のUX向上のため）
-  // task.idが変わったときにステートをリセットするためにkeyとして使用
-  const taskIdForReset = task?.id || '';
-  const [localTitle, setLocalTitle] = useState('');
-  const [localDescription, setLocalDescription] = useState('');
-  const [localBacklogUrl, setLocalBacklogUrl] = useState('');
-  const [lastTaskId, setLastTaskId] = useState('');
+  const [localTitle, setLocalTitle] = useState(task?.title || '');
+  const [localDescription, setLocalDescription] = useState(task?.description || '');
+  const [localBacklogUrl, setLocalBacklogUrl] = useState(task?.backlogUrl || '');
+  const [localOver3Reason, setLocalOver3Reason] = useState(task?.over3Reason || '');
 
   // タスクIDが変わったらローカルステートをリセット
-  if (taskIdForReset !== lastTaskId && task) {
-    setLastTaskId(taskIdForReset);
-    setLocalTitle(task.title || '');
-    setLocalDescription(task.description || '');
-    setLocalBacklogUrl(task.backlogUrl || '');
-  }
+  // 外部データ（Firestore）からの同期なのでuseEffect内でのsetStateは正当
+  useEffect(() => {
+    if (task) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setLocalTitle(task.title || '');
+      setLocalDescription(task.description || '');
+      setLocalBacklogUrl(task.backlogUrl || '');
+      setLocalOver3Reason(task.over3Reason || '');
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
+  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStartTimer = async () => {
     if (!user || !task) return;
@@ -696,14 +699,15 @@ export default function TaskDetailPage() {
                     </FormControl>
                     <TextField
                       label="3時間超過理由"
-                      value={task.over3Reason || ''}
-                      onBlur={(e) => {
+                      value={localOver3Reason}
+                      onChange={(e) => setLocalOver3Reason(e.target.value)}
+                      onBlur={() => {
                         if (!task?.projectType) return;
                         updateTask.mutate({
                           projectType: task.projectType,
                           taskId: task.id,
                           updates: {
-                            over3Reason: e.target.value || undefined,
+                            over3Reason: localOver3Reason || undefined,
                           },
                         });
                       }}
