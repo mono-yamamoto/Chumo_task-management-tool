@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import {
   Box,
   IconButton,
@@ -19,7 +19,7 @@ export function ThemeSelector() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -37,6 +37,7 @@ export function ThemeSelector() {
       <Tooltip title="テーマを変更">
         <IconButton
           id="theme-button"
+          aria-label="テーマを変更"
           onClick={handleClick}
           size="small"
           sx={{ color: 'text.secondary' }}
