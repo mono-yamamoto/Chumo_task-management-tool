@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { ThemeBackground } from '@/components/ThemeBackground';
+import { ThemeSelector } from '@/components/ThemeSelector';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimerTitle } from '@/hooks/useTimerTitle';
@@ -23,8 +25,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <AuthGuard>
       <ToastContainer />
-      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
-        <AppBar position="static" color="default" elevation={1}>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', position: 'relative' }}>
+        {/* テーマ背景 */}
+        <ThemeBackground />
+        <AppBar position="static" color="default" elevation={1} sx={{ position: 'relative', zIndex: 1 }}>
           <Toolbar
             sx={{
               maxWidth: '1280px',
@@ -90,6 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <ThemeSelector />
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {user?.displayName}
               </Typography>
@@ -106,6 +111,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             mx: 'auto',
             px: 2,
             py: 4,
+            position: 'relative',
+            zIndex: 1,
           }}
         >
           {children}
