@@ -160,6 +160,22 @@ export default function TaskDetailPage() {
   const updateSession = useUpdateSession();
   const deleteSession = useDeleteSession();
 
+  // TextFieldのローカルステート（入力中のUX向上のため）
+  // task.idが変わったときにステートをリセットするためにkeyとして使用
+  const taskIdForReset = task?.id || '';
+  const [localTitle, setLocalTitle] = useState('');
+  const [localDescription, setLocalDescription] = useState('');
+  const [localBacklogUrl, setLocalBacklogUrl] = useState('');
+  const [lastTaskId, setLastTaskId] = useState('');
+
+  // タスクIDが変わったらローカルステートをリセット
+  if (taskIdForReset !== lastTaskId && task) {
+    setLastTaskId(taskIdForReset);
+    setLocalTitle(task.title || '');
+    setLocalDescription(task.description || '');
+    setLocalBacklogUrl(task.backlogUrl || '');
+  }
+
   const handleStartTimer = async () => {
     if (!user || !task) return;
     await startTimerWithOptimistic(task.projectType, task.id);
@@ -443,9 +459,11 @@ export default function TaskDetailPage() {
                 <TextField
                   fullWidth
                   label="バックログURL"
-                  value={task.backlogUrl || ''}
+                  value={localBacklogUrl}
+                  onChange={(e) => setLocalBacklogUrl(e.target.value)}
                   onBlur={(e) => {
                     if (!task?.projectType) return;
+                    if (e.target.value === task.backlogUrl) return; // 変更がない場合はスキップ
                     updateTask.mutate({
                       projectType: task.projectType,
                       taskId: task.id,
@@ -463,6 +481,9 @@ export default function TaskDetailPage() {
 
                     if (parsed && task?.projectType) {
                       e.preventDefault();
+                      // ローカルステートを更新
+                      setLocalBacklogUrl(parsed.url);
+                      setLocalTitle(parsed.title);
                       // タイトルとURLを自動的に反映
                       updateTask.mutate({
                         projectType: task.projectType,
@@ -490,9 +511,11 @@ export default function TaskDetailPage() {
                     <TextField
                       fullWidth
                       label="タイトル"
-                      value={task.title || ''}
+                      value={localTitle}
+                      onChange={(e) => setLocalTitle(e.target.value)}
                       onBlur={(e) => {
                         if (!task?.projectType) return;
+                        if (e.target.value === task.title) return; // 変更がない場合はスキップ
                         updateTask.mutate({
                           projectType: task.projectType,
                           taskId: task.id,
@@ -505,9 +528,11 @@ export default function TaskDetailPage() {
                     <TextField
                       fullWidth
                       label="説明"
-                      value={task.description || ''}
+                      value={localDescription}
+                      onChange={(e) => setLocalDescription(e.target.value)}
                       onBlur={(e) => {
                         if (!task?.projectType) return;
+                        if (e.target.value === task.description) return; // 変更がない場合はスキップ
                         updateTask.mutate({
                           projectType: task.projectType,
                           taskId: task.id,

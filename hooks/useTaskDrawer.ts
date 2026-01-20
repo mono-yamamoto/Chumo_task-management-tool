@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { Task } from '@/types';
 import { useUpdateTask } from '@/hooks/useTasks';
 import { queryKeys } from '@/lib/queryKeys';
@@ -14,8 +14,11 @@ export function useTaskDrawer(params: {
   selectedTask: Task | null;
   taskFormDataValue: Partial<Task> | null;
   resetSelection: () => void;
+  /** 追加で無効化するクエリキー（例: ダッシュボード用） */
+  extraInvalidateQueryKeys?: QueryKey[];
 }) {
-  const { queryClient, selectedTask, taskFormDataValue, resetSelection } = params;
+  const { queryClient, selectedTask, taskFormDataValue, resetSelection, extraInvalidateQueryKeys } =
+    params;
   const [isSaving, setIsSaving] = useState(false);
   const { success, error: showError } = useToast();
   const updateTask = useUpdateTask();
@@ -45,6 +48,10 @@ export function useTaskDrawer(params: {
       // 保存成功時にキャッシュを無効化してリアルタイム反映
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
       queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
+      // 追加のクエリキーを無効化
+      extraInvalidateQueryKeys?.forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: key });
+      });
 
       return true;
     } catch (error) {
@@ -53,7 +60,7 @@ export function useTaskDrawer(params: {
     } finally {
       setIsSaving(false);
     }
-  }, [taskFormDataValue, selectedTask, queryClient, updateTask]);
+  }, [taskFormDataValue, selectedTask, queryClient, updateTask, extraInvalidateQueryKeys]);
 
   const handleDrawerClose = useCallback(async () => {
     // 競合状態の防止: 既に保存中の場合は何もしない
