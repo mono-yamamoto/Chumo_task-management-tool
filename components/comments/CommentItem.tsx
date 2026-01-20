@@ -26,15 +26,21 @@ function plainTextToHtml(text: string): string {
   return `<p>${escaped.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="comment-link">$1</a>')}</p>`;
 }
 
+// 正規表現用にIDをエスケープ
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // 自分宛のメンションにハイライトクラスを追加
 function highlightSelfMentions(html: string, currentUserId: string): string {
+  const escapedId = escapeRegExp(currentUserId);
   // data-id="currentUserId" を持つメンションに追加クラスを付与
   const regex = new RegExp(
-    `<span([^>]*)class="comment-mention"([^>]*)data-id="${currentUserId}"([^>]*)>`,
+    `<span([^>]*)class="comment-mention"([^>]*)data-id="${escapedId}"([^>]*)>`,
     'g'
   );
   const regex2 = new RegExp(
-    `<span([^>]*)data-id="${currentUserId}"([^>]*)class="comment-mention"([^>]*)>`,
+    `<span([^>]*)data-id="${escapedId}"([^>]*)class="comment-mention"([^>]*)>`,
     'g'
   );
 
