@@ -411,7 +411,7 @@ function TasksPageContent() {
       </Box>
 
       <TaskDetailDrawer
-        open={!!selectedTaskIdValue && !isSavingOnClose}
+        open={!!selectedTaskIdValue}
         onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormDataValue}

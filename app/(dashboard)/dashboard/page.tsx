@@ -372,7 +372,7 @@ function DashboardPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskId && !isSavingOnClose}
+        open={!!selectedTaskId}
         onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormData}
