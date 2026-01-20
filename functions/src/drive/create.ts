@@ -122,8 +122,11 @@ export const createDriveFolder = onRequest(
 
       // 既存フォルダを検索
       // フォルダ名の構成: issueKey + タイトル（backlogProjectKeyは使用しない）
+      // task.titleが既にissueKeyで始まっている場合は、issueKeyを追加しない（重複防止）
       const parts: string[] = [];
-      if (task.external?.issueKey) {
+      const titleStartsWithIssueKey =
+        task.external?.issueKey && task.title.startsWith(task.external.issueKey);
+      if (task.external?.issueKey && !titleStartsWithIssueKey) {
         parts.push(task.external.issueKey);
       }
       parts.push(task.title);
