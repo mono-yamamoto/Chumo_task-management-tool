@@ -58,7 +58,36 @@ export async function getFcmToken(): Promise<string | null> {
 
     // Service Workerがアクティブになるまで待つ
     if (!registration.active) {
-      await navigator.serviceWorker.ready;
+      // この登録のService Workerがアクティブになるまで待機
+      const waitForActivation = (): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          const sw = registration.installing || registration.waiting;
+          if (!sw) {
+            reject(new Error('No Service Worker to wait for'));
+            return;
+          }
+
+          // タイムアウト設定（10秒）
+          const timeout = setTimeout(() => {
+            reject(new Error('Service Worker activation timeout'));
+          }, 10000);
+
+          sw.addEventListener('statechange', function handler() {
+            if (this.state === 'activated') {
+              clearTimeout(timeout);
+              this.removeEventListener('statechange', handler);
+              resolve();
+            }
+          });
+        });
+      };
+
+      try {
+        await waitForActivation();
+      } catch {
+        // フォールバック: navigator.serviceWorker.readyを使用
+        await navigator.serviceWorker.ready;
+      }
     }
 
     const token = await getToken(messagingInstance, {

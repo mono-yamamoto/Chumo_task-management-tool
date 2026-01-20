@@ -106,6 +106,7 @@ export interface CommentEditorProps {
   taskId: string;
   placeholder?: string;
   disabled?: boolean;
+  initialContent?: string;
   onSubmit?: (html: string, mentionedUserIds: string[]) => void;
   onChange?: (html: string, mentionedUserIds: string[]) => void;
 }
@@ -127,6 +128,7 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
       taskId,
       placeholder = 'コメントを入力...',
       disabled = false,
+      initialContent,
       onSubmit,
       onChange,
     },
@@ -174,6 +176,7 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
 
     const editor = useEditor({
       immediatelyRender: false, // SSR対応
+      content: initialContent || '',
       extensions: [
         StarterKit.configure({
           // コメント用なので最小限の機能に制限
@@ -295,7 +298,6 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
           },
         }),
       ],
-      content: '',
       editable: !disabled,
       editorProps: {
         attributes: {

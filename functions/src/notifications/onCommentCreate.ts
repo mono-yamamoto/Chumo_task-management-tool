@@ -78,7 +78,8 @@ export const onCommentCreate = onDocumentCreated(
       const taskTitle = taskData?.title || 'タスク';
 
       // コメント内容のプレビュー（HTMLタグを除去して50文字まで）
-      const contentPreview = stripHtml(commentData.content).substring(0, 50);
+      const strippedContent = stripHtml(commentData.content);
+      const contentPreview = strippedContent.substring(0, 50);
 
       // メンションされた各ユーザーのFCMトークンを取得
       const tokensToSend: string[] = [];
@@ -105,7 +106,7 @@ export const onCommentCreate = onDocumentCreated(
       // 通知を送信
       const notification = {
         title: `${authorName}さんがあなたをメンションしました`,
-        body: `${taskTitle}: ${contentPreview}${commentData.content.length > 50 ? '...' : ''}`,
+        body: `${taskTitle}: ${contentPreview}${strippedContent.length > 50 ? '...' : ''}`,
       };
 
       const data = {

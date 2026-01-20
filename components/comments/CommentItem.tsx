@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import { Edit, Delete, Check, Close } from '@mui/icons-material';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { TaskComment, User } from '@/types';
 import { CommentEditor, CommentEditorHandle } from './CommentEditor';
 
@@ -72,11 +73,15 @@ export function CommentItem({
   const isOwner = comment.authorId === currentUserId;
   const isUnread = !comment.readBy.includes(currentUserId);
 
-  // 表示用のHTMLコンテンツを取得
+  // 表示用のHTMLコンテンツを取得（XSS対策でサニタイズ）
   const rawHtml = isHtmlContent(comment.content)
     ? comment.content
     : plainTextToHtml(comment.content);
-  const displayHtml = highlightSelfMentions(rawHtml, currentUserId);
+  const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: ['p', 'br', 'a', 'span', 'img', 'strong', 'em'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'data-id', 'src', 'alt'],
+  });
+  const displayHtml = highlightSelfMentions(sanitizedHtml, currentUserId);
 
   const handleSave = () => {
     if (!editorRef.current) return;
@@ -166,6 +171,7 @@ export function CommentItem({
             users={users}
             projectType={projectType}
             taskId={taskId}
+            initialContent={comment.content}
             disabled={isUpdating}
           />
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
