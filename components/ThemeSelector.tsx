@@ -36,6 +36,7 @@ export function ThemeSelector() {
     <Box>
       <Tooltip title="テーマを変更">
         <IconButton
+          id="theme-button"
           onClick={handleClick}
           size="small"
           sx={{ color: 'text.secondary' }}

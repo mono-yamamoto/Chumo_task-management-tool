@@ -75,7 +75,7 @@ export function RiveBackground() {
     if (nightInput) {
       nightInput.value = isNight;
     }
-  }, [isNight]);
+  }, [isNight, nightInput]);
 
   return (
     <Box
