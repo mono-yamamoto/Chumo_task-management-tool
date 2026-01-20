@@ -7,13 +7,11 @@ import { db } from '@/lib/firebase/config';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
-import { useUpdateTask } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
+import { useTaskDrawer } from '@/hooks/useTaskDrawer';
 import { Button as CustomButton } from '@/components/ui/button';
-import { hasTaskChanges } from '@/utils/taskUtils';
-import { useToast } from '@/hooks/useToast';
 import {
   Box,
   Typography,
@@ -40,15 +38,16 @@ import { useTaskStore, DashboardViewMode } from '@/stores/taskStore';
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { success, error: showError } = useToast();
   const { dashboardViewMode, setDashboardViewMode } = useTaskStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
-  const [isSavingOnClose, setIsSavingOnClose] = useState(false);
 
-  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: DashboardViewMode | null) => {
+  const handleViewModeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newMode: DashboardViewMode | null
+  ) => {
     if (newMode !== null) {
       setDashboardViewMode(newMode);
     }
@@ -135,55 +134,48 @@ function DashboardPageContent() {
   const selectedTaskProjectType = selectedTask?.projectType ?? null;
   const { data: taskSessions } = useTaskSessions(selectedTaskProjectType, selectedTaskId);
 
-  const updateTask = useUpdateTask();
+  // Drawer管理（useTaskDrawerフックを使用）
+  const dashboardQueryKeys = useMemo(
+    () => (user?.id ? [queryKeys.dashboardTasks(user.id)] : []),
+    [user?.id]
+  );
+  const { isSavingOnClose, saveCurrentChanges, handleDrawerClose } = useTaskDrawer({
+    queryClient,
+    selectedTask,
+    taskFormDataValue: taskFormData,
+    resetSelection,
+    extraInvalidateQueryKeys: dashboardQueryKeys,
+  });
 
-  const handleDrawerClose = async () => {
-    // 競合状態の防止: 既に保存中の場合は何もしない
-    if (isSavingOnClose) return;
-
-    if (!taskFormData || !selectedTask) {
-      resetSelection();
+  // チャット/Drive/Fire作成前に保存を行うラッパー関数
+  const handleDriveCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
       return;
     }
+    await handleDriveCreate(selectedTask.projectType, selectedTask.id);
+  };
 
-    const projectType = selectedTask?.projectType;
-    if (!projectType) {
-      resetSelection();
+  const handleFireCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
       return;
     }
+    await handleFireCreate(selectedTask.projectType, selectedTask.id);
+  };
 
-    // 変更があるかチェック（改善版: 全フィールド、Date型、配列、null/undefinedの正確な比較）
-    const changeDetected = hasTaskChanges(taskFormData, selectedTask);
-
-    // 変更がある場合のみ保存
-    if (changeDetected) {
-      setIsSavingOnClose(true);
-      try {
-        await updateTask.mutateAsync({
-          projectType,
-          taskId: selectedTask.id,
-          updates: taskFormData,
-        });
-
-        // 保存成功時にキャッシュを無効化してリアルタイム反映
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.task(selectedTask.id) });
-
-        success('タスクを保存しました');
-        resetSelection();
-      } catch (error) {
-        console.error('保存に失敗しました:', error);
-        const errorMessage = error instanceof Error
-          ? error.message
-          : '保存に失敗しました。もう一度お試しください。';
-        showError(errorMessage);
-        // エラー時はDrawerを開いたまま
-      } finally {
-        setIsSavingOnClose(false);
-      }
-    } else {
-      resetSelection();
+  const handleChatThreadCreateWithSave = async () => {
+    if (!selectedTask) return;
+    const saved = await saveCurrentChanges();
+    if (!saved) {
+      alert('タスクの保存に失敗しました。再度お試しください。');
+      return;
     }
+    await handleChatThreadCreate(selectedTask.projectType, selectedTask.id);
   };
 
   const handleDeleteClick = (taskId: string, projectType: string) => {
@@ -223,10 +215,10 @@ function DashboardPageContent() {
       }
 
       alert('タスクを削除しました');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete task error:', error);
-
-      alert(`タスクの削除に失敗しました: ${error.message || '不明なエラー'}`);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      alert(`タスクの削除に失敗しました: ${errorMessage}`);
     } finally {
       setDeleteDialogOpen(false);
       setDeleteTaskId(null);
@@ -250,7 +242,12 @@ function DashboardPageContent() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             ダッシュボード
           </Typography>
-          <ToggleButtonGroup value={dashboardViewMode} exclusive onChange={handleViewModeChange} size="small">
+          <ToggleButtonGroup
+            value={dashboardViewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            size="small"
+          >
             <Tooltip title="テーブル表示">
               <ToggleButton value="table" aria-label="テーブル表示">
                 <TableRowsIcon />
@@ -299,24 +296,24 @@ function DashboardPageContent() {
 
       {/* サイドバー */}
       <TaskDetailDrawer
-        open={!!selectedTaskId && !isSavingOnClose}
+        open={!!selectedTaskId}
         onClose={handleDrawerClose}
         selectedTask={selectedTask}
         taskFormData={taskFormData}
         onTaskFormDataChange={setTaskFormData}
         onDelete={handleDeleteClick}
-        isSaving={updateTask.isPending || isSavingOnClose}
+        isSaving={isSavingOnClose}
         taskLabels={taskLabels}
         allUsers={allUsers}
         activeSession={activeSession}
         onStartTimer={handleStartTimer}
         onStopTimer={handleStopTimer}
         isStoppingTimer={isStoppingTimer}
-        onDriveCreate={handleDriveCreate}
+        onDriveCreate={handleDriveCreateWithSave}
         isCreatingDrive={isCreatingDrive}
-        onFireCreate={handleFireCreate}
+        onFireCreate={handleFireCreateWithSave}
         isCreatingFire={isCreatingFire}
-        onChatThreadCreate={handleChatThreadCreate}
+        onChatThreadCreate={handleChatThreadCreateWithSave}
         isCreatingChatThread={isCreatingChatThread}
         taskSessions={taskSessions || []}
         currentUserId={user?.id || null}
