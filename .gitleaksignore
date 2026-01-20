@@ -1,0 +1,2 @@
+# Firebase Service Worker - APIキーは公開されても問題ない値（セキュリティルールで保護）
+public/firebase-messaging-sw.js:gcp-api-key:11

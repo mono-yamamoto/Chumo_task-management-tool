@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Box, Typography, CircularProgress, Divider } from '@mui/material';
-import { Comment as CommentIcon } from '@mui/icons-material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { TaskComment, User, ProjectType } from '@/types';
 import { CommentItem } from './CommentItem';
 import { CommentForm } from './CommentForm';
@@ -42,20 +41,22 @@ export function CommentList({ projectType, taskId, currentUserId, users }: Comme
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadCount, projectType, taskId, currentUserId]);
 
-  const handleCreateComment = (content: string) => {
+  const handleCreateComment = (content: string, mentionedUserIds: string[]) => {
     createComment.mutate({
       projectType,
       taskId,
       authorId: currentUserId,
       content,
+      mentionedUserIds,
     });
   };
 
-  const handleUpdateComment = (commentId: string, content: string) => {
+  const handleUpdateComment = (commentId: string, content: string, mentionedUserIds: string[]) => {
     updateComment.mutate({
       projectType,
       commentId,
       content,
+      mentionedUserIds,
       taskId,
     });
   };
@@ -71,51 +72,36 @@ export function CommentList({ projectType, taskId, currentUserId, users }: Comme
   return (
     <Box
       sx={{
-        mt: 3,
-        pt: 3,
-        borderTop: 1,
-        borderColor: 'divider',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
       }}
     >
+      {/* コメント一覧 */}
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
+          flexDirection: 'column-reverse',
+          gap: 1,
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          pr: 1,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CommentIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-          <Typography variant="h6" sx={{ fontWeight: 'semibold' }}>
-            コメント
-          </Typography>
-          {comments.length > 0 && (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              ({comments.length})
-            </Typography>
-          )}
-        </Box>
-      </Box>
-
-      {/* コメント入力フォーム */}
-      <CommentForm onSubmit={handleCreateComment} isSubmitting={createComment.isPending} />
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* コメント一覧 */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
             <CircularProgress size={24} />
           </Box>
         ) : comments.length > 0 ? (
-          comments.map((comment: TaskComment) => (
+          [...comments].reverse().map((comment: TaskComment) => (
             <CommentItem
               key={comment.id}
               comment={comment}
               currentUserId={currentUserId}
-              users={users}
+              users={users ?? []}
+              projectType={projectType}
+              taskId={taskId}
               onUpdate={handleUpdateComment}
               onDelete={handleDeleteComment}
               isUpdating={updateComment.isPending}
@@ -134,6 +120,17 @@ export function CommentList({ projectType, taskId, currentUserId, users }: Comme
             コメントはまだありません
           </Typography>
         )}
+      </Box>
+
+      {/* コメント入力フォーム */}
+      <Box sx={{ flexShrink: 0, mt: 2 }}>
+        <CommentForm
+          users={users ?? []}
+          projectType={projectType}
+          taskId={taskId}
+          onSubmit={handleCreateComment}
+          isSubmitting={createComment.isPending}
+        />
       </Box>
     </Box>
   );

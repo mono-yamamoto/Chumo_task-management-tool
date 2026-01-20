@@ -65,17 +65,20 @@ service cloud.firestore {
         allow create: if isSignedIn() && isValidProjectType(projectId)
                       && request.auth.uid == request.resource.data.authorId;
         allow update: if isSignedIn() && isValidProjectType(projectId)
-                      && (request.auth.uid == resource.data.authorId
-                          || (
-                            // readByのみの更新かつ、自分のUIDを追加する操作のみ許可
-                            // 未読ユーザーのみが自分を追加できる（既読ユーザーは変更不可）
-                            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
-                            request.resource.data.readBy is list &&
-                            !(request.auth.uid in resource.data.readBy) &&
-                            request.resource.data.readBy.hasAll(resource.data.readBy) &&
-                            request.auth.uid in request.resource.data.readBy &&
-                            request.resource.data.readBy.size() == resource.data.readBy.size() + 1
-                          ));
+                      && (
+                        // 作成者はcontent, mentionedUserIds, updatedAtを更新可能
+                        request.auth.uid == resource.data.authorId
+                        || (
+                          // readByのみの更新かつ、自分のUIDを追加する操作のみ許可
+                          // 未読ユーザーのみが自分を追加できる（既読ユーザーは変更不可）
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
+                          request.resource.data.readBy is list &&
+                          !(request.auth.uid in resource.data.readBy) &&
+                          request.resource.data.readBy.hasAll(resource.data.readBy) &&
+                          request.auth.uid in request.resource.data.readBy &&
+                          request.resource.data.readBy.size() == resource.data.readBy.size() + 1
+                        )
+                      );
         allow delete: if isSignedIn() && isValidProjectType(projectId)
                       && request.auth.uid == resource.data.authorId;
       }

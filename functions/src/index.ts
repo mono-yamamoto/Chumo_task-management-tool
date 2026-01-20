@@ -6,6 +6,7 @@ import { createGoogleChatThread } from './chat/create';
 import { getTimeReport, exportTimeReportCSV } from './reports/time';
 import { createContactIssue } from './contact/createIssue';
 import { webhookBacklog } from './webhook/backlog';
+import { onCommentCreate } from './notifications/onCommentCreate';
 
 export {
   syncBacklog,
@@ -18,4 +19,5 @@ export {
   exportTimeReportCSV,
   createContactIssue,
   webhookBacklog,
+  onCommentCreate,
 };

@@ -48,25 +48,34 @@ export function useCreateComment() {
       taskId,
       authorId,
       content,
+      mentionedUserIds,
     }: {
       projectType: string;
       taskId: string;
       authorId: string;
       content: string;
+      mentionedUserIds?: string[];
     }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
       const commentsRef = collection(db, 'projects', projectType, 'taskComments');
       const now = new Date();
 
-      const docRef = await addDoc(commentsRef, {
+      const commentData: Record<string, unknown> = {
         taskId,
         authorId,
         content,
         readBy: [authorId], // 作成者は自動的に既読
         createdAt: Timestamp.fromDate(now),
         updatedAt: Timestamp.fromDate(now),
-      });
+      };
+
+      // メンションがある場合のみフィールドを追加
+      if (mentionedUserIds && mentionedUserIds.length > 0) {
+        commentData.mentionedUserIds = mentionedUserIds;
+      }
+
+      const docRef = await addDoc(commentsRef, commentData);
 
       return docRef.id;
     },
@@ -93,20 +102,29 @@ export function useUpdateComment() {
       projectType,
       commentId,
       content,
+      mentionedUserIds,
       taskId: _taskId,
     }: {
       projectType: string;
       commentId: string;
       content: string;
+      mentionedUserIds?: string[];
       taskId: string;
     }) => {
       if (!db) throw new Error('Firestore is not initialized');
 
       const commentRef = doc(db, 'projects', projectType, 'taskComments', commentId);
-      await updateDoc(commentRef, {
+      const updateData: Record<string, unknown> = {
         content,
         updatedAt: Timestamp.fromDate(new Date()),
-      });
+      };
+
+      // メンション情報も更新
+      if (mentionedUserIds !== undefined) {
+        updateData.mentionedUserIds = mentionedUserIds;
+      }
+
+      await updateDoc(commentRef, updateData);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
