@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PROJECT_TYPES, ProjectType } from '../reports/projectTypes';
+import { getCustomFieldConfig } from '../config/backlogCustomFields';
 
 const db = getFirestore();
 
@@ -120,12 +121,6 @@ interface TaskUpdateData {
   releaseDate?: Date | null;
   updatedAt: Date;
 }
-
-// カスタムフィールドの定義（IDとフィールド名のマッピング）
-const CUSTOM_FIELD_IDS = {
-  IT_UP_DATE: 1073783169, // ＩＴ予定日
-  RELEASE_DATE: 1073783170, // 本番リリース予定日
-} as const;
 
 /**
  * 日付文字列（YYYY/MM/DD形式）をDateオブジェクトに変換する
@@ -369,9 +364,16 @@ export const webhookBacklog = onRequest(
         .limit(1)
         .get();
 
+      // プロジェクトに対応するカスタムフィールド設定を取得
+      const customFieldConfig = getCustomFieldConfig(projectType as ProjectType);
+
       // カスタムフィールドからIT予定日と本番リリース予定日を抽出
-      const itUpDateValue = getCustomFieldValue(customFields, CUSTOM_FIELD_IDS.IT_UP_DATE);
-      const releaseDateValue = getCustomFieldValue(customFields, CUSTOM_FIELD_IDS.RELEASE_DATE);
+      const itUpDateValue = customFieldConfig.itUpDate
+        ? getCustomFieldValue(customFields, customFieldConfig.itUpDate)
+        : null;
+      const releaseDateValue = customFieldConfig.releaseDate
+        ? getCustomFieldValue(customFields, customFieldConfig.releaseDate)
+        : null;
       const itUpDate = parseDateString(itUpDateValue);
       const releaseDate = parseDateString(releaseDateValue);
 
