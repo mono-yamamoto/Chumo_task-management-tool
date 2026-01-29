@@ -47,5 +47,5 @@ export const BACKLOG_CUSTOM_FIELDS: Record<ProjectType, BacklogCustomFieldConfig
  * @returns カスタムフィールド設定（存在しない場合は空オブジェクト）
  */
 export function getCustomFieldConfig(projectType: ProjectType): BacklogCustomFieldConfig {
-  return BACKLOG_CUSTOM_FIELDS[projectType];
+  return BACKLOG_CUSTOM_FIELDS[projectType] ?? {};
 }
