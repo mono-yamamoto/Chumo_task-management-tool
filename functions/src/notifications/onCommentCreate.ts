@@ -2,6 +2,19 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { logger } from 'firebase-functions';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+
+const secretClient = new SecretManagerServiceClient();
+
+/**
+ * Secret Managerから値を取得
+ */
+async function getSecret(secretName: string): Promise<string> {
+  const projectId = process.env.GCLOUD_PROJECT || '';
+  const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+  const [version] = await secretClient.accessSecretVersion({ name });
+  return version.payload?.data?.toString() || '';
+}
 
 interface CommentData {
   taskId: string;
@@ -103,6 +116,20 @@ export const onCommentCreate = onDocumentCreated(
         return;
       }
 
+      // APP_ORIGINを取得して完全URLを構築
+      let appOrigin = '';
+      try {
+        appOrigin = await getSecret('APP_ORIGIN');
+      } catch (error) {
+        logger.warn('Failed to get APP_ORIGIN from Secret Manager, using relative path', {
+          error,
+        });
+      }
+
+      // 完全URL or フォールバックで相対パス
+      const taskPath = `/tasks/${commentData.taskId}`;
+      const taskUrl = appOrigin ? `${appOrigin}${taskPath}` : taskPath;
+
       // 通知を送信
       const notification = {
         title: `${authorName}さんがあなたをメンションしました`,
@@ -115,7 +142,7 @@ export const onCommentCreate = onDocumentCreated(
         taskId: commentData.taskId,
         commentId,
         authorId: commentData.authorId,
-        clickAction: `/tasks/${commentData.taskId}`,
+        clickAction: taskUrl,
       };
 
       const response = await messaging.sendEachForMulticast({
@@ -124,7 +151,7 @@ export const onCommentCreate = onDocumentCreated(
         data,
         webpush: {
           fcmOptions: {
-            link: `/tasks/${commentData.taskId}`,
+            link: taskUrl,
           },
         },
       });

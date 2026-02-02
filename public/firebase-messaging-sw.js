@@ -52,9 +52,15 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data;
   let targetUrl = '/';
 
-  // タスク詳細ページへのURLを構築
-  if (data?.projectType && data?.taskId) {
-    targetUrl = `/tasks/${data.taskId}`;
+  // clickActionから遷移先URLを取得
+  // 完全URL（httpで始まる）の場合はそのまま使用、相対パスの場合はoriginを付与
+  if (data?.clickAction) {
+    targetUrl = data.clickAction.startsWith('http')
+      ? data.clickAction
+      : `${self.location.origin}${data.clickAction}`;
+  } else if (data?.projectType && data?.taskId) {
+    // 後方互換: clickActionがない場合はtaskIdから構築
+    targetUrl = `${self.location.origin}/tasks/${data.taskId}`;
   }
 
   // ウィンドウにフォーカスまたは新しいタブを開く
