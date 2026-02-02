@@ -9,7 +9,9 @@ const db = getFirestore();
 interface BacklogCustomField {
   id: number;
   field: string;
-  value: string | null;
+  // Backlogの日付型カスタムフィールドはオブジェクト形式で返ることがある
+  // 例: { name: "2026/01/23" }
+  value: string | { name?: string; value?: string } | null;
   fieldTypeId: number;
 }
 
@@ -130,6 +132,12 @@ interface TaskUpdateData {
 function parseDateString(dateString: string | null | undefined): Date | null {
   if (!dateString) return null;
 
+  // 文字列以外が渡された場合はnullを返す
+  if (typeof dateString !== 'string') {
+    console.warn(`parseDateString: Expected string but received ${typeof dateString}`, dateString);
+    return null;
+  }
+
   // YYYY/MM/DD または YYYY-MM-DD 形式に対応
   const datePattern = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/;
   const match = dateString.match(datePattern);
@@ -173,9 +181,10 @@ function parseDateString(dateString: string | null | undefined): Date | null {
 
 /**
  * カスタムフィールド配列から指定されたIDのフィールド値を取得する
+ * Backlogの日付型カスタムフィールドはオブジェクト形式（例: {name: "2026/01/23"}）で返る場合がある
  * @param customFields カスタムフィールド配列
  * @param fieldId フィールドID
- * @returns フィールド値（存在しない場合はnull）
+ * @returns フィールド値（文字列形式で返す、存在しない場合はnull）
  */
 function getCustomFieldValue(
   customFields: BacklogCustomField[] | undefined,
@@ -184,7 +193,32 @@ function getCustomFieldValue(
   if (!customFields || !Array.isArray(customFields)) return null;
 
   const field = customFields.find((f) => f.id === fieldId);
-  return field?.value ?? null;
+  if (!field) return null;
+
+  const value = field.value;
+
+  // 値がnullまたはundefinedの場合
+  if (value == null) return null;
+
+  // 値が文字列の場合はそのまま返す
+  if (typeof value === 'string') return value;
+
+  // 値がオブジェクトの場合（Backlog日付型: {name: "2026/01/23"}）
+  if (typeof value === 'object' && value !== null) {
+    // name プロパティを優先的に取得
+    const objValue = value as { name?: string; value?: string };
+    if (objValue.name && typeof objValue.name === 'string') {
+      return objValue.name;
+    }
+    if (objValue.value && typeof objValue.value === 'string') {
+      return objValue.value;
+    }
+    console.warn(`getCustomFieldValue: Unexpected object value for field ${fieldId}`, value);
+    return null;
+  }
+
+  console.warn(`getCustomFieldValue: Unexpected value type for field ${fieldId}`, typeof value, value);
+  return null;
 }
 
 // utils/backlog.tsからgenerateBacklogUrlをインポートできないため、
