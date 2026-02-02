@@ -134,3 +134,35 @@ Vercelで環境変数を設定する前に、Google Cloud Consoleでリダイレ
 Google Drive連携で問題が発生する場合は、以下のドキュメントを参照してください:
 
 - `docs/troubleshooting/GOOGLE_DRIVE_OAUTH_DEBUG.md`: エラーのデバッグガイド
+
+---
+
+## Step 4: Cloud Functions用のSecret Manager設定
+
+Cloud Functionsで使用するシークレットはGoogle Cloud Secret Managerで管理します。
+
+### 必要なシークレット
+
+| シークレット名            | 説明                              | 設定例                               |
+| ------------------------- | --------------------------------- | ------------------------------------ |
+| `GOOGLE_CHAT_WEBHOOK_URL` | Google Chat Webhookの送信先URL    | Google Chatスペースの設定から取得    |
+| `GOOGLE_CHAT_SPACE_URL`   | Google ChatスペースのベースURL    | `https://chat.google.com/room/XXXXX` |
+| `APP_ORIGIN`              | アプリの本番URL（通知のリンク用） | `https://chumo-task.vercel.app`      |
+
+### シークレットの追加方法
+
+```bash
+# Secret Managerにシークレットを追加
+gcloud secrets create <シークレット名> --project=chumo-3506a
+
+# 値を設定
+echo -n "<値>" | gcloud secrets versions add <シークレット名> --data-file=- --project=chumo-3506a
+```
+
+### 注意事項
+
+- シークレットの追加・変更後はCloud Functionsの再デプロイが必要です
+  ```bash
+  npm run functions:deploy
+  ```
+- Secret Managerへのアクセス権限が必要です（Cloud Functionsのサービスアカウントに`Secret Manager Secret Accessor`ロールを付与）
