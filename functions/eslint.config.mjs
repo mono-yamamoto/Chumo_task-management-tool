@@ -12,9 +12,8 @@ export default tseslint.config(
     files: ['src/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
-        ecmaVersion: 2020,
-        sourceType: 'module',
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         console: 'readonly',
