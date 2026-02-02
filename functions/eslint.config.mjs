@@ -1,17 +1,16 @@
 import js from '@eslint/js';
-import typescript from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 
-export default [
+export default tseslint.config(
   {
     ignores: ['node_modules/**', 'lib/**'],
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
     languageOptions: {
-      parser: typescriptParser,
       parserOptions: {
         project: './tsconfig.json',
         ecmaVersion: 2020,
@@ -33,7 +32,6 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': typescript,
       import: importPlugin,
     },
     rules: {
@@ -49,5 +47,5 @@ export default [
       'no-undef': 'off',
       'no-console': 'off', // Cloud Functionsではconsole使用OK
     },
-  },
-];
+  }
+);

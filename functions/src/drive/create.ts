@@ -13,7 +13,6 @@ async function getSecret(secretName: string): Promise<string> {
   return version.payload?.data?.toString() || '';
 }
 
-
 export const createDriveFolder = onRequest(
   {
     cors: true,
@@ -148,7 +147,9 @@ export const createDriveFolder = onRequest(
       }
 
       if (!appOrigin) {
-        console.warn('APP_ORIGIN not configured in Secret Manager. Task detail URL will not be set.');
+        console.warn(
+          'APP_ORIGIN not configured in Secret Manager. Task detail URL will not be set.'
+        );
       }
 
       // OAuth 2.0クライアントを作成してリフレッシュトークンからアクセストークンを取得
@@ -294,9 +295,7 @@ export const createDriveFolder = onRequest(
 
           // H9: タスク詳細ページURL
           try {
-            const taskDetailUrl = appOrigin
-              ? `${appOrigin}/tasks/${taskId}`
-              : '';
+            const taskDetailUrl = appOrigin ? `${appOrigin}/tasks/${taskId}` : '';
             await sheets.spreadsheets.values.update({
               spreadsheetId: sheetId,
               range: `${sheetName}!H9`,
@@ -326,7 +325,9 @@ export const createDriveFolder = onRequest(
 
           // Google APIエラーの場合は詳細情報を取得
           if (error && typeof error === 'object' && 'response' in error) {
-            const apiError = error as any;
+            const apiError = error as {
+              response?: { status?: number; statusText?: string; data?: unknown };
+            };
             console.error('Google API Error:', {
               status: apiError.response?.status,
               statusText: apiError.response?.statusText,

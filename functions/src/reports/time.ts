@@ -27,8 +27,13 @@ function toMillis(value: Timestamp | { toDate?: () => Date } | Date | string): n
   if (value instanceof Timestamp) {
     return value.toMillis();
   }
-  if (value && typeof (value as any).toDate === 'function') {
-    return (value as any).toDate().getTime();
+  if (
+    value &&
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof value.toDate === 'function'
+  ) {
+    return value.toDate().getTime();
   }
   if (value instanceof Date) {
     return value.getTime();
