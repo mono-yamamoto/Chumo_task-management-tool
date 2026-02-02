@@ -14,7 +14,6 @@ interface TaskCardProps {
   onTaskSelect: (taskId: string) => void;
   allLabels?: Label[];
   currentUserId?: string | null;
-  showProjectType?: boolean;
   showProgressStatus?: boolean;
   hasUnreadComment?: boolean;
   isNewTask?: boolean;
@@ -25,7 +24,6 @@ export function TaskCard({
   onTaskSelect,
   allLabels,
   currentUserId,
-  showProjectType = false,
   showProgressStatus = false,
   hasUnreadComment = false,
   isNewTask = false,
@@ -70,7 +68,7 @@ export function TaskCard({
           display: 'flex',
           alignItems: 'flex-start',
           gap: 0.5,
-          mb: label || showProjectType || task.itUpDate ? 1 : 0,
+          mb: label || task.itUpDate ? 1 : 0,
         }}
       >
         {isNewTask && <Badge variant="error">New</Badge>}
@@ -94,12 +92,29 @@ export function TaskCard({
         </Typography>
       </Box>
 
-      {/* メタ情報行（区分ラベル、進捗ステータス、プロジェクトタイプ、またはITアップ日がある場合のみ表示） */}
-      {(label ||
-        (showProgressStatus && task.progressStatus) ||
-        (showProjectType && task.projectType) ||
-        task.itUpDate) && (
+      {/* メタ情報行（区分ラベル、進捗ステータス、またはITアップ日がある場合のみ表示） */}
+      {(label || (showProgressStatus && task.progressStatus) || task.itUpDate) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+          {/* 区分ラベル（バッジスタイル） */}
+          {label && (
+            <Chip
+              label={label.name}
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.7rem',
+                fontWeight: 'medium',
+                bgcolor: `${label.color}20`,
+                color: label.color,
+                border: '1px solid',
+                borderColor: `${label.color}40`,
+                '& .MuiChip-label': {
+                  px: 1,
+                },
+              }}
+            />
+          )}
+
           {/* ITアップ日 */}
           {task.itUpDate && (
             <Box
@@ -123,42 +138,9 @@ export function TaskCard({
             </Box>
           )}
 
-          {/* 区分ラベル（バッジスタイル） */}
-          {label && (
-            <Chip
-              label={label.name}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.7rem',
-                fontWeight: 'medium',
-                bgcolor: `${label.color}20`,
-                color: label.color,
-                border: '1px solid',
-                borderColor: `${label.color}40`,
-                '& .MuiChip-label': {
-                  px: 1,
-                },
-              }}
-            />
-          )}
-
           {/* 進捗ステータス */}
           {showProgressStatus && task.progressStatus && (
             <ProgressStatusBadge status={task.progressStatus} />
-          )}
-
-          {/* プロジェクトタイプ */}
-          {showProjectType && task.projectType && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.disabled',
-                fontSize: '0.65rem',
-              }}
-            >
-              {task.projectType}
-            </Typography>
           )}
         </Box>
       )}

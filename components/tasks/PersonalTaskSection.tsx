@@ -22,7 +22,6 @@ interface PersonalTaskSectionProps {
   onTaskSelect: (taskId: string) => void;
   allLabels?: Label[];
   currentUserId?: string | null;
-  showProjectType?: boolean;
   unreadTaskIds?: Set<string>;
   oneWeekAgo: number;
   defaultExpanded?: boolean;
@@ -33,7 +32,6 @@ export function PersonalTaskSection({
   onTaskSelect,
   allLabels,
   currentUserId,
-  showProjectType = false,
   unreadTaskIds,
   oneWeekAgo,
   defaultExpanded = true,
@@ -109,7 +107,6 @@ export function PersonalTaskSection({
               onTaskSelect={onTaskSelect}
               allLabels={allLabels}
               currentUserId={currentUserId}
-              showProjectType={showProjectType}
               unreadTaskIds={unreadTaskIds}
               oneWeekAgo={oneWeekAgo}
               defaultExpanded={true}

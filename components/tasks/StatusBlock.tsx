@@ -21,7 +21,6 @@ interface StatusBlockProps {
   onTaskSelect: (taskId: string) => void;
   allLabels?: Label[];
   currentUserId?: string | null;
-  showProjectType?: boolean;
   unreadTaskIds?: Set<string>;
   oneWeekAgo: number;
   defaultExpanded?: boolean;
@@ -32,7 +31,6 @@ export function StatusBlock({
   onTaskSelect,
   allLabels,
   currentUserId,
-  showProjectType = false,
   unreadTaskIds,
   oneWeekAgo,
   defaultExpanded = true,
@@ -90,7 +88,6 @@ export function StatusBlock({
               onTaskSelect={onTaskSelect}
               allLabels={allLabels}
               currentUserId={currentUserId}
-              showProjectType={showProjectType}
               hasUnreadComment={unreadTaskIds?.has(task.id)}
               isNewTask={isNewTask(task)}
             />
