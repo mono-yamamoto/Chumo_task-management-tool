@@ -50,13 +50,13 @@ firebase use --add
 # プロンプトでプロジェクトID "chumo-3506a" を選択
 ```
 
-## 4. Git Hooks設定（セキュリティチェック）
+## 4. Git Hooks設定（lefthook）
 
-**⚠️ 重要: このステップは機密情報の誤コミットを防ぎます。**
+lefthookを使用してコミット前のチェックを自動化しています。
 
-コミット前に自動的に機密情報をチェックするためのGit Hookを設定します。
+### 前提条件: gitleaksのインストール
 
-### gitleaksのインストール
+機密情報チェックのため、gitleaksが必要です。
 
 ```bash
 # macOS
@@ -67,15 +67,29 @@ brew install gitleaks
 # PATHに追加し、gitleaks version で確認
 ```
 
-### pre-commit hookの設定
+### lefthookの自動セットアップ
+
+`npm install` を実行すると、`prepare` スクリプトにより自動的にlefthookがセットアップされます。
 
 ```bash
-# hookを.git/hooksにコピー
-cp .githooks/pre-commit .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
+npm install
+# → lefthook install が自動実行される
 ```
 
-これで、コミット前に自動的に機密情報がチェックされます。機密情報が含まれている場合はコミットがブロックされます。
+### 手動セットアップ（必要な場合のみ）
+
+```bash
+npx lefthook install
+```
+
+### pre-commitで実行されるチェック
+
+1. **gitleaks**: 機密情報の検出
+2. **ESLint**: TypeScript/JavaScriptのリント（自動修正あり）
+3. **oxfmt**: コードフォーマット（自動修正あり）
+
+※ステージングされたファイルのみが対象です。
+※修正されたファイルは自動的に再ステージングされます。
 
 ## 5. 開発サーバーの起動
 
@@ -138,7 +152,9 @@ AIエージェントが初めてこのプロジェクトで作業する際は、
 - **Firebase CLIエラー**: `firebase login`を再実行してください
 - **デプロイエラー**: `firebase use --add`でプロジェクトを再選択してください
 - **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認してください
-- **gitleaksエラー**: `gitleaks version`でインストールを確認し、`.git/hooks/pre-commit`に実行権限があるか確認してください（`chmod +x .git/hooks/pre-commit`）
+- **gitleaksエラー**: `gitleaks version`でインストールを確認してください
+- **lefthookが動作しない場合**: `npx lefthook install` を再実行してください
+- **ESLint/oxfmtエラー**: 修正が必要なエラーの場合は手動で修正後、再コミットしてください
 
 詳細なトラブルシューティングは `docs/operations/TROUBLESHOOTING.md` を参照してください。
 
