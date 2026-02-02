@@ -17,6 +17,7 @@
 ### ステップ1: サービスアカウントのメールアドレスを確認
 
 **GCP Console（Web UI）で確認**
+
 1. [GCP Console](https://console.cloud.google.com/) → 「Secret Manager」→ `DRIVE_SERVICE_ACCOUNT_KEY` → 最新バージョン → 「シークレット値を表示」
 2. JSONの中の`client_email`フィールドを確認
 3. 詳細な手順は `docs/CHECK_SERVICE_ACCOUNT_EMAIL.md` を参照
@@ -28,6 +29,7 @@
 サービスアカウントのメールアドレス（`@xxxxx.iam.gserviceaccount.com`）は、GCPプロジェクトに関連付けられています。
 
 **重要なポイント**:
+
 - サービスアカウント自体にはストレージ容量はありません
 - サービスアカウントキーを作成したGoogleアカウント（またはサービスアカウントに権限を付与したGoogleアカウント）のストレージ容量が問題です
 - **通常、プロジェクトのオーナーまたは作成者のGoogleアカウントが関連付けられています**
@@ -45,6 +47,7 @@
 サービスアカウントキーを作成したGoogleアカウントが、サービスアカウントが使用しているアカウントです。
 
 **確認方法**:
+
 1. GCP Console → 「IAMと管理」→「サービスアカウント」
 2. Drive APIを使用しているサービスアカウントを確認
 3. 「キー」タブで、キーを作成したユーザーを確認（可能な場合）
@@ -132,4 +135,3 @@ A: 以下のいずれかの方法で解決できます：
 - [GCP Console - IAM](https://console.cloud.google.com/iam-admin/iam)
 - [GCP Console - サービスアカウント](https://console.cloud.google.com/iam-admin/serviceaccounts)
 - [Google Drive ストレージの管理](https://support.google.com/drive/answer/2375123)
-

@@ -85,10 +85,12 @@ export function groupTasksByAssignee(tasks: Task[], users: User[] | undefined): 
     }
 
     // ステータス順序に従ってソート
-    const statusGroups: StatusGroup[] = STATUS_ORDER.filter((status) => statusMap.has(status)).map((status) => ({
-      status,
-      tasks: statusMap.get(status) || [],
-    }));
+    const statusGroups: StatusGroup[] = STATUS_ORDER.filter((status) => statusMap.has(status)).map(
+      (status) => ({
+        status,
+        tasks: statusMap.get(status) || [],
+      })
+    );
 
     sections.push({
       assigneeId,

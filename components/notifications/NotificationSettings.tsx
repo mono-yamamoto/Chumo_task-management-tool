@@ -48,9 +48,7 @@ export function NotificationSettings() {
             プッシュ通知
           </Typography>
         </Box>
-        <Alert severity="warning">
-          このブラウザはプッシュ通知に対応していません。
-        </Alert>
+        <Alert severity="warning">このブラウザはプッシュ通知に対応していません。</Alert>
       </Paper>
     );
   }

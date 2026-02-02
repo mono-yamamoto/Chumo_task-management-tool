@@ -63,9 +63,18 @@ export function TaskCard({
       onClick={() => onTaskSelect(task.id)}
     >
       {/* タイトル行 */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: label || showProjectType ? 1 : 0 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 0.5,
+          mb: label || showProjectType ? 1 : 0,
+        }}
+      >
         {isNewTask && <Badge variant="error">New</Badge>}
-        {currentUserId && task.assigneeIds.includes(currentUserId) && hasUnreadComment && <UnreadBadge size="sm" />}
+        {currentUserId && task.assigneeIds.includes(currentUserId) && hasUnreadComment && (
+          <UnreadBadge size="sm" />
+        )}
         <Typography
           variant="body2"
           sx={{
@@ -84,7 +93,9 @@ export function TaskCard({
       </Box>
 
       {/* メタ情報行（区分ラベル、進捗ステータス、またはプロジェクトタイプがある場合のみ表示） */}
-      {(label || (showProgressStatus && task.progressStatus) || (showProjectType && task.projectType)) && (
+      {(label ||
+        (showProgressStatus && task.progressStatus) ||
+        (showProjectType && task.projectType)) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
           {/* 区分ラベル（バッジスタイル） */}
           {label && (
@@ -107,7 +118,9 @@ export function TaskCard({
           )}
 
           {/* 進捗ステータス */}
-          {showProgressStatus && task.progressStatus && <ProgressStatusBadge status={task.progressStatus} />}
+          {showProgressStatus && task.progressStatus && (
+            <ProgressStatusBadge status={task.progressStatus} />
+          )}
 
           {/* プロジェクトタイプ */}
           {showProjectType && task.projectType && (

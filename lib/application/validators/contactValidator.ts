@@ -44,10 +44,7 @@ export class ContactValidator {
     }
 
     // contactContentの検証
-    if (
-      typeof request.contactContent !== 'string' ||
-      request.contactContent.trim() === ''
-    ) {
+    if (typeof request.contactContent !== 'string' || request.contactContent.trim() === '') {
       errors.push('お問い合わせ内容を入力してください');
     } else if (request.contactContent.length > 5000) {
       errors.push('お問い合わせ内容は5000文字以内で入力してください');
@@ -55,9 +52,7 @@ export class ContactValidator {
 
     // エラー報告の場合の追加検証
     if (request.contactType === 'error' && request.errorReportDetails) {
-      const detailErrors = this.validateErrorReportDetails(
-        request.errorReportDetails
-      );
+      const detailErrors = this.validateErrorReportDetails(request.errorReportDetails);
       errors.push(...detailErrors);
     }
 
@@ -131,7 +126,15 @@ export class ContactValidator {
    * BrowserTypeの検証
    */
   private isValidBrowserType(type: string): type is BrowserType {
-    const validTypes: BrowserType[] = ['Chrome', 'Firefox', 'Safari', 'Arc', 'Comet', 'Dia', 'other'];
+    const validTypes: BrowserType[] = [
+      'Chrome',
+      'Firefox',
+      'Safari',
+      'Arc',
+      'Comet',
+      'Dia',
+      'other',
+    ];
     return validTypes.includes(type as BrowserType);
   }
 }

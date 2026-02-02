@@ -217,7 +217,11 @@ function getCustomFieldValue(
     return null;
   }
 
-  console.warn(`getCustomFieldValue: Unexpected value type for field ${fieldId}`, typeof value, value);
+  console.warn(
+    `getCustomFieldValue: Unexpected value type for field ${fieldId}`,
+    typeof value,
+    value
+  );
   return null;
 }
 

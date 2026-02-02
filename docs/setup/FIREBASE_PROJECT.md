@@ -47,6 +47,7 @@ Firestoreには以下の制限機能があります：
 ### 1. 予算アラートの設定（推奨）
 
 Firebase Consoleで設定：
+
 1. Firebase Console → プロジェクト設定 → 「使用量と請求」
 2. 「予算とアラート」タブ
 3. 「予算を作成」をクリック
@@ -59,7 +60,7 @@ Cloud Functionsで自動的に制限を実装できます：
 
 ```typescript
 // functions/src/utils/quota.ts の例
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore } from 'firebase-admin/firestore';
 
 export async function checkQuota(): Promise<boolean> {
   // 月間の読み取り回数をチェック
@@ -77,6 +78,7 @@ export async function checkQuota(): Promise<boolean> {
 ### 4. 無料枠の範囲
 
 Firestoreの無料枠（Sparkプラン）：
+
 - 読み取り: 50,000回/日
 - 書き込み: 20,000回/日
 - 削除: 20,000回/日
@@ -87,4 +89,3 @@ Blazeプラン（従量課金）にアップグレードすると、より柔軟
 ### 5. 実装例：使用量チェック機能
 
 必要であれば、使用量を監視するCloud Functionを追加できます。
-

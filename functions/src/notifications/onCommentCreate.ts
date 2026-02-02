@@ -161,9 +161,12 @@ export const onCommentCreate = onDocumentCreated(
         // 無効なトークンを削除
         for (const { userId, token } of tokensToRemove) {
           try {
-            await db.collection('users').doc(userId).update({
-              fcmTokens: FieldValue.arrayRemove(token),
-            });
+            await db
+              .collection('users')
+              .doc(userId)
+              .update({
+                fcmTokens: FieldValue.arrayRemove(token),
+              });
             logger.info('Removed invalid FCM token', { userId });
           } catch (error) {
             logger.error('Failed to remove invalid token', { userId, error });

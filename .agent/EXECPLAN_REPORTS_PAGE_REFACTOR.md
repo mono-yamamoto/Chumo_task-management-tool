@@ -46,7 +46,7 @@ Update `app/(dashboard)/reports/page.tsx` to rely on `useReportData` for fetch/e
 
 From the repository root, update the reports page and add the new component. Then run lint.
 
-  npm run lint
+npm run lint
 
 If lint passes, open the dev server at `http://localhost:3000/reports` and confirm that the page renders, the loading and error states behave as before, and CSV export still triggers a download.
 
@@ -74,35 +74,35 @@ Lint completed with no errors. Browser verification was performed via the Browse
 
 In `types/report.ts`, provide:
 
-  export type ReportItem = {
-    taskId?: string | null;
-    title?: string;
-    durationSec?: number;
-    over3hours?: string;
-  };
+export type ReportItem = {
+taskId?: string | null;
+title?: string;
+durationSec?: number;
+over3hours?: string;
+};
 
-  export type ReportResponse = {
-    items?: ReportItem[];
-    totalDurationSec?: number;
-  };
+export type ReportResponse = {
+items?: ReportItem[];
+totalDurationSec?: number;
+};
 
 In `hooks/useReportData.ts`, provide:
 
-  export function useReportData({ activeTab, fromDate, toDate }: UseReportDataOptions): {
-    reportData: ReportResponse | undefined;
-    isLoading: boolean;
-    error: unknown;
-    handleExportCSV: () => Promise<void>;
-  }
+export function useReportData({ activeTab, fromDate, toDate }: UseReportDataOptions): {
+reportData: ReportResponse | undefined;
+isLoading: boolean;
+error: unknown;
+handleExportCSV: () => Promise<void>;
+}
 
 In `components/reports/ReportTable.tsx`, provide:
 
-  type ReportTableProps = {
-    reportData: ReportResponse | undefined;
-    totalDurationSec: number;
-  };
+type ReportTableProps = {
+reportData: ReportResponse | undefined;
+totalDurationSec: number;
+};
 
-  export function ReportTable(props: ReportTableProps): JSX.Element
+export function ReportTable(props: ReportTableProps): JSX.Element
 
 In `app/(dashboard)/reports/page.tsx`, use `useReportData` and `ReportTable` to keep the same visible behavior.
 

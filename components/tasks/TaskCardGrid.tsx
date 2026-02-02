@@ -81,10 +81,12 @@ export function TaskCardGrid({
     }
 
     // ステータス順序に従ってソート
-    const groups: StatusGroup[] = STATUS_ORDER.filter((status) => statusMap.has(status)).map((status) => ({
-      status,
-      tasks: statusMap.get(status) || [],
-    }));
+    const groups: StatusGroup[] = STATUS_ORDER.filter((status) => statusMap.has(status)).map(
+      (status) => ({
+        status,
+        tasks: statusMap.get(status) || [],
+      })
+    );
 
     return groups;
   }, [tasks]);

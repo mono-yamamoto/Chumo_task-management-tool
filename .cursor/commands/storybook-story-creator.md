@@ -4,6 +4,7 @@ description: Create and maintain Storybook stories in compliance with project ru
 tools: Read, Edit, Write, Grep, Glob
 model: inherit
 ---
+
 # storybook-story-creator
 
 **Role**: Create and maintain Storybook stories in compliance with project rules, supporting visual difference verification.
@@ -50,9 +51,9 @@ model: inherit
 ### Basic Story File Structure (No Conditional Branching)
 
 ```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { Button } from "@/components/ui/button/Button";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { Button } from '@/components/ui/button/Button';
 
 const meta = {
   component: Button,
@@ -65,7 +66,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     onClick: fn(),
-    children: "Button",
+    children: 'Button',
   },
 };
 ```
@@ -73,9 +74,9 @@ export const Default: Story = {
 ### Conditional Branching Example (Error State)
 
 ```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { FormField } from "@/components/ui/form-field/FormField";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { FormField } from '@/components/ui/form-field/FormField';
 
 const meta = {
   component: FormField,
@@ -87,8 +88,8 @@ type Story = StoryObj<typeof meta>;
 // When component displays different UI based on error presence
 export const Default: Story = {
   args: {
-    label: "Username",
-    value: "",
+    label: 'Username',
+    value: '',
     onChange: fn(),
   },
 };
@@ -96,9 +97,9 @@ export const Default: Story = {
 // Error message is displayed when error exists (conditional branching)
 export const ErrorState: Story = {
   args: {
-    label: "Username",
-    value: "a",
-    error: "Username must be at least 3 characters",
+    label: 'Username',
+    value: 'a',
+    error: 'Username must be at least 3 characters',
     onChange: fn(),
   },
 };
@@ -107,9 +108,9 @@ export const ErrorState: Story = {
 ### Loading State Example
 
 ```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { DataList } from "@/components/features/data/data-list/DataList";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { DataList } from '@/components/features/data/data-list/DataList';
 
 const meta = {
   component: DataList,
@@ -119,9 +120,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const mockData = [
-  { id: "1", name: "Item 1" },
-  { id: "2", name: "Item 2" },
-  { id: "3", name: "Item 3" },
+  { id: '1', name: 'Item 1' },
+  { id: '2', name: 'Item 2' },
+  { id: '3', name: 'Item 3' },
 ];
 
 // Normal display
@@ -153,9 +154,9 @@ export const NoData: Story = {
 ### Authentication State Example
 
 ```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { UserMenu } from "@/components/features/header/user-menu/UserMenu";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { UserMenu } from '@/components/features/header/user-menu/UserMenu';
 
 const meta = {
   component: UserMenu,
@@ -165,9 +166,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const mockUser = {
-  id: "1",
-  name: "Taro Yamada",
-  avatarUrl: "https://example.com/avatar.jpg",
+  id: '1',
+  name: 'Taro Yamada',
+  avatarUrl: 'https://example.com/avatar.jpg',
 };
 
 // User menu is displayed when logged in
@@ -193,22 +194,22 @@ export const NotLoggedIn: Story = {
 // ❌ Creating multiple stories for simple prop value differences
 export const PrimaryButton: Story = {
   args: {
-    variant: "primary",
-    children: "Button",
+    variant: 'primary',
+    children: 'Button',
   },
 };
 
 export const SecondaryButton: Story = {
   args: {
-    variant: "secondary",
-    children: "Button",
+    variant: 'secondary',
+    children: 'Button',
   },
 };
 
 export const LargeButton: Story = {
   args: {
-    size: "large",
-    children: "Button",
+    size: 'large',
+    children: 'Button',
   },
 };
 
@@ -222,13 +223,13 @@ export const Hidden: Story = {
 // ❌ Duplicate stories with same appearance
 export const Default1: Story = {
   args: {
-    text: "Test 1",
+    text: 'Test 1',
   },
 };
 
 export const Default2: Story = {
   args: {
-    text: "Test 2",
+    text: 'Test 2',
   },
 };
 ```

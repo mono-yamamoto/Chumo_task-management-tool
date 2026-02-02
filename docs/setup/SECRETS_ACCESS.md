@@ -64,6 +64,7 @@ Cloud FunctionsがSecret ManagerからSecretsを読み取れるように、Cloud
 **方法D: URLから確認（上級者向け）**
 
 GCP ConsoleのURLにプロジェクト番号が含まれている場合があります：
+
 - URL例: `https://console.cloud.google.com/home/dashboard?project=chumo-3506a`
 - この場合、プロジェクト番号はURLからは直接確認できません
 
@@ -79,6 +80,7 @@ GCP ConsoleのURLにプロジェクト番号が含まれている場合があり
 #### ステップ2: サービスアカウントのメールアドレスを作成
 
 プロジェクト番号が `687214998081` の場合、サービスアカウントのメールアドレスは：
+
 ```
 687214998081-compute@developer.gserviceaccount.com
 ```
@@ -104,12 +106,12 @@ GCP ConsoleのURLにプロジェクト番号が含まれている場合があり
    - 「**アクセス権を付与**」ボタン（または「**追加**」ボタン）をクリック
 
 5. **情報を入力**
-   - **新しいプリンシパル**: 
+   - **新しいプリンシパル**:
      - `PROJECT_NUMBER-compute@developer.gserviceaccount.com` を入力
      - 例: `687214998081-compute@developer.gserviceaccount.com`
      - ⚠️ **重要**: このメールアドレスは**自動的に作成されるサービスアカウント**です。IAMで手動で登録する必要はありません。GCPが自動的に作成します。
      - ⚠️ **エラーが出る場合**: サービスアカウントがまだ存在しない可能性があります。下記の「エラー対処法」を参照してください。
-   - **ロールを選択**: 
+   - **ロールを選択**:
      - 「**Secret Manager シークレット アクセサー**」を選択
      - 検索バーで「secretAccessor」と検索すると見つかります
      - ⚠️ **重要**: 「オーナー」ではなく「Secret Manager シークレット アクセサー」を選択してください
@@ -119,11 +121,13 @@ GCP ConsoleのURLにプロジェクト番号が含まれている場合があり
 **プリンシパル**は、GCPのIAM（Identity and Access Management）で**権限を付与する対象**のことです。
 
 **プリンシパルの種類**:
+
 - **ユーザーアカウント**: 個人のGoogleアカウント（例: `user@example.com`）
 - **サービスアカウント**: アプリケーションやサービスが使用するアカウント（例: `687214998081-compute@developer.gserviceaccount.com`）
 - **グループ**: 複数のユーザーをまとめたグループ
 
 **この場合のプリンシパル**:
+
 - `687214998081-compute@developer.gserviceaccount.com` は、**Cloud Functionsが自動的に使用するサービスアカウント**です
 - このサービスアカウントは、Cloud Functionsを有効にすると**自動的に作成**されます
 - **IAMで手動で登録する必要はありません**
@@ -132,7 +136,8 @@ GCP ConsoleのURLにプロジェクト番号が含まれている場合があり
 
 **質問**: IAMで登録したメールアドレスが正しい？
 
-**答え**: 
+**答え**:
+
 - Cloud Functionsのサービスアカウント（`PROJECT_NUMBER-compute@developer.gserviceaccount.com`）は**自動的に作成される**ため、IAMで手動で登録する必要はありません
 - ただし、Secret Managerの権限付与画面で、このサービスアカウントを検索できるようにする必要があります
 - もし検索で見つからない場合は、メールアドレスを直接入力してください
@@ -169,6 +174,7 @@ GCP ConsoleのURLにプロジェクト番号が含まれている場合があり
 ### gcloud CLIのインストール
 
 macOSの場合：
+
 ```bash
 # Homebrewでインストール
 brew install --cask google-cloud-sdk
@@ -180,22 +186,26 @@ gcloud init
 ### 手順
 
 1. **gcloudにログイン**
+
 ```bash
 gcloud auth login
 ```
 
 2. **プロジェクトを選択**
+
 ```bash
 gcloud config set project chumo-3506a
 ```
 
 3. **PROJECT_NUMBERを取得**
+
 ```bash
 PROJECT_NUMBER=$(gcloud projects describe chumo-3506a --format="value(projectNumber)")
 echo $PROJECT_NUMBER
 ```
 
 4. **サービスアカウント名を設定**
+
 ```bash
 SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 echo $SERVICE_ACCOUNT
@@ -268,11 +278,13 @@ echo "Done!"
 ## 権限付与の確認
 
 ### GCP Consoleで確認
+
 1. Secret Manager → 各Secretを開く
 2. 「権限」タブを確認
 3. Cloud Functionsのサービスアカウントが「Secret Manager シークレット アクセサー」のロールで表示されていることを確認
 
 ### CLIで確認
+
 ```bash
 # 特定のSecretの権限を確認
 gcloud secrets get-iam-policy SECRET_NAME --project=chumo-3506a
@@ -324,10 +336,10 @@ Cloud Functionsをデプロイすると、サービスアカウントが自動�
 **初心者の方は、まずGCP Console（Web UI）から権限を付与することをおすすめします。**
 
 理由：
+
 - ✅ 視覚的にわかりやすい
 - ✅ エラーメッセージが分かりやすい
 - ✅ 権限の確認が簡単
 - ✅ コマンドラインの知識が不要
 
 慣れてきたら、CLIを使うと効率的です。
-

@@ -77,8 +77,7 @@
           "order": "ASCENDING"
         }
       ]
-    }
-    ,
+    },
     {
       "collectionGroup": "contacts",
       "queryScope": "COLLECTION",
@@ -110,4 +109,3 @@
   ],
   "fieldOverrides": []
 }
-

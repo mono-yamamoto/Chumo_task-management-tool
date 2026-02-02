@@ -42,6 +42,7 @@ Google Drive連携で `400: redirect_uri_mismatch` エラーが発生する場�
 5. 「承認済みのリダイレクトURI」セクションを確認
 
 **登録されているべきURI**:
+
 - `http://localhost:3000/api/auth/google/callback` (開発環境用)
 - `https://chumo-task.vercel.app/api/auth/google/callback` (本番環境用)
 
@@ -53,11 +54,11 @@ Google Drive連携で `400: redirect_uri_mismatch` エラーが発生する場�
 
 **設定されているべき環境変数** (Production環境):
 
-| 変数名 | 値 | 必須 |
-|--------|-----|------|
-| `GOOGLE_OAUTH_REDIRECT_URI` | `https://chumo-task.vercel.app/api/auth/google/callback` | ✅ **必須** |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Consoleから取得したクライアントID | ✅ 必須 |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Consoleから取得したクライアントシークレット | ✅ 必須 |
+| 変数名                       | 値                                                       | 必須        |
+| ---------------------------- | -------------------------------------------------------- | ----------- |
+| `GOOGLE_OAUTH_REDIRECT_URI`  | `https://chumo-task.vercel.app/api/auth/google/callback` | ✅ **必須** |
+| `GOOGLE_OAUTH_CLIENT_ID`     | Google Cloud Consoleから取得したクライアントID           | ✅ 必須     |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Consoleから取得したクライアントシークレット | ✅ 必須     |
 
 **重要**: 環境変数を追加・変更した場合、Vercelは自動的に再デプロイを開始します。デプロイが完了するまで2〜3分待ってから再度テストしてください。
 
@@ -68,6 +69,7 @@ Google Drive連携で `400: redirect_uri_mismatch` エラーが発生する場�
 **症状**: ログに `GOOGLE_OAUTH_REDIRECT_URI: 'NOT SET'` と表示される
 
 **解決策**:
+
 1. Vercel Dashboardで環境変数を追加
 2. 変数名: `GOOGLE_OAUTH_REDIRECT_URI`
 3. 値: `https://chumo-task.vercel.app/api/auth/google/callback`
@@ -79,6 +81,7 @@ Google Drive連携で `400: redirect_uri_mismatch` エラーが発生する場�
 **症状**: ログに正しいURIが表示されるが、Googleのエラーページが表示される
 
 **解決策**:
+
 1. Google Cloud Consoleで OAuth 2.0クライアントIDを編集
 2. 「承認済みのリダイレクトURI」に以下を追加:
    ```
@@ -92,6 +95,7 @@ Google Drive連携で `400: redirect_uri_mismatch` エラーが発生する場�
 **症状**: 環境変数を設定したばかりで、まだエラーが発生する
 
 **解決策**:
+
 1. Vercel Dashboardで最新のデプロイを確認
 2. デプロイステータスが "Ready" になるまで待機（2〜3分）
 3. ブラウザのキャッシュをクリア（Ctrl+Shift+R または Cmd+Shift+R）

@@ -38,6 +38,7 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 **ADR Title**: "Project Structure and Naming Conventions"
 
 **Analysis Targets:**
+
 - Directory structure and organization
 - File naming conventions
 - Module/component organization
@@ -45,11 +46,13 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 - Configuration files
 
 **Extraction Methods:**
+
 - Use `mcp__serena__list_dir` to explore directory structure
 - Use `mcp__kiri__files_search` to find configuration files
 - Analyze package.json, tsconfig.json, next.config.js, etc.
 
 **ADR Format:**
+
 ```json
 {
   "id": "ADR-0001",
@@ -94,6 +97,7 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 **ADR Title**: "Technology Stack and Dependencies"
 
 **Analysis Targets:**
+
 - Framework and libraries
 - Build tools and configuration
 - Runtime environment
@@ -101,12 +105,14 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 - Testing frameworks
 
 **Extraction Methods:**
+
 - Analyze `package.json` dependencies
 - Review configuration files
 - Check build scripts
 - Identify testing setup
 
 **ADR Format:**
+
 ```json
 {
   "id": "ADR-0002",
@@ -133,11 +139,7 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
   },
   "implementation": {
     "affected_files": ["package.json", "tsconfig.json", "next.config.js"],
-    "code_patterns": [
-      "Server Components",
-      "TypeScript strict mode",
-      "Tailwind CSS utility classes"
-    ]
+    "code_patterns": ["Server Components", "TypeScript strict mode", "Tailwind CSS utility classes"]
   },
   "metadata": {
     "tags": ["technology-stack", "nextjs", "typescript", "react"],
@@ -151,6 +153,7 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 **ADR Title**: "Architecture Patterns and Code Organization"
 
 **Analysis Targets:**
+
 - Component architecture
 - Data flow patterns
 - State management approach
@@ -158,12 +161,14 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 - File organization patterns
 
 **Extraction Methods:**
+
 - Use `mcp__kiri__context_bundle` to find architectural patterns
 - Analyze component structure
 - Review API route organization
 - Identify design patterns in code
 
 **ADR Format:**
+
 ```json
 {
   "id": "ADR-0003",
@@ -201,6 +206,7 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 **ADR Title**: "Domain Knowledge and Business Logic"
 
 **Analysis Targets:**
+
 - Business domain and entities
 - Core concepts and terminology
 - Domain models and relationships
@@ -208,12 +214,14 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 - User flows and use cases
 
 **Extraction Methods:**
+
 - Use `mcp__kiri__context_bundle` with domain-related keywords
 - Analyze type definitions and interfaces
 - Review component names and structure
 - Extract business logic from code
 
 **ADR Format:**
+
 ```json
 {
   "id": "ADR-0004",
@@ -246,7 +254,6 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
   }
 }
 ```
-
 
 ## Onboarding Workflow
 
@@ -333,21 +340,21 @@ All ADRs are indexed in `docs/adr/index.json` for easy querying and reference.
 mcp__kiri__context_bundle({
   goal: 'project structure, main components, entry points',
   limit: 20,
-  compact: true
-})
+  compact: true,
+});
 
 // Find domain entities
 mcp__kiri__files_search({
   query: 'type interface model',
-  lang: 'typescript'
-})
+  lang: 'typescript',
+});
 
 // Understand business logic
 mcp__kiri__context_bundle({
   goal: 'business rules, validation, domain logic',
   limit: 15,
-  compact: true
-})
+  compact: true,
+});
 ```
 
 ### Serena MCP for Structure Analysis
@@ -356,20 +363,20 @@ mcp__kiri__context_bundle({
 // Explore directory structure
 mcp__serena__list_dir({
   relative_path: '.',
-  recursive: true
-})
+  recursive: true,
+});
 
 // Find configuration files
 mcp__serena__find_file({
   file_mask: '*.config.*',
-  relative_path: '.'
-})
+  relative_path: '.',
+});
 
 // Analyze component structure
 mcp__serena__find_symbol({
   name_path: 'Component',
-  relative_path: 'app/'
-})
+  relative_path: 'app/',
+});
 ```
 
 ### File Reading for Configuration
@@ -414,12 +421,14 @@ After recording, you can query ADRs using `adr-memory-manager`:
 ## Integration with Other Commands
 
 ### ADR Memory Manager
+
 - **Primary Integration**: All project information is recorded as ADRs
 - Use `adr-memory-manager` to create and manage ADRs
 - ADRs are automatically indexed and searchable
 - Link related ADRs for cross-referencing
 
 ### Spec Document Creator
+
 - Generate architecture specification from ADR-0003
 - Create feature specifications for identified features
 - Document API specifications if APIs are found
@@ -428,11 +437,13 @@ After recording, you can query ADRs using `adr-memory-manager`:
 ## Task Checklist
 
 Before starting:
+
 - [ ] Identify project root directory
 - [ ] Check for existing documentation
 - [ ] Prepare analysis tools (Kiri MCP, Serena MCP)
 
 During analysis:
+
 - [ ] Analyze directory structure
 - [ ] Extract domain knowledge
 - [ ] Document technology stack
@@ -440,6 +451,7 @@ During analysis:
 - [ ] Record naming conventions
 
 After analysis:
+
 - [ ] Create ADR-0001 (Project Structure) using adr-memory-manager
 - [ ] Create ADR-0002 (Technology Stack) using adr-memory-manager
 - [ ] Create ADR-0003 (Architecture Patterns) using adr-memory-manager
@@ -473,18 +485,21 @@ After analysis:
 ## Best Practices
 
 ### Analysis Depth
+
 - Balance thoroughness with efficiency
 - Focus on high-level structure first
 - Deep dive into critical areas
 - Document patterns, not every file
 
 ### Information Organization
+
 - Use consistent JSON structure
 - Include timestamps for versioning
 - Link related information
 - Keep human-readable guide updated
 
 ### Maintenance
+
 - Update when major changes occur
 - Review periodically for accuracy
 - Link to ADRs for decisions

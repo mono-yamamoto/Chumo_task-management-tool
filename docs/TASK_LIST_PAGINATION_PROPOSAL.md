@@ -21,6 +21,7 @@
 Firestoreの`limit`と`startAfter`を使用したページネーション実装。
 
 #### メリット
+
 - サーバー側でフィルタリングできるため、転送データ量が削減される
 - 初回読み込みが高速
 - Firestoreのインデックスを活用できる
@@ -32,8 +33,8 @@ Firestoreの`limit`と`startAfter`を使用したページネーション実装�
 export function useTasks(
   projectType: ProjectType | 'all' = 'all',
   options?: {
-    limit?: number;        // 初期読み込み件数（デフォルト: 50）
-    loadMore?: number;     // 追加読み込み件数（デフォルト: 20）
+    limit?: number; // 初期読み込み件数（デフォルト: 50）
+    loadMore?: number; // 追加読み込み件数（デフォルト: 20）
     statusFilter?: FlowStatus | 'all' | 'not-completed';
     // その他のフィルタ条件
   }
@@ -55,9 +56,7 @@ export function useTasks(
       }
 
       // ソートとリミット
-      query = query
-        .orderBy('createdAt', 'desc')
-        .limit(options?.limit || 50);
+      query = query.orderBy('createdAt', 'desc').limit(options?.limit || 50);
 
       // ページネーション
       if (pageParam) {
@@ -65,7 +64,7 @@ export function useTasks(
       }
 
       const snapshot = await getDocs(query);
-      const tasks = snapshot.docs.map(doc => transformTaskData(doc, projectType));
+      const tasks = snapshot.docs.map((doc) => transformTaskData(doc, projectType));
 
       return {
         tasks,
@@ -73,7 +72,7 @@ export function useTasks(
         hasMore: snapshot.docs.length === (options?.limit || 50),
       };
     },
-    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.lastDoc : undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.lastDoc : undefined),
     initialPageParam: null,
   });
 }
@@ -107,10 +106,12 @@ export function useTasks(
 全件取得は維持しつつ、表示を仮想スクロールで最適化。
 
 #### メリット
+
 - 実装が比較的簡単
 - 既存のコードを大きく変更しない
 
 #### デメリット
+
 - 全件取得の問題は解決しない
 - メモリ使用量は変わらない
 
@@ -128,4 +129,3 @@ export function useTasks(
 3. **低**: タスク数が50件未満の場合
 
 現在のタスク数に応じて、実装の優先度を判断してください。
-

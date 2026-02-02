@@ -51,10 +51,16 @@ export function TaskPersonalView({
     if (!currentUserId) return sections;
 
     const mySection = sections.find((s) => s.assigneeId === currentUserId);
-    const otherSections = sections.filter((s) => s.assigneeId !== currentUserId && s.assigneeId !== UNASSIGNED_ID);
+    const otherSections = sections.filter(
+      (s) => s.assigneeId !== currentUserId && s.assigneeId !== UNASSIGNED_ID
+    );
     const unassignedSection = sections.find((s) => s.assigneeId === UNASSIGNED_ID);
 
-    return [...(mySection ? [mySection] : []), ...otherSections, ...(unassignedSection ? [unassignedSection] : [])];
+    return [
+      ...(mySection ? [mySection] : []),
+      ...otherSections,
+      ...(unassignedSection ? [unassignedSection] : []),
+    ];
   }, [sections, currentUserId]);
 
   if (tasks.length === 0) {

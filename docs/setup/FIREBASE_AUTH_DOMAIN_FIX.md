@@ -1,6 +1,7 @@
 # Firebase認証エラー対処法: auth/unauthorized-domain
 
 ## 問題
+
 `auth/unauthorized-domain` エラーは、現在のドメインがFirebase認証の許可リストに含まれていない場合に発生します。
 
 ## 解決方法
@@ -29,4 +30,3 @@
 
 - 本番環境では、実際のドメイン（例: `yourdomain.com`）も追加する必要があります
 - ローカル開発では `localhost` とローカルIPアドレス（`192.168.11.6`）の両方を追加することを推奨します
-

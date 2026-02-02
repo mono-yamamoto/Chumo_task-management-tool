@@ -56,7 +56,8 @@ FIREBASE_CLIENT_EMAIL=your_service_account_email@chumo-3506a.iam.gserviceaccount
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-**注意**: 
+**注意**:
+
 - 本番環境では、適切なリダイレクトURIを設定してください
 - `GOOGLE_OAUTH_CLIENT_SECRET`はSecret Managerにも保存しますが、フロントエンドの環境変数にも必要です（APIルートで使用）
 - `FIREBASE_CLIENT_EMAIL`と`FIREBASE_PRIVATE_KEY`は、Firebase Admin SDK用のサービスアカウントキーから取得します
@@ -73,6 +74,7 @@ npm install googleapis
 ### 2-2. OAuth認証フローの実装
 
 実装済みのファイル:
+
 - `/app/api/auth/google/route.ts`: OAuth認証URLを生成
 - `/app/api/auth/google/callback/route.ts`: OAuth認証のコールバック処理
 - `/app/(dashboard)/settings/page.tsx`: 設定ページにGoogle Drive連携ボタンを追加
@@ -161,4 +163,3 @@ npm run functions:deploy:drive
 - [Google OAuth 2.0 認証](https://developers.google.com/identity/protocols/oauth2)
 - [Google Drive API 認証](https://developers.google.com/drive/api/guides/about-auth)
 - [Firebase Auth と Google OAuth 2.0 の統合](https://firebase.google.com/docs/auth/web/google-signin)
-

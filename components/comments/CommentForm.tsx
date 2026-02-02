@@ -50,7 +50,11 @@ export function CommentForm({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+    >
       <CommentEditor
         ref={editorRef}
         users={users}
@@ -72,7 +76,11 @@ export function CommentForm({
             px: 2,
           }}
         >
-          {isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Send fontSize="small" />}
+          {isSubmitting ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <Send fontSize="small" />
+          )}
         </Button>
       </Box>
     </Box>

@@ -40,13 +40,10 @@ export function useActiveSessionValidator(
 
         // Firestoreにセッションが存在しない、またはセッションIDが一致しない場合
         if (!firestoreSession || firestoreSession.sessionId !== activeSession.sessionId) {
-          console.warn(
-            'localStorage内のactiveSessionがFirestoreと不一致のためクリアします',
-            {
-              localStorage: activeSession,
-              firestore: firestoreSession,
-            }
-          );
+          console.warn('localStorage内のactiveSessionがFirestoreと不一致のためクリアします', {
+            localStorage: activeSession,
+            firestore: firestoreSession,
+          });
           setActiveSession(null);
         }
       } catch (error) {

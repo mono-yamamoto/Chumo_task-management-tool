@@ -2,7 +2,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Box, Paper, List, ListItemButton, ListItemText, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import {
+  Box,
+  Paper,
+  List,
+  ListItemButton,
+  ListItemText,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
 import { Image as ImageIcon } from '@mui/icons-material';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -169,8 +178,7 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
     const getSuggestionItems = useCallback(({ query }: { query: string }) => {
       const q = query.toLowerCase();
       return usersRef.current.filter(
-        (user) =>
-          user.displayName.toLowerCase().includes(q) || user.email.toLowerCase().includes(q)
+        (user) => user.displayName.toLowerCase().includes(q) || user.email.toLowerCase().includes(q)
       );
     }, []);
 

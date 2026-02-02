@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **問題点**:
+
 - 1つのファイルに全てのロジックが集約（476行）
 - 認証・バリデーション・ビジネスロジックが混在
 - 単体テストが困難
@@ -117,12 +118,7 @@ export async function POST(request: NextRequest) {
 
     // お問い合わせ作成 (10行)
     const createContactUseCase = new CreateContactUseCase();
-    const result = await createContactUseCase.execute(
-      contactRequest,
-      userId,
-      userEmail,
-      userName
-    );
+    const result = await createContactUseCase.execute(contactRequest, userId, userEmail, userName);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -132,6 +128,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **改善点**:
+
 - ファイルサイズが約80行に削減（約396行削減）
 - 各レイヤーが責務を持ち、コードが読みやすい
 - AuthService, ContactValidator, CreateContactUseCaseが単体テスト可能
@@ -320,6 +317,7 @@ function TasksPageContent() {
 ```
 
 **問題点**:
+
 - 1つのコンポーネントに全てのロジックが集約（760行）
 - フィルタリング・ソートロジックがPresentation層に存在
 - ビジネスロジックの単体テストが困難
@@ -352,6 +350,7 @@ function TasksPageContent() {
 ```
 
 **改善点**:
+
 - ファイルサイズが約200行に削減（約560行削減）
 - ビジネスロジックが `ListTasksUseCase` に分離
 - `useTasksList` フックで再利用可能
@@ -392,10 +391,7 @@ export class ListTasksUseCase {
 
 ```typescript
 // hooks/useTasksList.ts
-export function useTasksList(params: {
-  tasks: Task[];
-  activeTaskId?: string;
-}) {
+export function useTasksList(params: { tasks: Task[]; activeTaskId?: string }) {
   const [filters, setFilters] = useState<TaskFiltersDTO>({
     status: 'not-completed',
   });

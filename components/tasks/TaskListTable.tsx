@@ -171,7 +171,11 @@ export function TaskListTable({
                   <TableCell>{task.itUpDate ? format(task.itUpDate, 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>{FLOW_STATUS_LABELS[task.flowStatus]}</TableCell>
                   <TableCell>
-                    {task.progressStatus ? <ProgressStatusBadge status={task.progressStatus} /> : '-'}
+                    {task.progressStatus ? (
+                      <ProgressStatusBadge status={task.progressStatus} />
+                    ) : (
+                      '-'
+                    )}
                   </TableCell>
                   <TableCell>{getLabelName(task.kubunLabelId)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>

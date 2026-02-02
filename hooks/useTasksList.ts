@@ -13,7 +13,12 @@ export function useTasksList(params: {
   activeTaskId?: string;
   mountTime?: number;
 }) {
-  const { tasks, filters = { status: 'not-completed' }, activeTaskId, mountTime = Date.now() } = params;
+  const {
+    tasks,
+    filters = { status: 'not-completed' },
+    activeTaskId,
+    mountTime = Date.now(),
+  } = params;
 
   const useCase = useMemo(() => new ListTasksUseCase(), []);
 

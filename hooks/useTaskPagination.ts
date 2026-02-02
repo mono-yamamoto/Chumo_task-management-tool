@@ -14,7 +14,14 @@ export function useTaskPagination(params: {
   isFetchingNextPage: boolean;
   fetchNextPage?: () => void;
 }) {
-  const { sortedTasks, currentPage, setCurrentPage, hasNextPage, isFetchingNextPage, fetchNextPage } = params;
+  const {
+    sortedTasks,
+    currentPage,
+    setCurrentPage,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = params;
 
   const requiredItemsForCurrentPage = currentPage * TASKS_PER_PAGE;
   const shouldRequestMoreData = hasNextPage && sortedTasks.length < requiredItemsForCurrentPage;

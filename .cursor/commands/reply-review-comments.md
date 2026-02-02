@@ -1,6 +1,6 @@
 ---
-title: "/reply-review-comments"
-description: "プッシュ後にレビューコメントに対応済みの返信を残す。修正内容を説明するコメントを自動生成して投稿する。"
+title: '/reply-review-comments'
+description: 'プッシュ後にレビューコメントに対応済みの返信を残す。修正内容を説明するコメントを自動生成して投稿する。'
 ---
 
 あなたはプッシュ後にレビューコメントに返信を残すアシスタントです。以下のルールで、対応済みのレビューコメントに対して修正内容を説明するコメントを自動的に投稿してください。
@@ -61,6 +61,7 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/reviews/{REVIEW_ID}/comments --jq 
 各レビューコメントについて、以下を確認：
 
 1. **ファイルが存在するか確認**
+
    ```bash
    git diff HEAD~1 HEAD -- {file_path}
    ```
@@ -110,6 +111,7 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies -X P
 ✅ 対応しました。
 
 修正内容：
+
 - `error.error || error.message` の順序でエラーメッセージを取得するように変更しました（241行目）
 - APIが返す `{ error: '...', details: ... }` 形式に対応し、サーバー側のエラーメッセージを正しく表示できるようになりました
 ```
@@ -120,12 +122,14 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies -X P
 ✅ 対応しました（Criticalセキュリティ脆弱性を修正）。
 
 修正内容：
+
 - `generateStateToken()` 関数を追加し、HMAC-SHA256を使用した署名付きstateトークンを生成するように変更しました
 - `verifyStateToken()` 関数を追加し、callbackでstateトークンの署名と有効期限（30分）を検証するようにしました
 - stateパラメータに平文の `userId` を設定するのではなく、`userId:nonce:timestamp:signature` 形式の署名付きトークンを使用するようにしました
 - これにより、CSRF攻撃によるアカウント乗っ取りの脆弱性を解消しました
 
 セキュリティ改善：
+
 - 署名検証により、トークンの改ざんを防止
 - タイムスタンプによる有効期限チェック（30分）
 - ランダムなnonceによるリプレイ攻撃の軽減
@@ -137,6 +141,7 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies -X P
 意図的に修正していません。
 
 理由：
+
 - この実装は意図的な設計であり、全員がお問い合わせを確認・更新できる状態が望ましいため
 - コメントは「お問い合わせ一覧（管理者のみ）」となっていますが、実際の仕様は「全ユーザー」が正しい
 - コメントの修正のみ対応済み
@@ -168,4 +173,3 @@ gh api repos/{owner}/{repo}/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies -X P
 - [ ] 各コメントの対応状況を確認
 - [ ] 対応済みのコメントに返信を投稿
 - [ ] 返信内容が正確で簡潔であることを確認
-

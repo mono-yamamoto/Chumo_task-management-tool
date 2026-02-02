@@ -4,7 +4,15 @@ import { useState } from 'react';
 import { Label } from '@/types';
 import { AssigneeSection, UNASSIGNED_ID } from '@/lib/taskGrouping';
 import { StatusBlock } from '@/components/tasks/StatusBlock';
-import { Accordion, AccordionSummary, AccordionDetails, Typography, Box, Chip, Avatar } from '@mui/material';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  Box,
+  Chip,
+  Avatar,
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PersonIcon from '@mui/icons-material/Person';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
@@ -67,7 +75,11 @@ export function PersonalTaskSection({
               bgcolor: isUnassigned ? 'grey.400' : isCurrentUser ? 'primary.main' : 'grey.500',
             }}
           >
-            {isUnassigned ? <PersonOffIcon sx={{ fontSize: 18 }} /> : <PersonIcon sx={{ fontSize: 18 }} />}
+            {isUnassigned ? (
+              <PersonOffIcon sx={{ fontSize: 18 }} />
+            ) : (
+              <PersonIcon sx={{ fontSize: 18 }} />
+            )}
           </Avatar>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
             {section.assigneeName}

@@ -46,9 +46,9 @@ The task list and dashboard pages live in `app/(dashboard)/tasks/page.tsx` and `
 
 Implement two hooks:
 
-1) `hooks/useTaskDetailState.ts`: Provide selected task id, derived task, form data, and a task selection handler. It should accept the list of tasks and a mode that matches existing behavior differences between the dashboard and tasks page (always initialize vs initialize only when form data is empty).
+1. `hooks/useTaskDetailState.ts`: Provide selected task id, derived task, form data, and a task selection handler. It should accept the list of tasks and a mode that matches existing behavior differences between the dashboard and tasks page (always initialize vs initialize only when form data is empty).
 
-2) `hooks/useTaskDetailActions.ts`: Provide active session state, timer handlers, integration handlers, and a `formatDuration` helper. It should accept `userId`, `queryClient`, and the list of query keys to invalidate/refetch for list and detail updates. All existing invalidation/refetch behavior must be preserved.
+2. `hooks/useTaskDetailActions.ts`: Provide active session state, timer handlers, integration handlers, and a `formatDuration` helper. It should accept `userId`, `queryClient`, and the list of query keys to invalidate/refetch for list and detail updates. All existing invalidation/refetch behavior must be preserved.
 
 Then update both pages to use these hooks, removing duplicated logic. Ensure props passed to `TaskDetailDrawer` are unchanged and the delete dialog behavior stays intact.
 
@@ -96,35 +96,35 @@ These changes are additive and can be applied incrementally. If the new hooks ca
   export type TaskDetailInitializeMode = 'always' | 'if-empty';
 
   export function useTaskDetailState(options: {
-    tasks: Task[];
-    initializeMode: TaskDetailInitializeMode;
+  tasks: Task[];
+  initializeMode: TaskDetailInitializeMode;
   }): {
-    selectedTaskId: string | null;
-    setSelectedTaskId: React.Dispatch<React.SetStateAction<string | null>>;
-    selectedTask: Task | null;
-    taskFormData: Partial<Task> | null;
-    setTaskFormData: React.Dispatch<React.SetStateAction<Partial<Task> | null>>;
-    handleTaskSelect: (taskId: string) => void;
-    resetSelection: () => void;
+  selectedTaskId: string | null;
+  setSelectedTaskId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedTask: Task | null;
+  taskFormData: Partial<Task> | null;
+  setTaskFormData: React.Dispatch<React.SetStateAction<Partial<Task> | null>>;
+  handleTaskSelect: (taskId: string) => void;
+  resetSelection: () => void;
   };
 
 - New hook in `hooks/useTaskDetailActions.ts`:
 
   export function useTaskDetailActions(options: {
-    userId?: string | null;
-    queryClient: QueryClient;
-    listQueryKeys: QueryKey[];
-    detailQueryKey: (taskId: string) => QueryKey;
+  userId?: string | null;
+  queryClient: QueryClient;
+  listQueryKeys: QueryKey[];
+  detailQueryKey: (taskId: string) => QueryKey;
   }): {
-    activeSession: ActiveSession | null;
-    handleStartTimer: (projectType: string, taskId: string) => Promise<void>;
-    handleStopTimer: () => Promise<void>;
-    isStoppingTimer: boolean;
-    handleDriveCreate: (projectType: string, taskId: string) => Promise<void>;
-    isCreatingDrive: boolean;
-    handleFireCreate: (projectType: string, taskId: string) => Promise<void>;
-    isCreatingFire: boolean;
-    handleChatThreadCreate: (projectType: string, taskId: string) => Promise<void>;
-    isCreatingChatThread: boolean;
-    formatDuration: (durationSec: number | undefined | null, startedAt?: Date, endedAt?: Date | null) => string;
+  activeSession: ActiveSession | null;
+  handleStartTimer: (projectType: string, taskId: string) => Promise<void>;
+  handleStopTimer: () => Promise<void>;
+  isStoppingTimer: boolean;
+  handleDriveCreate: (projectType: string, taskId: string) => Promise<void>;
+  isCreatingDrive: boolean;
+  handleFireCreate: (projectType: string, taskId: string) => Promise<void>;
+  isCreatingFire: boolean;
+  handleChatThreadCreate: (projectType: string, taskId: string) => Promise<void>;
+  isCreatingChatThread: boolean;
+  formatDuration: (durationSec: number | undefined | null, startedAt?: Date, endedAt?: Date | null) => string;
   };
