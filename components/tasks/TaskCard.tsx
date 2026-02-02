@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { UnreadBadge } from '@/components/ui/UnreadBadge';
 import { ProgressStatusBadge } from '@/components/ui/ProgressStatusBadge';
 import { Paper, Typography, Box, Chip } from '@mui/material';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { ProjectType } from '@/constants/projectTypes';
+import { format } from 'date-fns';
 
 interface TaskCardProps {
   task: Task & { projectType: ProjectType };
@@ -68,7 +70,7 @@ export function TaskCard({
           display: 'flex',
           alignItems: 'flex-start',
           gap: 0.5,
-          mb: label || showProjectType ? 1 : 0,
+          mb: label || showProjectType || task.itUpDate ? 1 : 0,
         }}
       >
         {isNewTask && <Badge variant="error">New</Badge>}
@@ -92,11 +94,35 @@ export function TaskCard({
         </Typography>
       </Box>
 
-      {/* メタ情報行（区分ラベル、進捗ステータス、またはプロジェクトタイプがある場合のみ表示） */}
+      {/* メタ情報行（区分ラベル、進捗ステータス、プロジェクトタイプ、またはITアップ日がある場合のみ表示） */}
       {(label ||
         (showProgressStatus && task.progressStatus) ||
-        (showProjectType && task.projectType)) && (
+        (showProjectType && task.projectType) ||
+        task.itUpDate) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+          {/* ITアップ日 */}
+          {task.itUpDate && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.25,
+                color: 'text.secondary',
+              }}
+            >
+              <CalendarTodayIcon sx={{ fontSize: '0.75rem' }} />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: 'medium',
+                }}
+              >
+                {format(task.itUpDate, 'MM/dd')}
+              </Typography>
+            </Box>
+          )}
+
           {/* 区分ラベル（バッジスタイル） */}
           {label && (
             <Chip
