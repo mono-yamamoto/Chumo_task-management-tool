@@ -11,7 +11,6 @@ import { ProjectType } from '@/constants/projectTypes';
 interface TaskPersonalViewProps {
   tasks: (Task & { projectType: ProjectType })[];
   onTaskSelect: (taskId: string) => void;
-  selectedProjectType?: ProjectType | 'all';
   allUsers?: User[];
   allLabels?: Label[];
   currentUserId?: string | null;
@@ -21,7 +20,6 @@ interface TaskPersonalViewProps {
 export function TaskPersonalView({
   tasks,
   onTaskSelect,
-  selectedProjectType,
   allUsers,
   allLabels,
   currentUserId,
@@ -37,9 +35,6 @@ export function TaskPersonalView({
   const oneWeekAgo = useMemo(() => {
     return mountTime - 7 * 24 * 60 * 60 * 1000;
   }, [mountTime]);
-
-  // プロジェクトタイプを表示するかどうか
-  const showProjectType = selectedProjectType === 'all' || selectedProjectType === undefined;
 
   // タスクを担当者別→ステータス別にグルーピング
   const sections = useMemo(() => {
@@ -82,7 +77,6 @@ export function TaskPersonalView({
           onTaskSelect={onTaskSelect}
           allLabels={allLabels}
           currentUserId={currentUserId}
-          showProjectType={showProjectType}
           unreadTaskIds={unreadTaskIds}
           oneWeekAgo={oneWeekAgo}
           defaultExpanded={section.assigneeId === currentUserId || sortedSections.length <= 3}

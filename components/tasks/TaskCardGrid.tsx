@@ -29,7 +29,6 @@ interface StatusGroup {
 interface TaskCardGridProps {
   tasks: (Task & { projectType: ProjectType })[];
   onTaskSelect: (taskId: string) => void;
-  selectedProjectType?: ProjectType | 'all';
   allLabels?: Label[];
   currentUserId?: string | null;
   emptyMessage?: string;
@@ -38,7 +37,6 @@ interface TaskCardGridProps {
 export function TaskCardGrid({
   tasks,
   onTaskSelect,
-  selectedProjectType,
   allLabels,
   currentUserId,
   emptyMessage = 'タスクがありません',
@@ -63,9 +61,6 @@ export function TaskCardGrid({
     },
     [oneWeekAgo]
   );
-
-  // 全プロジェクト表示時にプロジェクトタイプを表示
-  const shouldShowProjectType = selectedProjectType === 'all';
 
   // タスクをステータス別にグルーピング
   const statusGroups = useMemo(() => {
@@ -139,8 +134,6 @@ export function TaskCardGrid({
                 onTaskSelect={onTaskSelect}
                 allLabels={allLabels}
                 currentUserId={currentUserId}
-                showProjectType={shouldShowProjectType}
-                showProgressStatus={true}
                 hasUnreadComment={!!(currentUserId && unreadTaskIds?.has(task.id))}
                 isNewTask={isNewTask(task)}
               />

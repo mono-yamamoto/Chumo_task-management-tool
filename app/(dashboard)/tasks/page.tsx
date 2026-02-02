@@ -390,7 +390,6 @@ function TasksPageContent() {
             <TaskPersonalView
               tasks={sortedTasks || []}
               onTaskSelect={handleTaskSelect}
-              selectedProjectType={selectedProjectType}
               allUsers={allUsers}
               allLabels={allLabels}
               currentUserId={user?.id || null}

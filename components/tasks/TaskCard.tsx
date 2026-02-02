@@ -5,14 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { UnreadBadge } from '@/components/ui/UnreadBadge';
 import { ProgressStatusBadge } from '@/components/ui/ProgressStatusBadge';
 import { Paper, Typography, Box, Chip } from '@mui/material';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { ProjectType } from '@/constants/projectTypes';
+import { format } from 'date-fns';
 
 interface TaskCardProps {
   task: Task & { projectType: ProjectType };
   onTaskSelect: (taskId: string) => void;
   allLabels?: Label[];
   currentUserId?: string | null;
-  showProjectType?: boolean;
   showProgressStatus?: boolean;
   hasUnreadComment?: boolean;
   isNewTask?: boolean;
@@ -23,7 +24,6 @@ export function TaskCard({
   onTaskSelect,
   allLabels,
   currentUserId,
-  showProjectType = false,
   showProgressStatus = false,
   hasUnreadComment = false,
   isNewTask = false,
@@ -68,7 +68,7 @@ export function TaskCard({
           display: 'flex',
           alignItems: 'flex-start',
           gap: 0.5,
-          mb: label || showProjectType ? 1 : 0,
+          mb: label || task.itUpDate ? 1 : 0,
         }}
       >
         {isNewTask && <Badge variant="error">New</Badge>}
@@ -92,10 +92,8 @@ export function TaskCard({
         </Typography>
       </Box>
 
-      {/* メタ情報行（区分ラベル、進捗ステータス、またはプロジェクトタイプがある場合のみ表示） */}
-      {(label ||
-        (showProgressStatus && task.progressStatus) ||
-        (showProjectType && task.projectType)) && (
+      {/* メタ情報行（区分ラベル、進捗ステータス、またはITアップ日がある場合のみ表示） */}
+      {(label || (showProgressStatus && task.progressStatus) || task.itUpDate) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
           {/* 区分ラベル（バッジスタイル） */}
           {label && (
@@ -117,22 +115,32 @@ export function TaskCard({
             />
           )}
 
+          {/* ITアップ日 */}
+          {task.itUpDate && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.25,
+                color: 'text.secondary',
+              }}
+            >
+              <CalendarTodayIcon sx={{ fontSize: '0.75rem' }} />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: 'medium',
+                }}
+              >
+                {format(task.itUpDate, 'MM/dd')}
+              </Typography>
+            </Box>
+          )}
+
           {/* 進捗ステータス */}
           {showProgressStatus && task.progressStatus && (
             <ProgressStatusBadge status={task.progressStatus} />
-          )}
-
-          {/* プロジェクトタイプ */}
-          {showProjectType && task.projectType && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.disabled',
-                fontSize: '0.65rem',
-              }}
-            >
-              {task.projectType}
-            </Typography>
           )}
         </Box>
       )}
