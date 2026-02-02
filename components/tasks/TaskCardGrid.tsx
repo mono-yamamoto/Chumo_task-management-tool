@@ -134,7 +134,6 @@ export function TaskCardGrid({
                 onTaskSelect={onTaskSelect}
                 allLabels={allLabels}
                 currentUserId={currentUserId}
-                showProgressStatus={true}
                 hasUnreadComment={!!(currentUserId && unreadTaskIds?.has(task.id))}
                 isNewTask={isNewTask(task)}
               />
