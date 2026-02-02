@@ -332,32 +332,36 @@ Authentication requirements.
 
 Error response format.
 
-````
-
 ### Architecture Specification Format
 
 ```markdown
 # [System/Component Name]
 
 ## Overview
+
 System or component overview.
 
 ## Architecture Diagram
+
 [Diagram or reference to diagram]
 
 ## Components
+
 - Component 1: Description
 - Component 2: Description
 
 ## Data Flow
+
 Description of data flow.
 
 ## Technology Stack
+
 Technologies used.
 
 ## Scalability Considerations
+
 Scalability and performance considerations.
-````
+```
 
 ## File Naming Conventions
 

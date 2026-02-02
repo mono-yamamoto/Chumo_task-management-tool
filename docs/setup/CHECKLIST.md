@@ -3,7 +3,7 @@
 ## 前提条件
 
 - [ ] Firebase CLIがインストールされている (`firebase --version`で確認)
-- [ ] Node.js 24がインストールされている
+- [ ] Node.js 20がインストールされている
 - [ ] npm/yarnがインストールされている
 
 ## Step 1: Firebaseプロジェクト作成

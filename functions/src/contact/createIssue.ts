@@ -74,8 +74,8 @@ export const createContactIssue = onRequest(
     }
 
     try {
-      const { contactId, type, title, content, userName, userEmail, errorReportDetails } =
-        req.body as CreateContactIssueRequestBody;
+      const body = (req.body ?? {}) as Partial<CreateContactIssueRequestBody>;
+      const { contactId, type, title, content, userName, userEmail, errorReportDetails } = body;
 
       if (!contactId || !type || !title) {
         res.status(400).json({ error: 'Missing required fields' });

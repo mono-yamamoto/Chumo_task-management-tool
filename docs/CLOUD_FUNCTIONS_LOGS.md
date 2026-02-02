@@ -125,7 +125,7 @@ gcloud functions logs read createDriveFolder --format="table(timestamp,severity,
 
 #### 1. 権限エラー（403 Forbidden）
 
-```
+```text
 エラー: Permission denied
 ```
 
@@ -137,7 +137,7 @@ gcloud functions logs read createDriveFolder --format="table(timestamp,severity,
 
 #### 2. ファイルが見つからない（404 Not Found）
 
-```
+```text
 エラー: File not found
 ```
 
@@ -149,7 +149,7 @@ gcloud functions logs read createDriveFolder --format="table(timestamp,severity,
 
 #### 3. 認証エラー（401 Unauthorized）
 
-```
+```text
 エラー: Invalid credentials
 ```
 
@@ -161,7 +161,7 @@ gcloud functions logs read createDriveFolder --format="table(timestamp,severity,
 
 #### 4. Driveストレージ容量不足（403 Forbidden）
 
-```
+```text
 エラー: The user's Drive storage quota has been exceeded.
 ```
 

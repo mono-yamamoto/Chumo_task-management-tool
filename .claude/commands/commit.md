@@ -15,7 +15,7 @@ Task tool を使用してコミットエージェントを実行します：
 
 - `git status --porcelain` で変更ファイルを取得
 - 関連性に基づいてファイルをグルーピング
-- scope: ディレクトリ構造から自動判定（packages配下は pakage名、それ以外は先頭ディレクトリ、なければroot）
+- scope: ディレクトリ構造から自動判定（packages配下は package名、それ以外は先頭ディレクトリ、なければroot）
 - area: 変更領域を判定（pkgjson, build, pages, src, other）
 
 ### 2. コミットタイプの自動判定

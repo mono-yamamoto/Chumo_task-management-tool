@@ -561,7 +561,7 @@ This command automatically groups changes by relevance and splits each group int
 2. The agent automatically analyzes changes and generates appropriate commit messages
 3. Splits into multiple commits following the one-commit-per-matter principle
 
-**Auto commit rules**:
+**Auto-commit rules**:
 
 - Strictly follow the one-commit-per-matter principle
 - Group change files by relevance

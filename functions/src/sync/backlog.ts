@@ -41,8 +41,8 @@ export const syncBacklog = onRequest(
       // const secret = await getSecret("MAKE_WEBHOOK_SECRET");
       // verifySignature(req, secret);
 
-      const { issueKey, issueId, url, title, description, projectKey, projectType } =
-        req.body as SyncBacklogRequestBody;
+      const body = (req.body ?? {}) as Partial<SyncBacklogRequestBody>;
+      const { issueKey, issueId, url, title, description, projectKey, projectType } = body;
 
       if (!issueKey || !issueId || !url || !title) {
         res.status(400).json({ error: 'Missing required fields' });
