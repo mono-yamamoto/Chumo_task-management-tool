@@ -21,7 +21,7 @@ export type ThemeId = keyof typeof THEME_OPTIONS;
 interface ThemeStore {
   // 現在選択中のテーマID
   currentTheme: ThemeId;
-  setCurrentTheme: (themeId: ThemeId) => void;
+  setCurrentTheme: (_themeId: ThemeId) => void;
 }
 
 export const useThemeStore = create<ThemeStore>()(

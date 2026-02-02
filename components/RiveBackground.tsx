@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  useRive,
-  useStateMachineInput,
-  Layout,
-  Fit,
-  Alignment,
-} from '@rive-app/react-canvas';
+import { useRive, useStateMachineInput, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { Box } from '@mui/material';
 
 /**
@@ -66,6 +60,8 @@ export function RiveBackground() {
     if (nightInput) {
       const currentIsNight = isNightTime();
       setIsNight(currentIsNight);
+      // Rive APIの標準的な使い方: StateMachineInputのvalueを直接設定
+      // eslint-disable-next-line react-hooks/immutability
       nightInput.value = currentIsNight;
     }
   }, [nightInput]);
@@ -73,6 +69,8 @@ export function RiveBackground() {
   // isNightが変化したらRiveに反映
   useEffect(() => {
     if (nightInput) {
+      // Rive APIの標準的な使い方: StateMachineInputのvalueを直接設定
+      // eslint-disable-next-line react-hooks/immutability
       nightInput.value = isNight;
     }
   }, [isNight, nightInput]);
