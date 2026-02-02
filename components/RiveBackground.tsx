@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  useRive,
-  useStateMachineInput,
-  Layout,
-  Fit,
-  Alignment,
-} from '@rive-app/react-canvas';
+import { useRive, useStateMachineInput, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { Box } from '@mui/material';
 
 /**
@@ -61,18 +55,11 @@ export function RiveBackground() {
     return () => clearInterval(interval);
   }, []);
 
-  // 夜/昼の状態をRiveに反映（初回）
-  useEffect(() => {
-    if (nightInput) {
-      const currentIsNight = isNightTime();
-      setIsNight(currentIsNight);
-      nightInput.value = currentIsNight;
-    }
-  }, [nightInput]);
-
   // isNightが変化したらRiveに反映
   useEffect(() => {
     if (nightInput) {
+      // Rive APIの標準的な使い方: StateMachineInputのvalueを直接設定
+      // eslint-disable-next-line react-hooks/immutability -- Rive APIのStateMachineInputは外部ライブラリのオブジェクトであり、valueの直接設定が必要
       nightInput.value = isNight;
     }
   }, [isNight, nightInput]);

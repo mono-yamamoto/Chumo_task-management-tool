@@ -20,14 +20,16 @@
 
 ### ステップ1: サービスアカウントのメールアドレスを確認
 
-**GCP Console（Web UI）で確認**
+#### GCP Console（Web UI）で確認
+
 1. [GCP Console](https://console.cloud.google.com/) → 「Secret Manager」→ `DRIVE_SERVICE_ACCOUNT_KEY` → 最新バージョン → 「シークレット値を表示」
 2. JSONの中の`client_email`フィールドを確認
 3. 詳細な手順は `docs/CHECK_SERVICE_ACCOUNT_EMAIL.md` を参照
 
 ### ステップ2: 親フォルダIDを確認
 
-**GCP Console（Web UI）で確認**
+#### GCP Console（Web UI）で確認
+
 1. [GCP Console](https://console.cloud.google.com/) → 「Secret Manager」→ `DRIVE_PARENT_ID` → 最新バージョン → 「シークレット値を表示」
 2. フォルダIDを確認（例: `14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh`）
 
@@ -133,4 +135,3 @@
 - [Google Drive のファイルとフォルダを共有する](https://support.google.com/drive/answer/7166529)
 - [GCP Console - Secret Manager](https://console.cloud.google.com/security/secret-manager)
 - [GCP Console - サービスアカウント](https://console.cloud.google.com/iam-admin/serviceaccounts)
-

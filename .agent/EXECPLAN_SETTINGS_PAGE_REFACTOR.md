@@ -37,16 +37,16 @@ The Settings page lives at `app/(dashboard)/settings/page.tsx` and includes: OAu
 
 ## Plan of Work
 
-1) Create `hooks/useSettingsOauthStatus.ts` that encapsulates:
+1. Create `hooks/useSettingsOauthStatus.ts` that encapsulates:
    - Deriving `oauthStatus`, `githubUsername`, and `chatId` from `currentUser`.
    - Handling URL query params `success` / `error` with `router.replace('/settings')`.
    - Expose state setters for `githubUsername`, `chatId`, and `message`.
 
-2) Create `components/settings/AdminUserList.tsx`:
+2. Create `components/settings/AdminUserList.tsx`:
    - Accept users list, editing state maps, and callbacks for edit/save/toggle.
    - Render the same list layout and buttons as current `SettingsPage`.
 
-3) Update `app/(dashboard)/settings/page.tsx`:
+3. Update `app/(dashboard)/settings/page.tsx`:
    - Use `useSettingsOauthStatus` instead of inline `useEffect` blocks.
    - Replace admin list JSX with `AdminUserList` component.
    - Keep mutations and query invalidation in the page.
@@ -78,18 +78,18 @@ These changes are additive and can be applied incrementally. If the component ex
 - In `hooks/useSettingsOauthStatus.ts`, define:
 
   export function useSettingsOauthStatus(options: {
-    currentUser: User | null;
-    router: AppRouterInstance;
-    searchParams: URLSearchParams;
+  currentUser: User | null;
+  router: AppRouterInstance;
+  searchParams: URLSearchParams;
   }): {
-    oauthStatus: 'connected' | 'disconnected' | 'loading';
-    setOauthStatus: (status: 'connected' | 'disconnected' | 'loading') => void;
-    githubUsername: string;
-    setGithubUsername: (value: string) => void;
-    chatId: string;
-    setChatId: (value: string) => void;
-    message: string | null;
-    setMessage: (value: string | null) => void;
+  oauthStatus: 'connected' | 'disconnected' | 'loading';
+  setOauthStatus: (status: 'connected' | 'disconnected' | 'loading') => void;
+  githubUsername: string;
+  setGithubUsername: (value: string) => void;
+  chatId: string;
+  setChatId: (value: string) => void;
+  message: string | null;
+  setMessage: (value: string | null) => void;
   };
 
 - In `components/settings/AdminUserList.tsx`, define:

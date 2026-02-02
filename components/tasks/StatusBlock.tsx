@@ -5,7 +5,14 @@ import { Task, Label } from '@/types';
 import { FLOW_STATUS_LABELS } from '@/constants/taskConstants';
 import { StatusGroup } from '@/lib/taskGrouping';
 import { TaskCard } from '@/components/tasks/TaskCard';
-import { Accordion, AccordionSummary, AccordionDetails, Typography, Box, Chip } from '@mui/material';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  Box,
+  Chip,
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ProjectType } from '@/constants/projectTypes';
 

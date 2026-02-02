@@ -1,11 +1,13 @@
 # Firebase初期設定チェックリスト
 
 ## 前提条件
+
 - [ ] Firebase CLIがインストールされている (`firebase --version`で確認)
-- [ ] Node.js 24がインストールされている
+- [ ] Node.js 20がインストールされている
 - [ ] npm/yarnがインストールされている
 
 ## Step 1: Firebaseプロジェクト作成
+
 - [ ] [Firebase Console](https://console.firebase.google.com/)にアクセス
 - [ ] 「プロジェクトを追加」をクリック
 - [ ] プロジェクト名を入力（例: `chumo-task-management`）
@@ -13,6 +15,7 @@
 - [ ] プロジェクト作成完了
 
 ## Step 2: Firebase認証設定
+
 - [ ] Firebase Console → Authentication → 「始める」をクリック
 - [ ] 「Sign-in method」タブを開く
 - [ ] 「Google」を有効化
@@ -20,6 +23,7 @@
 - [ ] 「保存」をクリック
 
 ## Step 3: Firestoreデータベース作成
+
 - [ ] Firebase Console → Firestore Database → 「データベースを作成」
 - [ ] 「本番モードで開始」を選択
 - [ ] ロケーションを選択（推奨: `asia-northeast1 (Tokyo)`）
@@ -27,6 +31,7 @@
 - [ ] データベース作成完了を待つ
 
 ## Step 4: Firebase CLI設定
+
 ```bash
 # ターミナルで実行
 firebase login
@@ -35,6 +40,7 @@ firebase use --add
 ```
 
 ## Step 5: 環境変数設定
+
 - [ ] `.env.local`ファイルを作成
 - [ ] Firebase Console → プロジェクト設定 → 全般 → 「アプリを追加」→ Web
 - [ ] アプリのニックネームを入力
@@ -51,6 +57,7 @@ NEXT_PUBLIC_FUNCTIONS_URL=https://your-region-your-project.cloudfunctions.net
 ```
 
 ## Step 6: Firestoreセキュリティルールデプロイ
+
 ```bash
 firebase deploy --only firestore:rules
 ```
@@ -59,6 +66,7 @@ firebase deploy --only firestore:rules
 - [ ] Firebase Console → Firestore Database → 「ルール」タブで確認
 
 ## Step 7: Firestoreインデックスデプロイ
+
 ```bash
 firebase deploy --only firestore:indexes
 ```
@@ -68,6 +76,7 @@ firebase deploy --only firestore:indexes
 - [ ] インデックスが「構築中」または「有効」になっていることを確認
 
 ## Step 8: 動作確認
+
 ```bash
 # フロントエンドを起動
 npm run dev
@@ -78,7 +87,7 @@ npm run dev
 - [ ] Googleログインが動作することを確認（許可リストに追加されたユーザーのみ）
 
 ## 次のステップ
+
 - [ ] GCP Secret Managerの設定
 - [ ] Cloud Functionsのデプロイ
 - [ ] 初期データの作成
-

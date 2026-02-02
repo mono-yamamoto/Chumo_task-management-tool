@@ -1,7 +1,23 @@
 import { onRequest } from 'firebase-functions/v2/https';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 const db = getFirestore();
+
+interface StartTimerRequestBody {
+  userId: string;
+}
+
+interface StopTimerRequestBody {
+  sessionId: string;
+}
+
+interface SessionDocument {
+  taskId: string;
+  userId: string;
+  startedAt: Timestamp | Date | null;
+  endedAt: Timestamp | Date | null;
+  durationSec: number;
+}
 
 export const startTimer = onRequest(
   {
@@ -41,7 +57,7 @@ export const startTimer = onRequest(
 
       const projectId = pathParts[projectIdIndex + 1];
       const taskId = pathParts[taskIdIndex + 1];
-      const { userId } = req.body;
+      const { userId } = req.body as StartTimerRequestBody;
 
       if (!userId || !projectId || !taskId) {
         res.status(400).json({ error: 'Missing required fields' });
@@ -128,7 +144,7 @@ export const stopTimer = onRequest(
       }
 
       const projectId = pathParts[projectIdIndex + 1];
-      const { sessionId } = req.body;
+      const { sessionId } = req.body as StopTimerRequestBody;
 
       if (!sessionId || !projectId) {
         res.status(400).json({ error: 'Missing required fields' });
@@ -148,13 +164,21 @@ export const stopTimer = onRequest(
         return;
       }
 
-      const sessionData = sessionDoc.data();
+      const sessionData = sessionDoc.data() as SessionDocument | undefined;
       if (sessionData?.endedAt) {
         res.status(400).json({ error: 'Session already ended' });
         return;
       }
 
-      const startedAt = sessionData?.startedAt?.toDate();
+      const startedAtField = sessionData?.startedAt;
+      let startedAt: Date;
+      if (startedAtField instanceof Timestamp) {
+        startedAt = startedAtField.toDate();
+      } else if (startedAtField instanceof Date) {
+        startedAt = startedAtField;
+      } else {
+        startedAt = new Date();
+      }
       const endedAt = new Date();
       const durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
 

@@ -69,7 +69,15 @@ export function useTaskDelete(params: {
         },
       }
     );
-  }, [deleteTaskId, deleteProjectType, deleteConfirmTitle, tasks, selectedTaskIdValue, resetSelection, deleteTask]);
+  }, [
+    deleteTaskId,
+    deleteProjectType,
+    deleteConfirmTitle,
+    tasks,
+    selectedTaskIdValue,
+    resetSelection,
+    deleteTask,
+  ]);
 
   const handleDialogClose = useCallback(() => {
     setDeleteDialogOpen(false);

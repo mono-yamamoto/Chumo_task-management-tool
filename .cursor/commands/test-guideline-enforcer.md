@@ -43,11 +43,11 @@ model: inherit
 ### Basic Test Structure
 
 ```typescript
-import { describe, expect, test } from "vitest";
-import { calculateTotal } from "./calculateTotal";
+import { describe, expect, test } from 'vitest';
+import { calculateTotal } from './calculateTotal';
 
-describe("calculateTotal", () => {
-  test("商品が1つの場合、その価格を返すこと", () => {
+describe('calculateTotal', () => {
+  test('商品が1つの場合、その価格を返すこと', () => {
     // Arrange
     const items = [{ price: 100 }];
     const expected = 100;
@@ -59,7 +59,7 @@ describe("calculateTotal", () => {
     expect(actual).toBe(expected);
   });
 
-  test("商品が複数の場合、合計金額を返すこと", () => {
+  test('商品が複数の場合、合計金額を返すこと', () => {
     // Arrange
     const items = [{ price: 100 }, { price: 200 }, { price: 300 }];
     const expected = 600;
@@ -71,7 +71,7 @@ describe("calculateTotal", () => {
     expect(actual).toBe(expected);
   });
 
-  test("商品が空の場合、0を返すこと", () => {
+  test('商品が空の場合、0を返すこと', () => {
     // Arrange
     const items: Array<{ price: number }> = [];
     const expected = 0;
@@ -132,17 +132,17 @@ describe("Button", () => {
 ### Shared Data Management
 
 ```typescript
-import { describe, expect, test } from "vitest";
-import { formatDate } from "./formatDate";
+import { describe, expect, test } from 'vitest';
+import { formatDate } from './formatDate';
 
-describe("formatDate", () => {
+describe('formatDate', () => {
   // Shared data in top-level describe scope
-  const testDate = new Date("2024-01-15T10:30:00");
+  const testDate = new Date('2024-01-15T10:30:00');
 
-  test("年月日形式でフォーマットされること", () => {
+  test('年月日形式でフォーマットされること', () => {
     // Arrange
-    const format = "YYYY-MM-DD";
-    const expected = "2024-01-15";
+    const format = 'YYYY-MM-DD';
+    const expected = '2024-01-15';
 
     // Act
     const actual = formatDate(testDate, format);
@@ -151,10 +151,10 @@ describe("formatDate", () => {
     expect(actual).toBe(expected);
   });
 
-  test("時分秒を含む形式でフォーマットされること", () => {
+  test('時分秒を含む形式でフォーマットされること', () => {
     // Arrange
-    const format = "YYYY-MM-DD HH:mm:ss";
-    const expected = "2024-01-15 10:30:00";
+    const format = 'YYYY-MM-DD HH:mm:ss';
+    const expected = '2024-01-15 10:30:00';
 
     // Act
     const actual = formatDate(testDate, format);
@@ -168,11 +168,11 @@ describe("formatDate", () => {
 ### Testing Error Cases
 
 ```typescript
-import { describe, expect, test } from "vitest";
-import { divide } from "./divide";
+import { describe, expect, test } from 'vitest';
+import { divide } from './divide';
 
-describe("divide", () => {
-  test("正常に除算が行われること", () => {
+describe('divide', () => {
+  test('正常に除算が行われること', () => {
     // Arrange
     const a = 10;
     const b = 2;
@@ -185,13 +185,13 @@ describe("divide", () => {
     expect(actual).toBe(expected);
   });
 
-  test("0で除算した場合、エラーがスローされること", () => {
+  test('0で除算した場合、エラーがスローされること', () => {
     // Arrange
     const a = 10;
     const b = 0;
 
     // Act & Assert
-    expect(() => divide(a, b)).toThrow("Division by zero");
+    expect(() => divide(a, b)).toThrow('Division by zero');
   });
 });
 ```
@@ -283,19 +283,21 @@ test("合計金額を計算すること", () => {
 
 ```typescript
 // Correct order
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
-import { ComponentUnderTest } from "./ComponentUnderTest";
+import { render, screen } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
+import { ComponentUnderTest } from './ComponentUnderTest';
 ```
 
 ### Snapshot Testing
 
 Use snapshots only for:
+
 - Verifying semantic HTML structure
-- Checking accessibility attributes (aria-*, role, etc.)
+- Checking accessibility attributes (aria-\*, role, etc.)
 - Ensuring critical DOM structure remains stable
 
 Do NOT use snapshots for:
+
 - CSS class names or inline styles
 - Testing visual appearance
 - Replace proper assertions

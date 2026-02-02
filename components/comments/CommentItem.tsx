@@ -56,8 +56,14 @@ function highlightSelfMentions(html: string, currentUserId: string): string {
   );
 
   return html
-    .replace(regex, '<span$1class="comment-mention comment-mention-self"$2data-id="' + safeId + '"$3>')
-    .replace(regex2, '<span$1data-id="' + safeId + '"$2class="comment-mention comment-mention-self"$3>');
+    .replace(
+      regex,
+      '<span$1class="comment-mention comment-mention-self"$2data-id="' + safeId + '"$3>'
+    )
+    .replace(
+      regex2,
+      '<span$1data-id="' + safeId + '"$2class="comment-mention comment-mention-self"$3>'
+    );
 }
 
 interface CommentItemProps {
@@ -192,7 +198,12 @@ export function CommentItem({
             disabled={isUpdating}
           />
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-            <IconButton size="small" onClick={handleCancel} disabled={isUpdating} aria-label="編集をキャンセル">
+            <IconButton
+              size="small"
+              onClick={handleCancel}
+              disabled={isUpdating}
+              aria-label="編集をキャンセル"
+            >
               <Close fontSize="small" />
             </IconButton>
             <IconButton

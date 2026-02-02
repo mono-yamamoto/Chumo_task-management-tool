@@ -94,20 +94,22 @@ export function CommentList({ projectType, taskId, currentUserId, users }: Comme
             <CircularProgress size={24} />
           </Box>
         ) : comments.length > 0 ? (
-          [...comments].reverse().map((comment: TaskComment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              currentUserId={currentUserId}
-              users={users ?? []}
-              projectType={projectType}
-              taskId={taskId}
-              onUpdate={handleUpdateComment}
-              onDelete={handleDeleteComment}
-              isUpdating={updateComment.isPending}
-              isDeleting={deleteComment.isPending}
-            />
-          ))
+          [...comments]
+            .reverse()
+            .map((comment: TaskComment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                currentUserId={currentUserId}
+                users={users ?? []}
+                projectType={projectType}
+                taskId={taskId}
+                onUpdate={handleUpdateComment}
+                onDelete={handleDeleteComment}
+                isUpdating={updateComment.isPending}
+                isDeleting={deleteComment.isPending}
+              />
+            ))
         ) : (
           <Typography
             sx={{

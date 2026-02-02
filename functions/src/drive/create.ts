@@ -2,6 +2,11 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { google } from 'googleapis';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { TaskDocument, UserDocument } from '../types';
+
+interface DriveCreateRequestBody {
+  userId: string;
+}
 
 const db = getFirestore();
 const secretClient = new SecretManagerServiceClient();
@@ -37,7 +42,8 @@ export const createDriveFolder = onRequest(
 
     try {
       // リクエストボディからuserIdを取得
-      const userId = req.body?.userId;
+      const body = req.body as DriveCreateRequestBody | undefined;
+      const userId = body?.userId;
       if (!userId) {
         res.status(400).json({ error: 'Missing userId in request body' });
         return;
@@ -73,7 +79,7 @@ export const createDriveFolder = onRequest(
         return;
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as UserDocument | undefined;
       console.info('User data fields:', userData ? Object.keys(userData) : 'null');
       console.info('googleRefreshToken exists:', !!userData?.googleRefreshToken);
       const refreshToken = userData?.googleRefreshToken;
@@ -103,7 +109,7 @@ export const createDriveFolder = onRequest(
         return;
       }
 
-      const task = taskDoc.data();
+      const task = taskDoc.data() as TaskDocument | undefined;
       if (!task) {
         res.status(404).json({ error: 'Task data not found' });
         return;

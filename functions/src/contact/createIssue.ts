@@ -2,6 +2,17 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Octokit } from '@octokit/rest';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { ErrorReportDetails } from '../types';
+
+interface CreateContactIssueRequestBody {
+  contactId: string;
+  type: 'error' | 'feature' | 'other';
+  title: string;
+  content?: string;
+  userName: string;
+  userEmail: string;
+  errorReportDetails?: ErrorReportDetails;
+}
 
 const db = getFirestore();
 const secretClient = new SecretManagerServiceClient();
@@ -63,7 +74,8 @@ export const createContactIssue = onRequest(
     }
 
     try {
-      const { contactId, type, title, content, userName, userEmail, errorReportDetails } = req.body;
+      const body = (req.body ?? {}) as Partial<CreateContactIssueRequestBody>;
+      const { contactId, type, title, content, userName, userEmail, errorReportDetails } = body;
 
       if (!contactId || !type || !title) {
         res.status(400).json({ error: 'Missing required fields' });

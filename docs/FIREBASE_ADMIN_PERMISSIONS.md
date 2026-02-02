@@ -63,4 +63,3 @@ gcloud projects get-iam-policy {PROJECT_ID} \
 
 - [Firebase Admin SDK の権限](https://firebase.google.com/docs/admin/setup#initialize-sdk)
 - [Cloud IAM ロール](https://cloud.google.com/iam/docs/understanding-roles)
-

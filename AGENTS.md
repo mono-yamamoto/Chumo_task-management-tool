@@ -14,22 +14,26 @@ This file contains guidelines for AI coding agents working on this project.
 2. **This file (AGENTS.md)** - Contains project-wide guidelines, setup instructions, and development rules
 
 **Priority order:**
+
 - `.cursor/rules/` files take precedence (they are integrated into Cursor's rule system with `alwaysApply: true`)
 - `AGENTS.md` provides additional context and setup instructions
 
 **Why this matters:**
+
 - `.cursor/rules/` contains detailed, project-specific rules that must be followed
 - These rules may be updated more frequently than `AGENTS.md`
 - Following these rules ensures consistent code quality and development practices
 
 **Action required:**
 Before starting any task, read the relevant rule files to understand:
+
 - Which tools to use (Serena MCP, Chrome DevTools MCP, standard tools)
 - How to structure code modifications
 - Testing and verification requirements
 - Project-specific conventions
 
 **⚠️ MCP Tools Reference**: Before using MCP tools, **MUST** refer to [MCP_REFERENCE.md](./MCP_REFERENCE.md) for detailed command syntax and usage examples. This reference contains comprehensive information about:
+
 - Kiri MCP (codebase search and context extraction)
 - Serena MCP (symbol-based code editing)
 - Next.js Runtime MCP (runtime error checking, route information)
@@ -51,12 +55,14 @@ Before starting any task, read the relevant rule files to understand:
    - Example: "実装タイプ: **新機能追加** (Phase 1-11) - 区分ラベルの共通化機能を追加"
 
 **Why this is required:**
+
 - Allows the user to verify that rules were actually checked before implementation
 - Provides clear context about the type of work being performed
 - Helps track the nature of changes for commit messages and documentation
 - Ensures consistent communication and transparency
 
 **Example response format:**
+
 ```text
 ✅ ルールを確認しました: `.cursor/rules/main.mdc`、`.cursor/rules/mcp-tools-rule.mdc`、`.cursor/rules/implementation-testing-rule.mdc`、`AGENTS.md`を確認済み
 
@@ -70,6 +76,7 @@ Before starting any task, read the relevant rule files to understand:
 When implementing complex features or performing significant refactoring, create an ExecPlan (execution plan).
 
 **When to use ExecPlan**:
+
 - Feature additions spanning multiple files
 - Architecture changes or major refactoring
 - Multi-step feature implementations
@@ -209,10 +216,12 @@ To improve development efficiency, we recommend setting up the following MCP too
 An MCP tool for efficient code reading and editing.
 
 **Setup**:
+
 - If using Cursor: Already configured in the project
 - For other agents: Refer to [Serena MCP](https://github.com/oraios/serena) documentation for setup
 
 **Main features**:
+
 - Symbol-based code search and editing
 - Accurate function, class, and method modifications
 - Code refactoring support
@@ -222,10 +231,12 @@ An MCP tool for efficient code reading and editing.
 An MCP tool for efficient browser-based verification.
 
 **Setup**:
+
 - If using Cursor: Already configured in the project
 - For other agents: Refer to [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) documentation for setup
 
 **Main features**:
+
 - Page snapshot capture
 - Console error checking
 - Network request verification
@@ -236,11 +247,13 @@ An MCP tool for efficient browser-based verification.
 GitHub CLI (`gh`) can be used to check PR and Issue information.
 
 **Setup**:
+
 - Check if GitHub CLI is installed: `gh --version`
 - If not installed: `brew install gh` (macOS) or install from [official site](https://cli.github.com/)
 - Authentication: Login to GitHub with `gh auth login`
 
 **PR Commands**:
+
 ```bash
 # List PRs
 gh pr list
@@ -262,6 +275,7 @@ gh pr view <PR_NUMBER> --web
 ```
 
 **Issue Commands**:
+
 ```bash
 # List issues
 gh issue list
@@ -277,6 +291,7 @@ gh issue view <ISSUE_NUMBER> --web
 ```
 
 **Examples**:
+
 ```bash
 # View comments for PR #8
 gh pr view 8 --comments
@@ -289,6 +304,7 @@ gh issue view 5
 ```
 
 **Main Use Cases**:
+
 - Check PR review comments
 - Check issue status
 - Track review response status
@@ -336,6 +352,7 @@ npm run lint
 - **Pattern search**: Use `mcp_serena_search_for_pattern`
 
 **When to use**:
+
 - File reading and editing
 - Function, class, and method modifications
 - Symbol search and reference verification
@@ -344,6 +361,7 @@ npm run lint
 
 **When to use standard tools instead**:
 Use standard tools only when Serena MCP is unavailable or for the following cases:
+
 - File creation and deletion (`write`, `delete_file`)
 - Directory listing (`list_dir`)
 - Terminal command execution (`run_terminal_cmd`)
@@ -354,6 +372,7 @@ Use standard tools only when Serena MCP is unavailable or for the following case
 **Local server verification**: When a local server is running or a local server URL (e.g., `http://localhost:3000`) is shared, use Chrome DevTools MCP to verify the page.
 
 **When to use**:
+
 - Page display verification
 - UI behavior verification
 - Console error checking
@@ -362,6 +381,7 @@ Use standard tools only when Serena MCP is unavailable or for the following case
 - Element state verification
 
 **Basic workflow**:
+
 1. **Navigate to page**: Use `mcp_chrome-devtools_navigate_page` to navigate to the URL
 2. **Take snapshot**: Use `mcp_chrome-devtools_take_snapshot` to verify page state
 3. **Interact**: Perform clicks, input, etc. as needed
@@ -369,6 +389,7 @@ Use standard tools only when Serena MCP is unavailable or for the following case
 5. **Screenshot**: Use `mcp_chrome-devtools_take_screenshot` to capture screenshots as needed
 
 **Verification checklist**:
+
 - Is the page displayed correctly?
 - Are there any error messages?
 - Are there console errors? (Use `mcp_chrome-devtools_list_console_messages`)
@@ -377,17 +398,20 @@ Use standard tools only when Serena MCP is unavailable or for the following case
 
 **URL detection**:
 Use Chrome DevTools MCP when the following information is provided:
+
 - URLs in the format `http://localhost:*`
 - Local server URLs like `localhost:3000`
 - When the user explicitly states "local server is running"
 - When the user requests "check the page"
 
 **Priority**:
+
 1. **Serena MCP**: Always prioritize for code modifications and reading
 2. **Chrome DevTools MCP**: When local server verification is needed
 3. **Standard tools**: Only when the above MCP tools are unavailable
 
 **Notes**:
+
 - Serena MCP and Chrome DevTools MCP can be used together
 - After code modifications, verify behavior with Chrome DevTools MCP
 - If MCP tools are unavailable, use standard tools
@@ -532,11 +556,13 @@ Extract numbers from the current branch name and append `(#<number>)` at the end
 This command automatically groups changes by relevance and splits each group into separate commits.
 
 **Usage**:
+
 1. After making changes, type `/commit` in Cursor's chat
 2. The agent automatically analyzes changes and generates appropriate commit messages
 3. Splits into multiple commits following the one-commit-per-matter principle
 
-**Auto commit rules**:
+**Auto-commit rules**:
+
 - Strictly follow the one-commit-per-matter principle
 - Group change files by relevance
 - Split each group into one commit
@@ -544,6 +570,7 @@ This command automatically groups changes by relevance and splits each group int
 - Commit immediately without confirmation dialog
 
 **Examples**:
+
 - `✨ feat(root): 新機能を追加 (#123)`
 - `🐛 fix(auth): ログイン処理のバグを修正 (#123)`
 - `📝 docs(root): ドキュメントを更新 (#123)`
@@ -553,6 +580,7 @@ This command automatically groups changes by relevance and splits each group int
 For agents other than Cursor or when committing manually, follow the commit message convention above.
 
 **Principles**:
+
 - One commit per matter
 - Split unrelated changes into separate commits
 - Commit messages should be clear and concise

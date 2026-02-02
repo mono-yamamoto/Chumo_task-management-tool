@@ -89,12 +89,14 @@ Templates are stored in `docs/templates/` and can be extended:
 #### Feature Specification from Code
 
 **Target Files:**
+
 - Component files (`*.tsx`, `*.jsx`)
 - Page files (`page.tsx`, `route.ts`)
 - Hook files (`use*.ts`, `*.hook.ts`)
 - Utility files related to the feature
 
 **Extraction Steps:**
+
 1. Identify feature entry points (pages, routes, main components)
 2. Extract component props and state management
 3. Analyze user interactions and flows
@@ -103,6 +105,7 @@ Templates are stored in `docs/templates/` and can be extended:
 6. Extract error handling and edge cases
 
 **Information to Extract:**
+
 - Component hierarchy and relationships
 - Props interfaces and types
 - State management patterns
@@ -114,11 +117,13 @@ Templates are stored in `docs/templates/` and can be extended:
 #### API Specification from Code
 
 **Target Files:**
+
 - API route files (`app/api/**/route.ts`, `pages/api/**/*.ts`)
 - API client files (`api/*.ts`, `services/*.ts`)
 - Type definition files (`types/*.ts`, `@types/*.ts`)
 
 **Extraction Steps:**
+
 1. Find all API route definitions
 2. Extract HTTP methods and paths
 3. Extract request/response schemas from TypeScript types
@@ -127,6 +132,7 @@ Templates are stored in `docs/templates/` and can be extended:
 6. Identify query parameters and request body structures
 
 **Information to Extract:**
+
 - Endpoint paths and HTTP methods
 - Request schemas (query params, body, headers)
 - Response schemas (success and error)
@@ -138,12 +144,14 @@ Templates are stored in `docs/templates/` and can be extended:
 #### Architecture Specification from Code
 
 **Target Files:**
+
 - Directory structure
 - Configuration files (`next.config.js`, `tsconfig.json`)
 - Package files (`package.json`, `bun.lockb`)
 - Main application files (`app/`, `src/`)
 
 **Extraction Steps:**
+
 1. Analyze directory structure and organization
 2. Extract component/module relationships
 3. Identify data flow patterns
@@ -152,6 +160,7 @@ Templates are stored in `docs/templates/` and can be extended:
 6. Identify deployment and build configurations
 
 **Information to Extract:**
+
 - Directory structure and organization
 - Component/module hierarchy
 - Data flow patterns
@@ -163,11 +172,13 @@ Templates are stored in `docs/templates/` and can be extended:
 #### Database Schema from Code
 
 **Target Files:**
+
 - ORM model files (`models/*.ts`, `prisma/schema.prisma`)
 - Migration files (`migrations/*.ts`)
 - Type definition files with database types
 
 **Extraction Steps:**
+
 1. Find database model definitions
 2. Extract table/collection structures
 3. Extract relationships and foreign keys
@@ -176,6 +187,7 @@ Templates are stored in `docs/templates/` and can be extended:
 6. Identify migration history
 
 **Information to Extract:**
+
 - Table/collection names
 - Field definitions and types
 - Relationships (one-to-one, one-to-many, many-to-many)
@@ -214,12 +226,14 @@ Templates are stored in `docs/templates/` and can be extended:
 ### Code Analysis Checklist
 
 Before reverse engineering:
+
 - [ ] Identify target files or directories
 - [ ] Determine document type to generate
 - [ ] Understand codebase structure
 - [ ] Identify entry points
 
 During analysis:
+
 - [ ] Use Kiri MCP for semantic search
 - [ ] Use Serena MCP for symbol analysis
 - [ ] Extract all relevant information
@@ -227,6 +241,7 @@ During analysis:
 - [ ] Identify dependencies and relationships
 
 After extraction:
+
 - [ ] Verify extracted information against code
 - [ ] Fill in missing information from code comments
 - [ ] Add implementation notes
@@ -241,55 +256,68 @@ After extraction:
 # [Feature Name]
 
 ## Overview
+
 Brief description of the feature.
 
 ## User Stories
+
 - As a [user type], I want [goal] so that [benefit]
 
 ## Requirements
+
 - [ ] Requirement 1
 - [ ] Requirement 2
 
 ## Acceptance Criteria
+
 - [ ] Criterion 1
 - [ ] Criterion 2
 
 ## Technical Details
+
 Technical implementation notes.
 
 ## Dependencies
+
 - Related features or systems
 
 ## Testing Strategy
+
 How this feature will be tested.
 
 ## Timeline
+
 Estimated completion timeline.
 ```
 
 ### API Specification Format
 
-```markdown
+````markdown
 # [API Name]
 
 ## Overview
+
 Brief description of the API.
 
 ## Endpoints
 
 ### [Endpoint Name]
+
 - **Method**: GET/POST/PUT/DELETE
 - **Path**: `/api/v1/...`
 - **Description**: Endpoint description
 
 #### Request
+
 ```json
 {
   "field": "type"
 }
 ```
+````
 
 #### Response
+
 ```json
 {
   "field": "type"
@@ -297,11 +325,12 @@ Brief description of the API.
 ```
 
 ## Authentication
+
 Authentication requirements.
 
 ## Error Handling
+
 Error response format.
-```
 
 ### Architecture Specification Format
 
@@ -309,22 +338,28 @@ Error response format.
 # [System/Component Name]
 
 ## Overview
+
 System or component overview.
 
 ## Architecture Diagram
+
 [Diagram or reference to diagram]
 
 ## Components
+
 - Component 1: Description
 - Component 2: Description
 
 ## Data Flow
+
 Description of data flow.
 
 ## Technology Stack
+
 Technologies used.
 
 ## Scalability Considerations
+
 Scalability and performance considerations.
 ```
 
@@ -425,17 +460,20 @@ Steps:
 ### Forward Engineering
 
 Before starting:
+
 - [ ] Identify document type needed
 - [ ] Check if template exists or needs creation
 - [ ] Gather requirements and information
 
 During creation:
+
 - [ ] Use appropriate template
 - [ ] Fill all required sections
 - [ ] Follow naming conventions
 - [ ] Place in correct directory
 
 After creation:
+
 - [ ] Review for completeness
 - [ ] Verify technical accuracy
 - [ ] Check links and references
@@ -444,12 +482,14 @@ After creation:
 ### Reverse Engineering
 
 Before starting:
+
 - [ ] Identify target code files or directories
 - [ ] Determine document type to generate
 - [ ] Understand codebase structure
 - [ ] Set up code analysis tools (Kiri MCP, Serena MCP)
 
 During analysis:
+
 - [ ] Use Kiri MCP for semantic search and context extraction
 - [ ] Use Serena MCP for symbol-based analysis
 - [ ] Extract all relevant information (endpoints, components, types, etc.)
@@ -457,6 +497,7 @@ During analysis:
 - [ ] Identify dependencies and relationships
 
 During document generation:
+
 - [ ] Use appropriate template
 - [ ] Map extracted information to template sections
 - [ ] Add source code references
@@ -464,6 +505,7 @@ During document generation:
 - [ ] Follow naming conventions
 
 After extraction:
+
 - [ ] Verify extracted information against actual code
 - [ ] Fill in missing information from code comments
 - [ ] Add links to source code files

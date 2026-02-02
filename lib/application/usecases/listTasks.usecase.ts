@@ -34,11 +34,7 @@ export class ListTasksUseCase {
   /**
    * フィルタリング適用
    */
-  private applyFilters(
-    tasks: Task[],
-    filters: TaskFiltersDTO,
-    activeTaskId?: string
-  ): Task[] {
+  private applyFilters(tasks: Task[], filters: TaskFiltersDTO, activeTaskId?: string): Task[] {
     let result = [...tasks];
 
     // ステータスフィルター
@@ -59,9 +55,7 @@ export class ListTasksUseCase {
 
     // ラベルフィルター
     if (filters.labelIds && filters.labelIds.length > 0) {
-      result = result.filter((task) =>
-        filters.labelIds?.includes(task.kubunLabelId)
-      );
+      result = result.filter((task) => filters.labelIds?.includes(task.kubunLabelId));
     }
 
     // タイマーアクティブフィルター
@@ -99,9 +93,7 @@ export class ListTasksUseCase {
     // タイトル検索フィルター
     if (filters.title && filters.title.trim() !== '') {
       const searchTerm = filters.title.toLowerCase();
-      result = result.filter((task) =>
-        task.title.toLowerCase().includes(searchTerm)
-      );
+      result = result.filter((task) => task.title.toLowerCase().includes(searchTerm));
     }
 
     return result;
@@ -132,10 +124,8 @@ export class ListTasksUseCase {
       if (!aIsActive && bIsActive) return 1;
 
       // 2. 新規未アサインタスクを次に優先
-      const aIsNewUnassigned =
-        a.assigneeIds.length === 0 && a.createdAt.getTime() > oneWeekAgo;
-      const bIsNewUnassigned =
-        b.assigneeIds.length === 0 && b.createdAt.getTime() > oneWeekAgo;
+      const aIsNewUnassigned = a.assigneeIds.length === 0 && a.createdAt.getTime() > oneWeekAgo;
+      const bIsNewUnassigned = b.assigneeIds.length === 0 && b.createdAt.getTime() > oneWeekAgo;
       if (aIsNewUnassigned && !bIsNewUnassigned) return -1;
       if (!aIsNewUnassigned && bIsNewUnassigned) return 1;
 

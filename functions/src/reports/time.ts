@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { PROJECT_TYPES, isBRGREGProject } from './projectTypes';
+import { DateField } from '../types';
 
 const db = getFirestore();
 
@@ -20,10 +21,20 @@ interface TaskInfo {
   projectType: string;
 }
 
+// セッションドキュメントの型定義
+interface SessionData {
+  taskId: string;
+  userId: string;
+  startedAt: DateField;
+  endedAt: DateField;
+  durationSec?: number;
+}
+
 /**
  * Timestampをミリ秒に変換するヘルパー関数
  */
-function toMillis(value: Timestamp | { toDate?: () => Date } | Date | string): number {
+function toMillis(value: DateField | string): number {
+  if (value === null) return 0;
   if (value instanceof Timestamp) {
     return value.toMillis();
   }
@@ -44,7 +55,7 @@ function toMillis(value: Timestamp | { toDate?: () => Date } | Date | string): n
 /**
  * セッションの作業時間（秒）を計算
  */
-function calculateSessionDuration(session: FirebaseFirestore.DocumentData): number {
+function calculateSessionDuration(session: SessionData): number {
   if (!session.endedAt) return 0;
 
   // durationSecが存在する場合はそれを使用
@@ -125,7 +136,7 @@ async function fetchReportData(
     // 3c. セッションをタスクIDごとに集計
     const durationByTaskId = new Map<string, number>();
     for (const sessionDoc of sessionsSnapshot.docs) {
-      const session = sessionDoc.data();
+      const session = sessionDoc.data() as SessionData;
       const { taskId } = session;
 
       // 対象タスク（運用）のセッションのみ処理
@@ -264,9 +275,10 @@ export const exportTimeReportCSV = onRequest(
       const csv = BOM + csvRows.map((row) => row.join(',')).join('\r\n');
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      const typeStr = typeof type === 'string' ? type : 'normal';
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="report_${type}_${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}.csv"`
+        `attachment; filename="report_${typeStr}_${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}.csv"`
       );
       res.status(200).send(csv);
     } catch (error) {

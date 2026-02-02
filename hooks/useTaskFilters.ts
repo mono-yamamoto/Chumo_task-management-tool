@@ -50,7 +50,11 @@ export function useTaskFilters(params: {
       labelIds: filterLabel !== 'all' ? [filterLabel] : undefined,
       title: filterTitle || undefined,
       timerActive:
-        filterTimerActive === 'active' ? true : filterTimerActive === 'inactive' ? false : undefined,
+        filterTimerActive === 'active'
+          ? true
+          : filterTimerActive === 'inactive'
+            ? false
+            : undefined,
       itUpDateMonth: filterItUpDateMonth || undefined,
       releaseDateMonth: filterReleaseDateMonth || undefined,
     };

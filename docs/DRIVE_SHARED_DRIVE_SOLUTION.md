@@ -98,4 +98,3 @@ npm run functions:deploy:drive
 - [Google Developerフォーラム - サービスアカウントのストレージ容量不足エラー](https://discuss.google.dev/t/error-403-storagequotaexceeded-when-the-service-accounts-drive-is-completely-empty/194265)
 - [Google Drive API - 共有ドライブのサポート](https://developers.google.com/drive/api/guides/enable-shareddrives)
 - [Google Workspace - 共有ドライブの管理](https://support.google.com/a/answer/7212025)
-

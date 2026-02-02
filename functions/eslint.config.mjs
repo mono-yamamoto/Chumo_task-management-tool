@@ -7,7 +7,7 @@ export default tseslint.config(
     ignores: ['node_modules/**', 'lib/**'],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
   {
     files: ['src/**/*.ts'],
     languageOptions: {

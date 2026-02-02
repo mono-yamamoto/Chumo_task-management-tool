@@ -28,7 +28,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', position: 'relative' }}>
         {/* テーマ背景 */}
         <ThemeBackground />
-        <AppBar position="static" color="default" elevation={1} sx={{ position: 'relative', zIndex: 1 }}>
+        <AppBar
+          position="static"
+          color="default"
+          elevation={1}
+          sx={{ position: 'relative', zIndex: 1 }}
+        >
           <Toolbar
             sx={{
               maxWidth: '1280px',

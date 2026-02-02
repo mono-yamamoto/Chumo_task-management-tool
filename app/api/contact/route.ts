@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch (e) {
       console.error('Failed to parse request body:', e);
-      return NextResponse.json(
-        { error: 'リクエストボディの解析に失敗しました' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'リクエストボディの解析に失敗しました' }, { status: 400 });
     }
 
     // フロントエンドのフィールド名をDTOに変換
@@ -51,10 +48,7 @@ export async function POST(request: NextRequest) {
     const validationResult = validator.validate(requestDTO);
 
     if (!validationResult.isValid) {
-      return NextResponse.json(
-        { error: validationResult.errors.join(', ') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validationResult.errors.join(', ') }, { status: 400 });
     }
 
     // ユーザー情報を取得
@@ -84,12 +78,7 @@ export async function POST(request: NextRequest) {
       errorReportDetails: requestDTO.errorReportDetails,
     };
 
-    const result = await createContactUseCase.execute(
-      contactRequest,
-      userId,
-      userEmail,
-      userName
-    );
+    const result = await createContactUseCase.execute(contactRequest, userId, userEmail, userName);
 
     return NextResponse.json(result);
   } catch (error) {

@@ -26,17 +26,13 @@ CursorでMCPサーバーを使用するには、Cursorの設定ファイルに�
 `~/Library/Application Support/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`
 
 **設定例:**
+
 ```json
 {
   "mcpServers": {
     "serena": {
       "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server"
-      ],
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"],
       "env": {}
     }
   }
@@ -46,6 +42,7 @@ CursorでMCPサーバーを使用するには、Cursorの設定ファイルに�
 ### 3. 自動起動の仕組み
 
 **設定が正しく完了していれば：**
+
 - ✅ **Cursorが自動的にMCPサーバーを起動します**
 - ✅ **AI（Composer）がserenaMCPのツールを使おうとしたときに、自動的にサーバーが起動します**
 - ✅ **手動でコマンドを実行する必要はありません**
@@ -105,4 +102,3 @@ web_dashboard_open_on_launch: false
 
 - [Serena GitHub リポジトリ](https://github.com/oraios/serena)
 - [MCP公式ドキュメント](https://modelcontextprotocol.io/)
-

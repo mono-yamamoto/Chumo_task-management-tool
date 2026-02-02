@@ -2,6 +2,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Octokit } from '@octokit/rest';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { TaskDocument, UserDocument } from '../types';
 
 const db = getFirestore();
 const secretClient = new SecretManagerServiceClient();
@@ -70,7 +71,7 @@ export const createFireIssue = onRequest(
         return;
       }
 
-      const task = taskDoc.data();
+      const task = taskDoc.data() as TaskDocument | undefined;
       if (!task) {
         res.status(404).json({ error: 'Task data not found' });
         return;
@@ -101,7 +102,7 @@ export const createFireIssue = onRequest(
       for (const userId of assigneeIds) {
         const userDoc = await db.collection('users').doc(userId).get();
         if (userDoc.exists) {
-          const user = userDoc.data();
+          const user = userDoc.data() as UserDocument | undefined;
           if (user?.githubUsername) {
             assignees.push(user.githubUsername);
           }

@@ -1,11 +1,4 @@
-import {
-  ContactType,
-  DeviceType,
-  PCOSType,
-  SPOSType,
-  SmartphoneType,
-  BrowserType,
-} from '@/types';
+import { ContactType, DeviceType, PCOSType, SPOSType, SmartphoneType, BrowserType } from '@/types';
 
 /**
  * お問い合わせ作成リクエストDTO

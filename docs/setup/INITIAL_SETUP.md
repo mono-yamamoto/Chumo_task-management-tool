@@ -8,12 +8,14 @@
 ## Phase 1: GCP Secret Manager設定（必須）
 
 ### 1-1. GCP Secret Manager API有効化
+
 1. [GCP Console](https://console.cloud.google.com/) にアクセス
 2. プロジェクト `chumo-3506a` を選択
 3. 「APIとサービス」→「ライブラリ」を開く
 4. 「Secret Manager API」を検索して有効化
 
 ### 1-2. Secrets作成
+
 以下のSecretsをGCP Secret Managerに作成してください：
 
 > **Secretsの作成方法がわからない場合**: `docs/setup/SECRETS_CREATE.md` を参照してください。
@@ -21,30 +23,37 @@
 **作成方法**: GCP Console（Web UI）またはgcloud CLIのどちらでも作成できます。初心者の方はGCP Consoleがおすすめです。
 
 #### `MAKE_WEBHOOK_SECRET`
+
 - **用途**: Make Webhookの署名検証用
 - **値**: Makeで設定したWebhook秘密鍵（任意の文字列、例: `your-secret-key-12345`）
 - **作成コマンド**:
+
 ```bash
 echo -n "your-secret-key-12345" | gcloud secrets create MAKE_WEBHOOK_SECRET --data-file=- --project=chumo-3506a
 ```
 
 #### `DRIVE_PARENT_ID`
+
 - **用途**: Google Driveの親フォルダID
 - **値**: `14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh`（仕様書で確定済み）
 - **作成コマンド**:
+
 ```bash
 echo -n "14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh" | gcloud secrets create DRIVE_PARENT_ID --data-file=- --project=chumo-3506a
 ```
 
 #### `CHECKSHEET_TEMPLATE_ID`
+
 - **用途**: チェックシートテンプレートのID
 - **値**: `1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M`（仕様書で確定済み）
 - **作成コマンド**:
+
 ```bash
 echo -n "1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M" | gcloud secrets create CHECKSHEET_TEMPLATE_ID --data-file=- --project=chumo-3506a
 ```
 
 #### `GITHUB_TOKEN`
+
 - **用途**: GitHub API認証用
 - **値**: GitHub Personal Access Token（`repo`権限が必要）
 - **作成手順**:
@@ -56,12 +65,15 @@ echo -n "1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M" | gcloud secrets create C
   6. 「Generate token」をクリック
   7. 表示されたトークンをコピー（再表示不可のため注意）
 - **作成コマンド**:
+
 ```bash
 echo -n "ghp_your_token_here" | gcloud secrets create GITHUB_TOKEN --data-file=- --project=chumo-3506a
 ```
+
 - **⚠️ 重要**: GitHubトークンには有効期限があります。期限切れ時の再登録手順は `docs/operations/GITHUB_TOKEN_RENEWAL.md` を参照してください。
 
 #### `DRIVE_SERVICE_ACCOUNT_KEY`
+
 - **用途**: Google Drive API認証用（サービスアカウントのJSONキー）
 - **作成手順**:
   1. GCP Console → 「IAMと管理」→「サービスアカウント」
@@ -74,6 +86,7 @@ echo -n "ghp_your_token_here" | gcloud secrets create GITHUB_TOKEN --data-file=-
   8. 「作成」をクリック（JSONファイルがダウンロードされる）
   9. JSONファイルの内容をコピー
 - **作成コマンド**:
+
 ```bash
 cat /path/to/service-account-key.json | gcloud secrets create DRIVE_SERVICE_ACCOUNT_KEY --data-file=- --project=chumo-3506a
 ```
@@ -81,6 +94,7 @@ cat /path/to/service-account-key.json | gcloud secrets create DRIVE_SERVICE_ACCO
 ### 1-3. Cloud FunctionsにSecretsアクセス権限付与
 
 > **権限付与の手順がわからない場合**: `docs/setup/SECRETS_ACCESS.md` を参照してください。
+
 ```bash
 # Cloud FunctionsのサービスアカウントにSecrets読み取り権限を付与
 PROJECT_NUMBER=$(gcloud projects describe chumo-3506a --format="value(projectNumber)")
@@ -117,11 +131,13 @@ gcloud secrets add-iam-policy-binding DRIVE_SERVICE_ACCOUNT_KEY \
 ## Phase 2: Google Drive API設定（必須）
 
 ### 2-1. Google Drive API有効化
+
 1. GCP Console → 「APIとサービス」→「ライブラリ」
 2. 「Google Drive API」を検索して有効化
 3. 「Google Sheets API」も有効化（チェックシート操作のため）
 
 ### 2-2. サービスアカウントにDrive権限付与
+
 1. Google Driveで親フォルダ（ID: `14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh`）を開く
 2. フォルダを右クリック → 「共有」
 3. サービスアカウントのメールアドレス（`drive-service-account@chumo-3506a.iam.gserviceaccount.com`）を追加
@@ -129,6 +145,7 @@ gcloud secrets add-iam-policy-binding DRIVE_SERVICE_ACCOUNT_KEY \
 5. 「送信」をクリック
 
 ### 2-3. チェックシートテンプレートの確認
+
 1. テンプレートID `1LGoFol8V0kOv9n6PmwDiJF2C6hNohm2u4TTba-hCh-M` のシートが存在するか確認
 2. セルマッピングが正しいか確認：
    - `C4` = タイトル
@@ -140,6 +157,7 @@ gcloud secrets add-iam-policy-binding DRIVE_SERVICE_ACCOUNT_KEY \
 ## Phase 3: Cloud Functionsデプロイ（必須）
 
 ### 3-1. Functions依存関係インストール
+
 ```bash
 cd functions
 npm install
@@ -147,6 +165,7 @@ npm run build
 ```
 
 ### 3-2. Functionsデプロイ
+
 ```bash
 # プロジェクトルートに戻る
 cd ..
@@ -165,7 +184,9 @@ firebase deploy --only functions:exportTimeReportCSV
 ```
 
 ### 3-3. Functions URL確認
+
 デプロイ後、以下のURLが表示されます：
+
 - `https://asia-northeast1-chumo-3506a.cloudfunctions.net/syncBacklog`
 - `https://asia-northeast1-chumo-3506a.cloudfunctions.net/startTimer`
 - など
@@ -180,6 +201,7 @@ firebase deploy --only functions:exportTimeReportCSV
 > 詳細は `.github/ISSUE_TEMPLATE/make-webhook-setup.md` を参照してください。
 
 ### 4-1. MakeでWebhook作成
+
 1. Makeで新しいシナリオを作成
 2. Backlogモジュールを追加
 3. 「Webhook」モジュールを追加
@@ -191,6 +213,7 @@ firebase deploy --only functions:exportTimeReportCSV
 7. Webhook秘密鍵をコピー（GCP Secret Managerに保存済みの値と一致させる）
 
 ### 4-2. Backlogトリガー設定
+
 1. Backlogモジュールで「課題作成」イベントを選択
 2. プロジェクトキーを指定
 3. Webhookにデータを送信する設定
@@ -200,7 +223,9 @@ firebase deploy --only functions:exportTimeReportCSV
 ## Phase 5: 初期データ作成（推奨）
 
 ### 5-1. デフォルトラベル作成
+
 Firebase Consoleから手動で作成：
+
 1. Firestore Database → 「データ」タブ
 2. `labels`コレクションを作成
 3. ドキュメントを追加：
@@ -211,7 +236,9 @@ Firebase Consoleから手動で作成：
    - `updatedAt`: 現在の日時
 
 ### 5-2. プロジェクトにデフォルトラベルIDを設定
+
 作成したプロジェクトのドキュメントを編集：
+
 - `driveParentId`: `14l_ggl_SBo8FxZFDOKnmN7atbmaG-Rdh`（既に設定済みの可能性あり）
 
 ---
@@ -219,18 +246,21 @@ Firebase Consoleから手動で作成：
 ## Phase 6: 動作確認（必須）
 
 ### 6-1. プロジェクト作成テスト
+
 1. `/projects` にアクセス
 2. 「新規作成」をクリック
 3. プロジェクト名を入力して作成
 4. 一覧に表示されることを確認
 
 ### 6-2. タスク作成テスト
+
 1. `/tasks` にアクセス
 2. プロジェクトを選択
 3. 「新規作成」をクリック（実装が必要な場合）
 4. タスクが作成できることを確認
 
 ### 6-3. タイマー機能テスト
+
 1. `/tasks` でタスクを選択
 2. 「開始」ボタンをクリック
 3. タイマーが開始されることを確認
@@ -238,11 +268,13 @@ Firebase Consoleから手動で作成：
 5. セッションが保存されることを確認
 
 ### 6-4. Drive連携テスト
+
 1. タスク詳細ページで「Drive」ボタンをクリック
 2. Google Driveにフォルダが作成されることを確認
 3. チェックシートが作成されることを確認
 
 ### 6-5. Fire連携テスト
+
 1. タスク詳細ページで「Fire」ボタンをクリック
 2. GitHub Issueが作成されることを確認
 3. `monosus/ss-fire-design-system` リポジトリにIssueが表示されることを確認
@@ -276,15 +308,17 @@ Firebase Consoleから手動で作成：
 ## トラブルシューティング
 
 ### Secretsが読み込めない場合
+
 - Cloud Functionsのサービスアカウントに権限が付与されているか確認
 - Secret名が正確か確認（大文字小文字を区別）
 
 ### Google Drive APIエラー
+
 - サービスアカウントにフォルダの共有権限が付与されているか確認
 - Google Drive APIとGoogle Sheets APIが有効化されているか確認
 
 ### Cloud Functionsデプロイエラー
+
 - `functions/package.json`の依存関係が正しいか確認
 - Node.js 24が使用されているか確認
 - ビルドエラーがないか確認（`npm run build`）
-

@@ -7,10 +7,7 @@ import { Task } from '@/types';
  * @param originalTask - 元のタスクデータ
  * @returns 変更がある場合はtrue
  */
-export function hasTaskChanges(
-  formData: Partial<Task>,
-  originalTask: Task
-): boolean {
+export function hasTaskChanges(formData: Partial<Task>, originalTask: Task): boolean {
   // formDataに含まれるフィールドのみをチェック
   // originalTaskのみにあるフィールドは無視する（これらは変更対象外）
   const formKeys = Object.keys(formData);
@@ -29,8 +26,12 @@ export function hasTaskChanges(
     }
 
     // null/undefinedの明示的な比較（nullとundefinedは同一視）
-    if (formValue === null || formValue === undefined ||
-        taskValue === null || taskValue === undefined) {
+    if (
+      formValue === null ||
+      formValue === undefined ||
+      taskValue === null ||
+      taskValue === undefined
+    ) {
       // 両方が「値なし」（null or undefined）なら変更なし
       const formEmpty = formValue === null || formValue === undefined;
       const taskEmpty = taskValue === null || taskValue === undefined;

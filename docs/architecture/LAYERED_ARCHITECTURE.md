@@ -88,12 +88,14 @@ lib/
 **責務**: ユーザーインターフェースとデータの表示形式を管理
 
 **含まれるもの**:
+
 - ページコンポーネント (`app/`)
 - UIコンポーネント (`components/`)
 - DTOs (Data Transfer Objects)
 - カスタムフック (`hooks/`)
 
 **ルール**:
+
 - ビジネスロジックを含まない
 - UseCaseやServiceを呼び出してデータを取得・更新
 - DTOを使用してデータを受け渡し
@@ -103,11 +105,13 @@ lib/
 **責務**: ビジネスロジックの実装と調整
 
 **含まれるもの**:
+
 - **UseCases**: 具体的なビジネスロジック（例: タスク一覧取得、お問い合わせ作成）
 - **Services**: 複数のUseCaseで共有されるロジック（例: 認証、通知）
 - **Validators**: バリデーションロジック
 
 **ルール**:
+
 - ドメインモデルを使用してビジネスロジックを実装
 - インフラ層の詳細には依存しない（Repositoryインターフェースに依存）
 - プレゼンテーション層の詳細には依存しない
@@ -117,10 +121,12 @@ lib/
 **責務**: ビジネスの核心的な概念とルールを定義
 
 **含まれるもの**:
+
 - エンティティ (`types/` から将来的に移行)
 - Repository Interface（抽象）
 
 **ルール**:
+
 - 他のレイヤーに依存しない
 - ビジネスルールとドメイン知識を表現
 
@@ -129,12 +135,14 @@ lib/
 **責務**: 外部システムとの連携とデータ永続化
 
 **含まれるもの**:
+
 - Repository Implementation（具象）
 - Data Mapper (Firestore ⇔ Domain Model)
 - 外部API連携
 - Firebase設定
 
 **ルール**:
+
 - Domain LayerのRepositoryインターフェースを実装
 - データベースや外部APIの詳細を隠蔽
 
@@ -145,10 +153,7 @@ lib/
 ```typescript
 // lib/application/usecases/listTasks.usecase.ts
 export class ListTasksUseCase {
-  execute(params: {
-    tasks: Task[];
-    filters: TaskFiltersDTO;
-  }): Task[] {
+  execute(params: { tasks: Task[]; filters: TaskFiltersDTO }): Task[] {
     // ビジネスロジックをここに実装
     let filtered = this.applyFilters(params.tasks, params.filters);
     let sorted = this.applySorting(filtered);
@@ -209,10 +214,7 @@ export class ContactValidator {
 // hooks/useTasksList.ts
 import { ListTasksUseCase } from '@/lib/application/usecases/listTasks.usecase';
 
-export function useTasksList(params: {
-  tasks: Task[];
-  activeTaskId?: string;
-}) {
+export function useTasksList(params: { tasks: Task[]; activeTaskId?: string }) {
   const [filters, setFilters] = useState<TaskFiltersDTO>({
     status: 'not-completed',
   });
@@ -256,6 +258,7 @@ function TasksPage() {
 ### 例2: API RouteでValidator + Serviceを使用
 
 **Before (476行)**:
+
 ```typescript
 // app/api/contact/route.ts
 export async function POST(request: NextRequest) {
@@ -267,6 +270,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **After (50行以下)**:
+
 ```typescript
 // app/api/contact/route.ts
 import { AuthService } from '@/lib/application/services/authService';
@@ -287,10 +291,7 @@ export async function POST(request: NextRequest) {
   const data = await request.json();
   const validationResult = validator.validate(data);
   if (!validationResult.isValid) {
-    return NextResponse.json(
-      { error: validationResult.errors.join(', ') },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: validationResult.errors.join(', ') }, { status: 400 });
   }
 
   // ビジネスロジック実行
@@ -303,6 +304,7 @@ export async function POST(request: NextRequest) {
 ### Phase 1: 新規機能で新しいパターンを適用 ✅
 
 **完了**: 基盤構造を実装済み
+
 - Application Layer (UseCases, Services, Validators)
 - Presentation Layer (DTOs, Mappers)
 - 使用例 (useTasksList)
@@ -314,11 +316,13 @@ export async function POST(request: NextRequest) {
 #### 優先度1: `app/(dashboard)/tasks/page.tsx` (760行)
 
 **リファクタリング内容**:
+
 1. フィルタリングロジックを `ListTasksUseCase` に移行
 2. `useTasksList` フックを使用
 3. ページコンポーネントを200行以下に削減
 
 **期待効果**:
+
 - 560行削減
 - ビジネスロジックの再利用可能化
 - 単体テストの追加が容易
@@ -326,12 +330,14 @@ export async function POST(request: NextRequest) {
 #### 優先度2: `app/api/contact/route.ts` (476行)
 
 **リファクタリング内容**:
+
 1. 認証ロジックを `AuthService` に移行
 2. バリデーションロジックを `ContactValidator` に移行
 3. お問い合わせ作成ロジックを `CreateContactUseCase` に移行
 4. API Routeを50行以下に削減
 
 **期待効果**:
+
 - 426行削減
 - ロジックの再利用可能化
 - バリデーションの一元管理

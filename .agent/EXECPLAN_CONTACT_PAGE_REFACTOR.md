@@ -42,23 +42,20 @@ The Contact page lives at `app/(dashboard)/contact/page.tsx`. It contains helper
 
 ## Plan of Work
 
-1) Create a helper module `lib/contact/contactType.ts` that exports `getContactTypeLabel` and `getContactTypeColor` (used by both pending and resolved lists).
+1. Create a helper module `lib/contact/contactType.ts` that exports `getContactTypeLabel` and `getContactTypeColor` (used by both pending and resolved lists).
 
-2) Create a hook `hooks/useContactFormState.ts` that encapsulates:
-
+2. Create a hook `hooks/useContactFormState.ts` that encapsulates:
    - Base form state (`type`, `title`, `content`, `message`) and error report state fields.
    - The image select/upload handlers (including preview and size/type validation).
    - Submit handler logic, including error details serialization and mutation submission.
    - Expose `isSubmitting`, `imageUploading`, and `progress` for UI feedback.
 
-3) Create `components/contact/ContactListSection.tsx` to render either pending or resolved lists:
-
+3. Create `components/contact/ContactListSection.tsx` to render either pending or resolved lists:
    - Props: `title`, `contacts`, `isLoading`, `emptyMessage`, `statusLabel`, `statusChipProps`, `onToggleStatus`, `isMutating`.
    - Use `getContactTypeLabel`/`getContactTypeColor` for chips.
    - Extract repeated card layout into a `ContactCard` subcomponent inside the file.
 
-4) Update `app/(dashboard)/contact/page.tsx`:
-
+4. Update `app/(dashboard)/contact/page.tsx`:
    - Replace inline helper functions with imports from `lib/contact/contactType.ts`.
    - Use `useContactFormState` for form and error report state.
    - Replace pending/resolved list JSX with `ContactListSection` usage.

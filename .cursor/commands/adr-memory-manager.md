@@ -84,10 +84,8 @@ Each ADR is stored as a JSON file for maximum machine readability:
     "author": "AI Assistant",
     "reviewers": []
   },
-  "search_keywords": [
-    "keyword1", "keyword2", "synonym1", "synonym2"
-  ],
-  "vector_embedding": null  // Optional: For semantic search
+  "search_keywords": ["keyword1", "keyword2", "synonym1", "synonym2"],
+  "vector_embedding": null // Optional: For semantic search
 }
 ```
 
@@ -133,12 +131,14 @@ The `index.json` file contains a searchable index:
 ### 1. Record ADR (Automatic)
 
 **When to record:**
+
 - When a significant architectural decision is made
 - When code patterns are established
 - When technology choices are made
 - When design patterns are chosen
 
 **Process:**
+
 1. Detect decision context from code changes or discussions
 2. Extract relevant information (files, components, patterns)
 3. Generate ADR JSON structure
@@ -147,6 +147,7 @@ The `index.json` file contains a searchable index:
 6. Update related ADRs if needed
 
 **Example:**
+
 ```
 Trigger: Code change introduces new pattern
 Action: Analyze change, extract decision context
@@ -157,6 +158,7 @@ Update: docs/adr/index.json
 ### 2. Retrieve ADR (Query-based)
 
 **Query Methods:**
+
 - By ID: `ADR-0001`
 - By tag: `server-components`, `authentication`
 - By component: `UserAuth`, `PaymentService`
@@ -165,6 +167,7 @@ Update: docs/adr/index.json
 - By pattern: Find ADRs related to a code pattern
 
 **Query Format:**
+
 ```json
 {
   "query_type": "semantic|exact|tag|component|file",
@@ -184,12 +187,14 @@ Update: docs/adr/index.json
 ### 3. Update ADR
 
 **When to update:**
+
 - When decision is superseded
 - When status changes (proposed → accepted → deprecated)
 - When new information is discovered
 - When related decisions are made
 
 **Process:**
+
 1. Load existing ADR
 2. Update relevant fields
 3. Update timestamp
@@ -199,6 +204,7 @@ Update: docs/adr/index.json
 ### 4. Link ADRs
 
 **Relationship Types:**
+
 - `supersedes`: This ADR replaces another
 - `related_to`: Related decisions
 - `depends_on`: This decision depends on another
@@ -213,8 +219,8 @@ Update: docs/adr/index.json
 mcp__kiri__context_bundle({
   goal: 'architectural decision, design pattern, technology choice',
   limit: 20,
-  compact: true
-})
+  compact: true,
+});
 ```
 
 ### Using Serena MCP for Pattern Detection
@@ -223,14 +229,14 @@ mcp__kiri__context_bundle({
 // Find patterns that indicate decisions
 mcp__serena__find_symbol({
   name_path: 'pattern_name',
-  relative_path: 'src/'
-})
+  relative_path: 'src/',
+});
 
 // Find all usages of a pattern
 mcp__serena__find_referencing_symbols({
   name_path: 'pattern_name',
-  relative_path: 'src/pattern.ts'
-})
+  relative_path: 'src/pattern.ts',
+});
 ```
 
 ## Automatic ADR Generation Workflow
@@ -347,12 +353,14 @@ mcp__serena__find_referencing_symbols({
 ### Recording an ADR
 
 Before recording:
+
 - [ ] Identify decision point
 - [ ] Gather context using Kiri/Serena MCP
 - [ ] Check for existing related ADRs
 - [ ] Determine ADR number
 
 During recording:
+
 - [ ] Extract problem and context
 - [ ] Document decision and rationale
 - [ ] List alternatives considered
@@ -361,6 +369,7 @@ During recording:
 - [ ] Link to related ADRs
 
 After recording:
+
 - [ ] Save ADR JSON file
 - [ ] Update index.json
 - [ ] Verify JSON validity
@@ -369,17 +378,20 @@ After recording:
 ### Querying ADRs
 
 Before querying:
+
 - [ ] Determine query type (semantic/exact/tag/component/file)
 - [ ] Define filters (status, tags, date range)
 - [ ] Set result limit
 
 During querying:
+
 - [ ] Execute query against index.json
 - [ ] Load relevant ADR files
 - [ ] Filter results
 - [ ] Rank by relevance
 
 After querying:
+
 - [ ] Review retrieved ADRs
 - [ ] Check related ADRs if needed
 - [ ] Use information in current task
@@ -387,21 +399,25 @@ After querying:
 ## Integration with Development Workflow
 
 ### Phase 1: Investigation
+
 - Query ADRs related to current task
 - Understand existing decisions
 - Check for patterns and conventions
 
 ### Phase 2: Architecture Design
+
 - Record new architectural decisions
 - Link to related ADRs
 - Document alternatives considered
 
 ### Phase 5: Implementation
+
 - Reference relevant ADRs
 - Follow established patterns
 - Record implementation details
 
 ### Phase 7: Code Review
+
 - Check if code follows ADRs
 - Verify decisions are still valid
 - Update ADRs if patterns change
@@ -479,4 +495,3 @@ To add new ADR features:
 
 // Result: Returns ADR-0005, ADR-0012, etc.
 ```
-

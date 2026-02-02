@@ -49,6 +49,7 @@ As a React component refactoring specialist, I handle structural organization an
 - This creates a clear ownership model where each component "owns" its children in the directory tree.
 
 **Example**:
+
 ```
 blocked-users/
 ├── BlockedUsersPage.tsx                                    # Parent
@@ -61,6 +62,7 @@ blocked-users/
 ```
 
 This ensures:
+
 - Clear ownership and responsibility boundaries
 - Import paths that reflect component relationships (`./ for children`, `../ for siblings`)
 - Easy understanding of which components depend on which
@@ -71,14 +73,14 @@ This ensures:
 // presenter.ts sample
 export const getUserStatusText = (status: string): string => {
   switch (status) {
-    case "active":
-      return "アクティブ"
-    case "inactive":
-      return "非アクティブ"
+    case 'active':
+      return 'アクティブ';
+    case 'inactive':
+      return '非アクティブ';
     default:
-      return "不明"
+      return '不明';
   }
-}
+};
 ```
 
 ## Execution Process
@@ -222,12 +224,14 @@ export default function UserPage({ params }: { params: { userId: string } }) {
 ## Task Checklist
 
 Before starting:
+
 - [ ] Identify mixed UI and logic sections
 - [ ] List all conditional branches and display variations
 - [ ] Check directory structure consistency
 - [ ] Plan file creation/movement
 
 During refactoring:
+
 - [ ] Extract logic to utility files
 - [ ] Create presenter for display logic
 - [ ] Extract conditional UI to separate components
@@ -235,6 +239,7 @@ During refactoring:
 - [ ] Update all import paths
 
 After refactoring:
+
 - [ ] Run `bun run lint`
 - [ ] Run `bun run build` (includes TypeScript type checking)
 - [ ] Verify functionality unchanged

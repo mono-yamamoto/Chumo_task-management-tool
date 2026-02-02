@@ -24,7 +24,12 @@ const sizeStyles = {
   },
 };
 
-export function ProgressStatusBadge({ status, size = 'sm', sx, ...props }: ProgressStatusBadgeProps) {
+export function ProgressStatusBadge({
+  status,
+  size = 'sm',
+  sx,
+  ...props
+}: ProgressStatusBadgeProps) {
   const backgroundColor = PROGRESS_STATUS_COLORS[status];
 
   return (

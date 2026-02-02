@@ -32,6 +32,7 @@ bash .claude/scripts/fix-pr-review.sh
 ```
 
 このスクリプトは以下を自動実行します：
+
 - PR基本情報の取得（タイトル、URL、ReviewDecision）
 - 全レビュー本文の取得（APPROVED/CHANGES_REQUESTED/COMMENTED）
 - 未解決レビュースレッドの完全取得（ページング対応）
@@ -47,6 +48,7 @@ rg "Unresolved threads:" .claude/tmp/fix-pr-review/unresolved_threads.md
 ```
 
 表示例:
+
 ```
 **Unresolved threads: 13**
 ```
@@ -65,12 +67,14 @@ rg "Unresolved threads:" .claude/tmp/fix-pr-review/unresolved_threads.md
 #### 対応の基本方針
 
 **対応すべきレビューコメント:**
+
 - 🔴 Critical: セキュリティ、型安全性、パフォーマンスの重大な問題
 - 🟠 Major: バグ、エラーハンドリング不足、設計の問題
 - 🟡 Minor: 改善提案、コードの可読性、一貫性の問題
 - 🛠️ Refactor suggestion: リファクタリング提案
 
 **対応を見送る場合（要理由説明）:**
+
 - スコープ外の変更（別PR推奨）
 - 現時点で不要な機能追加
 - プロジェクトの方針と相反する提案
@@ -105,10 +109,12 @@ rg "Unresolved threads:" .claude/tmp/fix-pr-review/unresolved_threads.md
 ## トラブルシューティング
 
 ### スクリプトが見つからない場合
+
 - `.claude/scripts/fix-pr-review.sh`ファイルが存在することを確認
 - 実行権限が付与されていることを確認（`chmod +x .claude/scripts/fix-pr-review.sh`）
 
 ### 未解決スレッドが0件と表示される場合
+
 - 実際に全てのレビューコメントが解決済みの可能性
 - GitHub Web UIで直接確認して比較
 - 数分待ってから再実行（GitHub APIのキャッシュ更新待ち）
