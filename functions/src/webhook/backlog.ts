@@ -291,6 +291,8 @@ export const webhookBacklog = onRequest(
     }
 
     try {
+      const body = req.body as BacklogWebhookPayload;
+
       // デバッグログ（本番ではDEBUGレベルに変更を推奨）
       // センシティブな情報をマスキングしてログ出力
       const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -298,13 +300,11 @@ export const webhookBacklog = onRequest(
         console.debug('Backlog Webhook received:', {
           method: req.method,
           contentType: req.headers['content-type'],
-          bodyKeys: Object.keys(req.body || {}),
-          hasContent: !!req.body?.content,
-          hasProject: !!req.body?.project,
+          bodyKeys: Object.keys(body),
+          hasContent: !!body.content,
+          hasProject: !!body.project,
         });
       }
-
-      const body = req.body as BacklogWebhookPayload;
 
       // Backlog Webhookの構造に基づいてデータを抽出
       // 構造: { created, project, id, type, content, notifications, createdUser }

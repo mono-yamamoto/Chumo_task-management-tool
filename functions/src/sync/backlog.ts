@@ -6,6 +6,16 @@ import { PROJECT_TYPES } from '../reports/projectTypes';
 initializeApp();
 const db = getFirestore();
 
+interface SyncBacklogRequestBody {
+  issueKey: string;
+  issueId: string;
+  url: string;
+  title: string;
+  description?: string;
+  projectKey?: string;
+  projectType?: string;
+}
+
 /**
  * Backlogプロジェクトキーからプロジェクトタイプへのマッピング
  * 必要に応じて環境変数や設定ファイルから読み込む
@@ -31,7 +41,8 @@ export const syncBacklog = onRequest(
       // const secret = await getSecret("MAKE_WEBHOOK_SECRET");
       // verifySignature(req, secret);
 
-      const { issueKey, issueId, url, title, description, projectKey, projectType } = req.body;
+      const { issueKey, issueId, url, title, description, projectKey, projectType } =
+        req.body as SyncBacklogRequestBody;
 
       if (!issueKey || !issueId || !url || !title) {
         res.status(400).json({ error: 'Missing required fields' });
