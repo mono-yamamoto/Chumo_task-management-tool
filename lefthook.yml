@@ -1,0 +1,56 @@
+# lefthook.yml - pre-commit hooks configuration
+
+glob_matcher: doublestar
+
+pre-commit:
+  parallel: false
+  commands:
+    # 1. gitleaks: 機密情報チェック（最優先）
+    gitleaks:
+      run: |
+        if ! command -v gitleaks >/dev/null 2>&1; then
+          echo "Error: gitleaks is not installed. 機密情報チェックを実行できません。"
+          echo "コミットを中止します。gitleaksをインストールしてください："
+          echo "  macOS: brew install gitleaks"
+          echo "  Windows: https://github.com/gitleaks/gitleaks/releases からダウンロード"
+          exit 1
+        fi
+        gitleaks protect --staged
+
+    # 2. ESLint (メインプロジェクト)
+    eslint:
+      glob: '**/*.{ts,tsx,js,jsx}'
+      exclude:
+        - 'node_modules/**'
+        - '.next/**'
+        - 'functions/**'
+        - '*.config.js'
+        - '*.config.mjs'
+      run: npx eslint --fix {staged_files}
+      stage_fixed: true
+      skip_empty: true
+
+    # 3. ESLint (functions)
+    eslint-functions:
+      root: functions/
+      glob: 'functions/src/**/*.ts'
+      run: npx eslint --fix {staged_files}
+      stage_fixed: true
+      skip_empty: true
+
+    # 4. oxfmt (全体)
+    oxfmt:
+      glob: '**/*.{ts,tsx,js,jsx,json,md,css,scss,yaml,yml}'
+      exclude:
+        - 'node_modules/**'
+        - 'functions/node_modules/**'
+        - 'functions/lib/**'
+        - '.next/**'
+        - '*.config.js'
+        - '*.config.mjs'
+        - 'package-lock.json'
+        - 'functions/package-lock.json'
+        - 'bun.lock'
+      run: npx oxfmt {staged_files}
+      stage_fixed: true
+      skip_empty: true

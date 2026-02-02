@@ -57,7 +57,7 @@ export const syncBacklog = onRequest(
       }
 
       // プロジェクトタイプが有効か確認
-      if (!PROJECT_TYPES.includes(targetProjectType as any)) {
+      if (!(PROJECT_TYPES as readonly string[]).includes(targetProjectType)) {
         res.status(400).json({
           error: `Invalid project type: ${targetProjectType}. Valid types are: ${PROJECT_TYPES.join(', ')}`,
         });
