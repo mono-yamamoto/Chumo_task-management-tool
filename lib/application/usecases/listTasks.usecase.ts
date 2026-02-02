@@ -1,5 +1,6 @@
 import { Task, User } from '@/types';
 import { TaskFiltersDTO } from '@/lib/presentation/dtos/task.dto';
+import { SortMode } from '@/stores/taskStore';
 
 /**
  * タスク一覧取得UseCase
@@ -15,8 +16,9 @@ export class ListTasksUseCase {
     users?: User[];
     activeTaskId?: string;
     mountTime: number;
+    sortMode?: SortMode;
   }): Task[] {
-    const { tasks, filters, users, activeTaskId, mountTime } = params;
+    const { tasks, filters, users, activeTaskId, mountTime, sortMode = 'order' } = params;
 
     // フィルタリング
     let filtered = this.applyFilters(tasks, filters, activeTaskId);
@@ -26,6 +28,7 @@ export class ListTasksUseCase {
       activeTaskId,
       mountTime,
       users,
+      sortMode,
     });
 
     return filtered;
@@ -103,7 +106,7 @@ export class ListTasksUseCase {
    * ソート適用
    * 1. アクティブタイマーのタスクを最優先
    * 2. 新規未アサインタスク（作成後1週間以内かつassigneeIds空配列）を次に優先
-   * 3. 残りはorder昇順
+   * 3. sortModeに応じたソート（order / IT日昇順 / IT日降順）
    */
   private applySorting(
     tasks: Task[],
@@ -111,9 +114,10 @@ export class ListTasksUseCase {
       activeTaskId?: string;
       mountTime: number;
       users?: User[];
+      sortMode: SortMode;
     }
   ): Task[] {
-    const { activeTaskId, mountTime } = options;
+    const { activeTaskId, mountTime, sortMode } = options;
     const oneWeekAgo = mountTime - 7 * 24 * 60 * 60 * 1000;
 
     return [...tasks].sort((a, b) => {
@@ -129,9 +133,33 @@ export class ListTasksUseCase {
       if (aIsNewUnassigned && !bIsNewUnassigned) return -1;
       if (!aIsNewUnassigned && bIsNewUnassigned) return 1;
 
-      // 3. 残りはorder昇順
-      return a.order - b.order;
+      // 3. sortModeに応じたソート
+      switch (sortMode) {
+        case 'itUpDate-asc':
+          return this.compareItUpDate(a, b, 'asc');
+        case 'itUpDate-desc':
+          return this.compareItUpDate(a, b, 'desc');
+        case 'order':
+        default:
+          return a.order - b.order;
+      }
     });
+  }
+
+  /**
+   * IT日を比較（nullは末尾に配置）
+   */
+  private compareItUpDate(a: Task, b: Task, direction: 'asc' | 'desc'): number {
+    const aDate = a.itUpDate;
+    const bDate = b.itUpDate;
+
+    // nullは末尾に配置
+    if (!aDate && !bDate) return 0;
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+
+    const diff = aDate.getTime() - bDate.getTime();
+    return direction === 'asc' ? diff : -diff;
   }
 
   /**

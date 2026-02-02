@@ -9,6 +9,17 @@ import { ProgressStatusBadge } from '@/components/ui/ProgressStatusBadge';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
 import {
+  DndContext,
+  DragEndEvent,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableTableRow } from '@/components/tasks/SortableTableRow';
+import {
   Typography,
   Table,
   TableBody,
@@ -16,11 +27,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Paper,
   Box,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { ProjectType } from '@/constants/projectTypes';
+import { SortMode } from '@/stores/taskStore';
 
 interface TaskListTableProps {
   tasks: (Task & { projectType: ProjectType })[];
@@ -35,7 +48,12 @@ interface TaskListTableProps {
   kobetsuLabelId: string | null;
   currentUserId?: string | null;
   emptyMessage?: string;
-  rowSx?: (task: Task & { projectType: ProjectType }, isActive: boolean) => any;
+  rowSx?: (task: Task & { projectType: ProjectType }, isActive: boolean) => object;
+  sortMode?: SortMode;
+  onSortModeChange?: (mode: SortMode) => void;
+  // D&D関連props
+  enableDnd?: boolean;
+  onDragEnd?: (activeId: string, overId: string) => void;
 }
 
 export function TaskListTable({
@@ -51,9 +69,14 @@ export function TaskListTable({
   currentUserId,
   emptyMessage = 'タスクがありません',
   rowSx,
+  sortMode = 'order',
+  onSortModeChange,
+  enableDnd = false,
+  onDragEnd,
 }: TaskListTableProps) {
   // 未読コメントがあるタスクIDを取得
   const { data: unreadTaskIds } = useUnreadComments(currentUserId ?? null);
+
   // アサインの表示名を取得
   const getAssigneeNames = (assigneeIds: string[]) => {
     if (!allUsers || assigneeIds.length === 0) return '-';
@@ -73,7 +96,6 @@ export function TaskListTable({
   };
 
   // コンポーネントマウント時の時刻を保持（1週間判定用）
-  // useStateの初期化関数内でDate.now()を使用（レンダリング中ではないため問題なし）
   const [mountTime] = useState(() => Date.now());
 
   // 現在時刻から1週間前の時刻を計算
@@ -91,6 +113,114 @@ export function TaskListTable({
   // プロジェクトタイプを表示するかどうか
   const shouldShowProjectType = selectedProjectType === 'all' || selectedProjectType === undefined;
 
+  // IT日ヘッダークリック時のソート切り替え
+  const handleItUpDateSort = () => {
+    if (!onSortModeChange) return;
+    if (sortMode === 'itUpDate-asc') {
+      onSortModeChange('itUpDate-desc');
+    } else if (sortMode === 'itUpDate-desc') {
+      onSortModeChange('order');
+    } else {
+      onSortModeChange('itUpDate-asc');
+    }
+  };
+
+  // IT日のソート方向を取得
+  const getItUpDateSortDirection = (): 'asc' | 'desc' | false => {
+    if (sortMode === 'itUpDate-asc') return 'asc';
+    if (sortMode === 'itUpDate-desc') return 'desc';
+    return false;
+  };
+
+  // D&D用センサー
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  // D&Dイベントハンドラ
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onDragEnd) return;
+    onDragEnd(active.id as string, over.id as string);
+  };
+
+  // タスクIDリスト（D&D用）
+  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+
+  // D&D有効時のテーブル
+  if (enableDnd) {
+    return (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                {/* D&D有効時はドラッグハンドル列を追加 */}
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell sx={{ width: 40 }} />
+                  <TableCell>タイトル</TableCell>
+                  <TableCell>アサイン</TableCell>
+                  <TableCell>
+                    {onSortModeChange ? (
+                      <TableSortLabel
+                        active={sortMode === 'itUpDate-asc' || sortMode === 'itUpDate-desc'}
+                        direction={getItUpDateSortDirection() || 'asc'}
+                        onClick={handleItUpDateSort}
+                      >
+                        ITアップ
+                      </TableSortLabel>
+                    ) : (
+                      'ITアップ'
+                    )}
+                  </TableCell>
+                  <TableCell>ステータス</TableCell>
+                  <TableCell>進捗</TableCell>
+                  <TableCell>区分</TableCell>
+                  <TableCell>タイマー</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tasks && tasks.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {emptyMessage}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  tasks.map((task) => (
+                    <SortableTableRow
+                      key={task.id}
+                      task={task}
+                      onTaskSelect={onTaskSelect}
+                      shouldShowProjectType={shouldShowProjectType}
+                      allUsers={allUsers}
+                      allLabels={allLabels}
+                      activeSession={activeSession}
+                      onStartTimer={onStartTimer}
+                      onStopTimer={onStopTimer}
+                      isStoppingTimer={isStoppingTimer}
+                      currentUserId={currentUserId}
+                      unreadTaskIds={unreadTaskIds}
+                      isNewTask={isNewTask(task)}
+                    />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </SortableContext>
+      </DndContext>
+    );
+  }
+
+  // D&D無効時の通常テーブル
   return (
     <TableContainer component={Paper}>
       <Table>
@@ -98,7 +228,19 @@ export function TaskListTable({
           <TableRow sx={{ bgcolor: 'grey.50' }}>
             <TableCell>タイトル</TableCell>
             <TableCell>アサイン</TableCell>
-            <TableCell>ITアップ</TableCell>
+            <TableCell>
+              {onSortModeChange ? (
+                <TableSortLabel
+                  active={sortMode === 'itUpDate-asc' || sortMode === 'itUpDate-desc'}
+                  direction={getItUpDateSortDirection() || 'asc'}
+                  onClick={handleItUpDateSort}
+                >
+                  ITアップ
+                </TableSortLabel>
+              ) : (
+                'ITアップ'
+              )}
+            </TableCell>
             <TableCell>ステータス</TableCell>
             <TableCell>進捗</TableCell>
             <TableCell>区分</TableCell>

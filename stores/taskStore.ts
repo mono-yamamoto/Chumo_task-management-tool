@@ -6,6 +6,7 @@ import { TASK_STORAGE_KEY } from '@/constants/timer';
 
 export type ViewMode = 'table' | 'personal';
 export type DashboardViewMode = 'table' | 'card';
+export type SortMode = 'order' | 'itUpDate-asc' | 'itUpDate-desc';
 
 interface TaskStore {
   // ビューモード（タスク一覧）
@@ -15,6 +16,10 @@ interface TaskStore {
   // ダッシュボードビューモード
   dashboardViewMode: DashboardViewMode;
   setDashboardViewMode: (_mode: DashboardViewMode) => void;
+
+  // ソートモード（タスク一覧）
+  sortMode: SortMode;
+  setSortMode: (_mode: SortMode) => void;
 
   // 選択中のタスクID
   selectedTaskId: string | null;
@@ -61,6 +66,9 @@ export const useTaskStore = create<TaskStore>()(
       dashboardViewMode: 'table',
       setDashboardViewMode: (mode) => set({ dashboardViewMode: mode }),
 
+      sortMode: 'order',
+      setSortMode: (mode) => set({ sortMode: mode }),
+
       selectedTaskId: null,
       setSelectedTaskId: (taskId) => set({ selectedTaskId: taskId }),
 
@@ -103,14 +111,16 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: TASK_STORAGE_KEY, // ストレージのキー名
       storage: createJSONStorage(() => localStorage), // localStorageを使用
-      // activeSession、viewMode、dashboardViewModeを永続化
+      // activeSession、viewMode、dashboardViewMode、sortModeを永続化
       // activeSession: ページリロード時に実行中のタイマー状態を復元するため
       // viewMode: タスク一覧の表示モード選択を維持するため
       // dashboardViewMode: ダッシュボードの表示モード選択を維持するため
+      // sortMode: タスク一覧のソートモード選択を維持するため
       partialize: (state) => ({
         activeSession: state.activeSession,
         viewMode: state.viewMode,
         dashboardViewMode: state.dashboardViewMode,
+        sortMode: state.sortMode,
       }),
     }
   )

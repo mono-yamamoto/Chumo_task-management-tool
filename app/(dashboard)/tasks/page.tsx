@@ -42,6 +42,8 @@ function TasksPageContent() {
   const {
     viewMode,
     setViewMode,
+    sortMode,
+    setSortMode,
     selectedProjectType,
     setSelectedProjectType,
     selectedTaskId,
@@ -144,6 +146,7 @@ function TasksPageContent() {
     filters,
     activeTaskId: activeSessionValue?.taskId,
     mountTime,
+    sortMode,
   });
 
   // ページネーション管理
@@ -344,6 +347,8 @@ function TasksPageContent() {
               kobetsuLabelId={kobetsuLabelId}
               currentUserId={user?.id || null}
               emptyMessage={effectiveEmptyMessage}
+              sortMode={sortMode}
+              onSortModeChange={setSortMode}
             />
 
             <Box

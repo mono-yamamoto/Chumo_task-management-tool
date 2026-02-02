@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -11,6 +11,7 @@ import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { useTaskDrawer } from '@/hooks/useTaskDrawer';
+import { useUpdateTasksOrder, calculateNewOrder } from '@/hooks/useUpdateTasksOrder';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Box,
@@ -38,7 +39,7 @@ import { useTaskStore, DashboardViewMode } from '@/stores/taskStore';
 function DashboardPageContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { dashboardViewMode, setDashboardViewMode } = useTaskStore();
+  const { dashboardViewMode, setDashboardViewMode, sortMode, setSortMode } = useTaskStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteProjectType, setDeleteProjectType] = useState<string | null>(null);
@@ -52,6 +53,9 @@ function DashboardPageContent() {
       setDashboardViewMode(newMode);
     }
   };
+
+  // タスク並び替え用mutation
+  const updateTasksOrder = useUpdateTasksOrder();
 
   // 自分のタスクかつ完了以外のタスクを取得
   const { data: tasks, isLoading } = useQuery({
@@ -91,7 +95,7 @@ function DashboardPageContent() {
     refetchDetailOnChat: false,
   });
 
-  // 時間計測中のタスクを最優先でソート
+  // 時間計測中のタスクを最優先でソート（sortModeに応じて並び替え）
   const sortedTasks = useMemo(() => {
     if (!tasks) return [];
 
@@ -103,12 +107,33 @@ function DashboardPageContent() {
       if (aIsActive && !bIsActive) return -1;
       if (!aIsActive && bIsActive) return 1;
 
-      // それ以外は作成日時の降順
-      const aTime = a.createdAt?.getTime() || 0;
-      const bTime = b.createdAt?.getTime() || 0;
-      return bTime - aTime;
+      // sortModeに応じてソート
+      if (sortMode === 'itUpDate-asc' || sortMode === 'itUpDate-desc') {
+        const aDate = a.itUpDate;
+        const bDate = b.itUpDate;
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1; // nullは末尾
+        if (!bDate) return -1;
+        const diff = aDate.getTime() - bDate.getTime();
+        return sortMode === 'itUpDate-asc' ? diff : -diff;
+      }
+
+      // デフォルト: order順でソート
+      return (a.order ?? 0) - (b.order ?? 0);
     });
-  }, [tasks, activeSession]);
+  }, [tasks, activeSession, sortMode]);
+
+  // D&Dハンドラ
+  const handleDragEnd = useCallback(
+    (activeId: string, overId: string) => {
+      if (!sortedTasks) return;
+      const orderUpdates = calculateNewOrder(sortedTasks, activeId, overId);
+      if (orderUpdates.length > 0) {
+        updateTasksOrder.mutate(orderUpdates);
+      }
+    },
+    [sortedTasks, updateTasksOrder]
+  );
 
   const {
     selectedTaskId,
@@ -274,14 +299,10 @@ function DashboardPageContent() {
             kobetsuLabelId={kobetsuLabelId}
             currentUserId={user?.id || null}
             emptyMessage="自分のタスクがありません"
-            rowSx={(task, isActive) =>
-              isActive
-                ? {
-                    bgcolor: 'rgba(76, 175, 80, 0.08)',
-                    '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.12)' },
-                  }
-                : {}
-            }
+            sortMode={sortMode}
+            onSortModeChange={setSortMode}
+            enableDnd={sortMode === 'order'}
+            onDragEnd={handleDragEnd}
           />
         ) : (
           <TaskCardGrid

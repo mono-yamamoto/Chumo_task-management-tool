@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Task } from '@/types';
 import { ListTasksUseCase } from '@/lib/application/usecases/listTasks.usecase';
 import { TaskFiltersDTO } from '@/lib/presentation/dtos/task.dto';
+import { SortMode } from '@/stores/taskStore';
 
 /**
  * タスク一覧のカスタムフック
@@ -12,12 +13,14 @@ export function useTasksList(params: {
   filters?: TaskFiltersDTO;
   activeTaskId?: string;
   mountTime?: number;
+  sortMode?: SortMode;
 }) {
   const {
     tasks,
     filters = { status: 'not-completed' },
     activeTaskId,
     mountTime = Date.now(),
+    sortMode = 'order',
   } = params;
 
   const useCase = useMemo(() => new ListTasksUseCase(), []);
@@ -29,8 +32,9 @@ export function useTasksList(params: {
       filters,
       activeTaskId,
       mountTime,
+      sortMode,
     });
-  }, [tasks, filters, activeTaskId, mountTime, useCase]);
+  }, [tasks, filters, activeTaskId, mountTime, sortMode, useCase]);
 
   return {
     sortedTasks,
