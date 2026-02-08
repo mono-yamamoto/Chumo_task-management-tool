@@ -103,48 +103,48 @@
 
 ### Text
 
-| Token          | Light Mode            | Dark Mode             | 備考                |
-| -------------- | --------------------- | --------------------- | ------------------- |
-| text-primary   | neutral-900 `#111827` | neutral-50 `#F9FAFB`  | 本文テキスト        |
-| text-secondary | neutral-500 `#6B7280` | neutral-400 `#9CA3AF` | 補助テキスト        |
-| text-tertiary  | neutral-400 `#9CA3AF` | neutral-500 `#6B7280` | プレースホルダー等  |
-| text-disabled  | neutral-300 `#D1D5DB` | neutral-600 `#4B5563` | 無効状態            |
-| text-link      | teal-700 `#007170`    | teal-400 `#27C2C1`    | リンク（4.5:1確保） |
+| Token          | Variable                 | Light Mode      | Dark Mode       | 備考                |
+| -------------- | ------------------------ | --------------- | --------------- | ------------------- |
+| text-primary   | `--color-text-primary`   | `--neutral-900` | `--neutral-50`  | 本文テキスト        |
+| text-secondary | `--color-text-secondary` | `--neutral-500` | `--neutral-400` | 補助テキスト        |
+| text-tertiary  | `--color-text-tertiary`  | `--neutral-400` | `--neutral-500` | プレースホルダー等  |
+| text-disabled  | `--color-text-disabled`  | `--neutral-300` | `--neutral-600` | 無効状態            |
+| text-link      | `--color-text-link`      | `--teal-700`    | `--teal-400`    | リンク（4.5:1確保） |
 
 ### Background
 
-| Token           | Light Mode            | Dark Mode             | 備考                   |
-| --------------- | --------------------- | --------------------- | ---------------------- |
-| bg-primary      | white `#FFFFFF`       | neutral-800 `#1F2937` | ページ背景             |
-| bg-secondary    | neutral-50 `#F9FAFB`  | neutral-700 `#374151` | カード・セクション背景 |
-| bg-tertiary     | neutral-100 `#F3F4F6` | neutral-600 `#4B5563` | ネスト背景             |
-| bg-brand-subtle | teal-50 `#EEFBFB`     | teal-950 `#002625`    | ブランドtint背景       |
+| Token           | Variable                  | Light Mode      | Dark Mode       | 備考                   |
+| --------------- | ------------------------- | --------------- | --------------- | ---------------------- |
+| bg-primary      | `--color-bg-primary`      | `#FFFFFF`       | `--neutral-800` | ページ背景             |
+| bg-secondary    | `--color-bg-secondary`    | `--neutral-50`  | `--neutral-700` | カード・セクション背景 |
+| bg-tertiary     | `--color-bg-tertiary`     | `--neutral-100` | `--neutral-600` | ネスト背景             |
+| bg-brand-subtle | `--color-bg-brand-subtle` | `--teal-50`     | `--teal-950`    | ブランドtint背景       |
 
 ### Border
 
-| Token          | Light Mode            | Dark Mode             | 備考                    |
-| -------------- | --------------------- | --------------------- | ----------------------- |
-| border-default | neutral-200 `#E5E7EB` | neutral-600 `#4B5563` | 通常ボーダー（3:1確保） |
-| border-strong  | neutral-400 `#9CA3AF` | neutral-400 `#9CA3AF` | 強調ボーダー            |
-| border-focus   | teal-500 `#00A8A7`    | teal-400 `#27C2C1`    | フォーカスリング        |
+| Token          | Variable                 | Light Mode      | Dark Mode       | 備考                    |
+| -------------- | ------------------------ | --------------- | --------------- | ----------------------- |
+| border-default | `--color-border-default` | `--neutral-200` | `--neutral-600` | 通常ボーダー（3:1確保） |
+| border-strong  | `--color-border-strong`  | `--neutral-400` | `--neutral-400` | 強調ボーダー            |
+| border-focus   | `--color-border-focus`   | `--teal-500`    | `--teal-400`    | フォーカスリング        |
 
 ### Primary (Brand/Action)
 
-| Token           | Light Mode         | Dark Mode          | 備考                |
-| --------------- | ------------------ | ------------------ | ------------------- |
-| primary-default | teal-600 `#008B8A` | teal-400 `#27C2C1` | ボタン背景・CTA     |
-| primary-hover   | teal-700 `#007170` | teal-300 `#55D5D4` | ホバー状態          |
-| primary-active  | teal-800 `#005857` | teal-500 `#00A8A7` | アクティブ/押下状態 |
+| Token           | Variable                  | Light Mode   | Dark Mode    | 備考                |
+| --------------- | ------------------------- | ------------ | ------------ | ------------------- |
+| primary-default | `--color-primary-default` | `--teal-600` | `--teal-400` | ボタン背景・CTA     |
+| primary-hover   | `--color-primary-hover`   | `--teal-700` | `--teal-300` | ホバー状態          |
+| primary-active  | `--color-primary-active`  | `--teal-800` | `--teal-500` | アクティブ/押下状態 |
 
 ### Status
 
-| Token        | Light Mode          | Dark Mode           | 備考           |
-| ------------ | ------------------- | ------------------- | -------------- |
-| success-text | green-700 `#15803D` | green-400 `#4ADE80` | 成功テキスト   |
-| success-bg   | green-50 `#F0FDF4`  | green-900 `#14532D` | 成功背景       |
-| warning-text | amber-700 `#B45309` | amber-400 `#FBBF24` | 警告テキスト   |
-| warning-bg   | amber-50 `#FFFBEB`  | amber-900 `#78350F` | 警告背景       |
-| error-text   | red-700 `#B91C1C`   | red-400 `#F87171`   | エラーテキスト |
-| error-bg     | red-50 `#FEF2F2`    | red-900 `#7F1D1D`   | エラー背景     |
-| info-text    | blue-700 `#1D4ED8`  | blue-400 `#60A5FA`  | 情報テキスト   |
-| info-bg      | blue-50 `#EFF6FF`   | blue-900 `#1E3A8A`  | 情報背景       |
+| Token        | Variable               | Light Mode    | Dark Mode     | 備考           |
+| ------------ | ---------------------- | ------------- | ------------- | -------------- |
+| success-text | `--color-success-text` | `--green-700` | `--green-400` | 成功テキスト   |
+| success-bg   | `--color-success-bg`   | `--green-50`  | `--green-900` | 成功背景       |
+| warning-text | `--color-warning-text` | `--amber-700` | `--amber-400` | 警告テキスト   |
+| warning-bg   | `--color-warning-bg`   | `--amber-50`  | `--amber-900` | 警告背景       |
+| error-text   | `--color-error-text`   | `--red-700`   | `--red-400`   | エラーテキスト |
+| error-bg     | `--color-error-bg`     | `--red-50`    | `--red-900`   | エラー背景     |
+| info-text    | `--color-info-text`    | `--blue-700`  | `--blue-400`  | 情報テキスト   |
+| info-bg      | `--color-info-bg`      | `--blue-50`   | `--blue-900`  | 情報背景       |
