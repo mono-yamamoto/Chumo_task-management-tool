@@ -136,7 +136,8 @@
               "content": "カード表示のレイアウトを調整し、進捗ラベルの表示ロジックを整理する",
               "lineHeight": 1.5,
               "fontFamily": "Plus Jakarta Sans",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "rectangle",
