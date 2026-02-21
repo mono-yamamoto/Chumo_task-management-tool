@@ -28,7 +28,8 @@ argument-hint: '<対象画面やコンポーネントの説明>'
 
 以下のリファレンスを必要に応じて参照する:
 
-- デザイン原則・クラフト思考 → [references/design-principles.md](references/design-principles.md)
+- 共通思考原則 → [shared/thinking-principles.md](../shared/references/thinking-principles.md)
+- デザインクラフト原則 → [references/design-craft.md](references/design-craft.md)
 - Pencil MCP操作ナレッジ → [references/pencil-tips.md](references/pencil-tips.md)
 - 既存デザインシステム → color-system-designスキル参照
 - プロダクト思想 → `.design-intent/purpose.md`（存在する場合）
