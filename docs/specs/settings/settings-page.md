@@ -186,7 +186,7 @@ match /users/{userId} {
     && request.auth.uid != userId
     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
     && request.resource.data.diff(resource.data).affectedKeys()
-      .hasOnly(['role', 'isAllowed', 'chatId', 'updatedAt']);
+      .hasOnly(['role', 'isAllowed', 'updatedAt']);
   // NOTE: 「最後の admin を降格できない」保護はクライアント側バリデーション +
   //       Cloud Functions での整合性チェックで実装する（Firestore Rules 単体では
   //       集計クエリが使えないため）
