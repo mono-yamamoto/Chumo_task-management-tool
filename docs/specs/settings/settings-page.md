@@ -181,10 +181,15 @@ match /users/{userId} {
     && request.resource.data.diff(resource.data).affectedKeys()
       .hasOnly(['displayName', 'avatarUrl', 'iconColor', 'title',
                 'githubUsername', 'chatId', 'fcmTokens', 'updatedAt']);
+  // admin による他ユーザーの role/isAllowed 変更（自分自身は変更不可）
   allow update: if request.auth != null
+    && request.auth.uid != userId
     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
     && request.resource.data.diff(resource.data).affectedKeys()
       .hasOnly(['role', 'isAllowed', 'chatId', 'updatedAt']);
+  // NOTE: 「最後の admin を降格できない」保護はクライアント側バリデーション +
+  //       Cloud Functions での整合性チェックで実装する（Firestore Rules 単体では
+  //       集計クエリが使えないため）
 
   // OAuthトークンは本人のみアクセス可能
   match /private/{docId} {
@@ -423,7 +428,8 @@ flowchart LR
 ### セキュリティ
 
 - Firebase Storage セキュリティルールで本人のみアップロード/削除可能
-- Firestore セキュリティルールで admin のみロール変更・isAllowed 変更可能
+- Firestore セキュリティルールで admin のみロール変更・isAllowed 変更可能（自分自身の role/isAllowed は変更不可）
+- 「最後の admin を降格できない」保護はクライアント側バリデーション + Cloud Functions で実装（Firestore Rules では集計不可のため）
 - OAuth のリフレッシュトークンは `users/{userId}/private/oauth` サブコレクションに分離し、本人のみアクセス可能
 
 ---
