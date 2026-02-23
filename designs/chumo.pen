@@ -1,0 +1,271 @@
+{
+  "version": "2.7",
+  "children": [
+    {
+      "type": "frame",
+      "id": "qD6ta",
+      "x": 0,
+      "y": 0,
+      "name": "Task Card Design",
+      "width": 400,
+      "fill": "#F7F6F3",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "U1LRq",
+          "name": "Task Card",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 16,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000010",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "blur": 30
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "CFCFj",
+              "name": "Header Row",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "z3RrJ",
+                  "name": "Status Badge",
+                  "fill": "#5B9BD515",
+                  "cornerRadius": 6,
+                  "gap": 6,
+                  "padding": [
+                    5,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "K6rfn",
+                      "name": "statusIcon",
+                      "width": 12,
+                      "height": 12,
+                      "iconFontName": "circle-dot",
+                      "iconFontFamily": "lucide",
+                      "fill": "#5B9BD5"
+                    },
+                    {
+                      "type": "text",
+                      "id": "FDXCS",
+                      "name": "statusText",
+                      "fill": "#5B9BD5",
+                      "content": "In Progress",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qqLow",
+                  "name": "Priority",
+                  "fill": "#D4845E15",
+                  "cornerRadius": 6,
+                  "gap": 6,
+                  "padding": [
+                    5,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "B47L6",
+                      "name": "priorityIcon",
+                      "width": 12,
+                      "height": 12,
+                      "iconFontName": "arrow-up",
+                      "iconFontFamily": "lucide",
+                      "fill": "#D4845E"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hXkVB",
+                      "name": "priorityText",
+                      "fill": "#D4845E",
+                      "content": "High",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "KJ0o4",
+              "name": "Task Title",
+              "fill": "#2D2D2D",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "ダッシュボードUIのリファクタリング",
+              "fontFamily": "Fraunces",
+              "fontSize": 16,
+              "fontWeight": "500"
+            },
+            {
+              "type": "text",
+              "id": "FH28L",
+              "name": "Description",
+              "fill": "#8E8E93",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "カード表示のレイアウトを調整し、進捗ラベルの表示ロジックを整理する",
+              "lineHeight": 1.5,
+              "fontFamily": "Plus Jakarta Sans",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "rectangle",
+              "id": "7etA4",
+              "name": "Divider",
+              "fill": "#F0EFEC",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "nltXo",
+              "name": "Meta Row",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QgavL",
+                  "name": "Assignee",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NS0iF",
+                      "name": "Avatar",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#7C9070",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BfqkV",
+                          "name": "avatarText",
+                          "fill": "#FFFFFF",
+                          "content": "YM",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "0GW5G",
+                      "name": "assigneeName",
+                      "fill": "#6B6B6B",
+                      "content": "Yamamoto",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qidsz",
+                  "name": "Due Date",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "wJTIZ",
+                      "name": "calIcon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "calendar",
+                      "iconFontFamily": "lucide",
+                      "fill": "#8E8E93"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LB4bV",
+                      "name": "dueText",
+                      "fill": "#6B6B6B",
+                      "content": "2/15",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "9RAir",
+                  "name": "Tag",
+                  "fill": "#7C907015",
+                  "cornerRadius": 6,
+                  "gap": 4,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "P6SGB",
+                      "name": "tagIcon",
+                      "width": 10,
+                      "height": 10,
+                      "iconFontName": "tag",
+                      "iconFontFamily": "lucide",
+                      "fill": "#7C9070"
+                    },
+                    {
+                      "type": "text",
+                      "id": "m5X1G",
+                      "name": "tagText",
+                      "fill": "#7C9070",
+                      "content": "Frontend",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
