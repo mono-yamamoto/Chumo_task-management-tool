@@ -263,7 +263,7 @@ types/                              # 型定義
 
 ## その他の決定事項
 
-- **DnD**: React Ariaの `useDrag`/`useDrop` に統合、`@dnd-kit` は削除
+- **DnD**: React Ariaの `useDrag`/`useDrop` に統合、`@dnd-kit` は削除（※ 各機能仕様書では現行の `@dnd-kit` ベースで記述。DnD移行はUI刷新フェーズで一括対応）
 - **アニメーション**: `framer-motion` を使用
 - **フォント**: Pencilデザインに準拠
 - **ダークモード**: CSS変数設計時点で対応完了する想定

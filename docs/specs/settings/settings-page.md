@@ -115,12 +115,17 @@ export interface User {
 
   // 既存フィールド
   githubUsername?: string;
-  googleRefreshToken?: string;
-  googleOAuthUpdatedAt?: Date;
   chatId?: string;
   fcmTokens?: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Firestoreパス: users/{userId}/private/oauth
+// OAuthトークンは本人のみアクセス可能なサブコレクションに分離
+export interface UserOAuthSecret {
+  googleRefreshToken?: string;
+  googleOAuthUpdatedAt?: Date;
 }
 ```
 
@@ -180,6 +185,11 @@ match /users/{userId} {
     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
     && request.resource.data.diff(resource.data).affectedKeys()
       .hasOnly(['role', 'isAllowed', 'chatId', 'updatedAt']);
+
+  // OAuthトークンは本人のみアクセス可能
+  match /private/{docId} {
+    allow read, write: if request.auth.uid == userId;
+  }
 }
 ```
 
@@ -414,7 +424,7 @@ flowchart LR
 
 - Firebase Storage セキュリティルールで本人のみアップロード/削除可能
 - Firestore セキュリティルールで admin のみロール変更・isAllowed 変更可能
-- OAuth のリフレッシュトークンはクライアントに露出させない（Firestore ルールで除外）
+- OAuth のリフレッシュトークンは `users/{userId}/private/oauth` サブコレクションに分離し、本人のみアクセス可能
 
 ---
 
