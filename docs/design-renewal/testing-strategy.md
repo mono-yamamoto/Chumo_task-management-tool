@@ -1,5 +1,7 @@
 # テスト戦略
 
+> **注意**: このドキュメントは Firebase ベースの構成で書かれています。バックエンドスタックの移行（Firebase → Neon 構成）が決定したため、Firestore ルールテストの箇所等は移行後に更新が必要です。新構成の詳細は [`backend-stack-migration.md`](./backend-stack-migration.md) を参照してください。
+
 ## Context
 
 UIリニューアルを機にテストを導入する。Testing Trophy（Kent C. Dodds提唱）ベースで、統合テストを中心に据えた実践的な戦略をとる。
