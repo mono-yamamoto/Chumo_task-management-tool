@@ -115,11 +115,11 @@ npx skills add https://react-aria.adobe.com
 
 ### ボタン・操作系
 
-| MUI        | 移行先                             |
-| ---------- | ---------------------------------- |
-| Button     | React Aria `Button` + Tailwind     |
-| IconButton | React Aria `Button` + Lucide icon  |
-| Link       | React Aria `Link` / Next.js `Link` |
+| MUI        | 移行先                                  |
+| ---------- | --------------------------------------- |
+| Button     | React Aria `Button` + Tailwind          |
+| IconButton | React Aria `Button` + Lucide icon       |
+| Link       | React Aria `Link` / React Router `Link` |
 
 ### アイコン（27個）
 
@@ -190,74 +190,108 @@ export default {
 
 ---
 
-## Next.js 設定変更
+## Vite 設定
 
-- `next.config.js` から `compiler: { emotion: true }` を削除
-- Tailwind用の `postcss` 設定を追加
-- `app/globals.css` にTailwindディレクティブ + CSS変数定義
+- `vite.config.ts` に React プラグイン + パスエイリアス設定
+- `postcss.config.js` に Tailwind 設定を追加
+- `src/index.css` に Tailwind ディレクティブ + CSS変数定義
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+```
+
+```js
+// postcss.config.js
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+};
+```
 
 ---
 
 ## コンポーネントディレクトリ構成
 
-**方針: Hybrid + コロケーション**（shadcn/ui・Vercel公式テンプレート等で採用されている現行トレンド）
+**方針: Feature-based + コロケーション**（Vite SPA のスタンダード構成）
+
+※ バックエンドは `backend/` に分離（[backend-stack-migration.md](./backend-stack-migration.md) 参照）
 
 ```
-app/
-├── (auth)/
-│   ├── login/
-│   │   ├── page.tsx
-│   │   └── _components/           # ログイン専用
-│   └── ...
+frontend/
+├── src/
+│   ├── main.tsx                     # エントリポイント
+│   ├── App.tsx                      # ルーティング定義
+│   ├── index.css                    # Tailwind + CSS変数
+│   │
+│   ├── pages/                       # ページコンポーネント
+│   │   ├── login/
+│   │   │   ├── LoginPage.tsx
+│   │   │   └── components/          # ログイン専用
+│   │   ├── dashboard/
+│   │   │   ├── DashboardPage.tsx
+│   │   │   └── components/          # ダッシュボード専用
+│   │   ├── tasks/
+│   │   │   ├── TaskListPage.tsx
+│   │   │   ├── TaskDetailPage.tsx
+│   │   │   └── components/          # タスク専用（TaskTable, TaskCard, TaskFilter...）
+│   │   ├── reports/
+│   │   │   ├── ReportPage.tsx
+│   │   │   └── components/
+│   │   ├── contacts/
+│   │   │   ├── ContactPage.tsx
+│   │   │   └── components/
+│   │   └── settings/
+│   │       ├── SettingsPage.tsx
+│   │       └── components/
+│   │
+│   ├── components/
+│   │   ├── ui/                      # React Aria ラップの共有UIプリミティブ
+│   │   │   ├── button.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   ├── badge.tsx
+│   │   │   └── ...
+│   │   ├── layout/                  # 共通レイアウト（Header, Sidebar, AuthGuard）
+│   │   │   ├── DashboardLayout.tsx
+│   │   │   ├── Header.tsx
+│   │   │   └── Sidebar.tsx
+│   │   └── shared/                  # 複数フィーチャーで使うもの
+│   │       ├── EmptyState.tsx
+│   │       ├── LoadingSpinner.tsx
+│   │       └── ...
+│   │
+│   ├── hooks/                       # 共有カスタムフック
+│   ├── lib/
+│   │   ├── api.ts                   # API クライアント（Hono API への fetch）
+│   │   └── utils.ts                 # cn(), date-format 等
+│   └── types/                       # 型定義
 │
-└── (dashboard)/
-    ├── layout.tsx
-    ├── _components/                # ダッシュボード共通（Header, Sidebar）
-    ├── dashboard/
-    │   ├── page.tsx
-    │   └── _components/            # ダッシュボード専用
-    ├── tasks/
-    │   ├── page.tsx
-    │   ├── [id]/page.tsx
-    │   └── _components/            # タスク専用（TaskTable, TaskCard, TaskFilter...）
-    ├── reports/
-    │   ├── page.tsx
-    │   └── _components/
-    ├── contacts/
-    │   ├── page.tsx
-    │   └── _components/
-    └── settings/
-        ├── page.tsx
-        └── _components/
-
-components/
-├── ui/                             # React Aria ラップの共有UIプリミティブ
-│   ├── button.tsx
-│   ├── dialog.tsx
-│   ├── select.tsx
-│   ├── tabs.tsx
-│   ├── badge.tsx
-│   └── ...
-└── shared/                         # 複数フィーチャーで使うもの
-    ├── EmptyState.tsx
-    ├── LoadingSpinner.tsx
-    └── ...
-
-lib/
-├── hooks/                          # 共有カスタムフック
-├── utils/                          # cn(), date-format等
-└── api/                            # API関連
-
-types/                              # 型定義
+├── package.json
+└── vite.config.ts
 ```
 
 **ルール:**
 
-- `_components/` はApp Routerでルートとして認識されない（`_`接頭辞）
-- ページ専用コンポーネントは該当ページの `_components/` に配置
+- ページ専用コンポーネントは該当ページの `components/` に配置
 - 複数フィーチャーで使う場合のみ `components/shared/` に昇格
 - `components/ui/` は React Aria ラッパーの共有UIプリミティブ
+- `components/layout/` は認証ガード・ヘッダー・サイドバー等の共通レイアウト
 - Tailwind 80% + CSS Modules 20%（複雑なスタイルのみCSS Modules）
+- API 通信は `lib/api.ts` に集約し、Hono API（Cloudflare Workers）とやりとり
 
 ---
 
@@ -267,7 +301,8 @@ types/                              # 型定義
 - **アニメーション**: `framer-motion` を使用
 - **フォント**: Pencilデザインに準拠
 - **ダークモード**: CSS変数設計時点で対応完了する想定
-- **移行アプローチ**: ステージング環境で丸ごと作り直し
+- **ルーティング**: React Router（Vite SPA のクライアントサイドルーティング）
+- **移行アプローチ**: 新スタック（Vite + Hono）で丸ごと作り直し
 
 ---
 

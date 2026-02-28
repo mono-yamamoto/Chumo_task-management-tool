@@ -1,142 +1,224 @@
 # ステージング環境構築プラン
 
-> **注意**: このドキュメントは Firebase ベースの構成で書かれています。バックエンドスタックの移行（Firebase → Neon 構成）が決定したため、本ドキュメントは移行後に更新が必要です。新構成のステージング環境については [`backend-stack-migration.md`](./backend-stack-migration.md) の「ステージング環境」セクションを参照してください。
-
 ## Context
 
-本番環境（`chumo-3506a`）は稼働中のまま、UIリデザインを安全にテスト・開発するためのステージング環境を構築する。現状は単一Firebaseプロジェクト + Vercel の構成で、環境分離の仕組みがない。
+本番環境と分離したステージング環境を構築し、UIリデザイン + バックエンド移行を安全にテスト・開発する。新スタック（Neon + Cloudflare + Clerk）はブランチング・Preview デプロイの仕組みが充実しており、追加費用 $0 で環境分離が可能。
 
 ## 全体構成
 
 ```
-本番: main → Vercel Production + Firebase chumo-3506a
-STG:  staging → Vercel Preview + Firebase chumo-staging-xxxxx
+本番: main   → Cloudflare Pages (Production) + Workers (Production) + Neon main ブランチ
+STG:  staging → Cloudflare Pages (Preview)    + Workers (staging)    + Neon staging ブランチ
 ```
+
+```mermaid
+graph LR
+    subgraph "本番環境"
+        M[main ブランチ] --> CP_P[Cloudflare Pages]
+        M --> CW_P[Cloudflare Workers]
+        CW_P --> NE_M[Neon main ブランチ]
+    end
+
+    subgraph "ステージング環境"
+        S[staging ブランチ] --> CP_S[Cloudflare Preview]
+        S --> CW_S[Workers staging]
+        CW_S --> NE_S[Neon staging ブランチ]
+    end
+
+    NE_M -.->|ブランチコピー| NE_S
+```
+
+### 追加費用: $0
+
+| サービス           | ステージング                           | 追加費用 |
+| ------------------ | -------------------------------------- | -------- |
+| Neon               | staging ブランチ（本番データのコピー） | $0       |
+| Cloudflare Pages   | Preview デプロイ（自動生成）           | $0       |
+| Cloudflare Workers | staging 環境                           | $0       |
+| Clerk              | Development インスタンス               | $0       |
+| Cloudflare R2      | 本番と共用 or 別バケット               | $0       |
 
 ---
 
 ## やることリスト（手動 vs 自動化）
 
-### A. ユーザー手動作業（Firebase/GCP/Vercelコンソール）
+### A. ユーザー手動作業（各サービスのダッシュボード）
 
-#### A-1. Firebase ステージングプロジェクト作成
+#### A-1. Neon ステージングブランチ作成
 
-1. [Firebase Console](https://console.firebase.google.com) で新プロジェクト作成（例: `chumo-staging`）
-2. Blazeプラン（従量課金）に切替（Cloud Functions に必要）
-3. Firestore 有効化（リージョン: `asia-northeast1`）
-4. Authentication 有効化 → Googleプロバイダー ON
-5. Cloud Storage 有効化
-6. Webアプリ登録 → **SDK設定値をメモ**（apiKey, authDomain, projectId 等6つ）
+1. [Neon Console](https://console.neon.tech) でプロジェクトにアクセス
+2. staging ブランチを作成（本番データのコピーが自動生成される）
+3. staging ブランチの接続文字列をメモ
 
-#### A-2. GCP OAuth + シークレット設定
+```bash
+# CLI でも可能（1コマンド）
+neonctl branches create --name staging
+```
 
-1. GCPコンソール > APIs & Services > OAuth同意画面を設定
-2. OAuth 2.0 クライアントID 作成（リダイレクトURI: `https://<staging-domain>/api/auth/google/callback`）
-3. サービスアカウント鍵(JSON)を生成 → `client_email` / `private_key` メモ
-4. Secret Manager で以下8つのシークレット作成（Chat/Drive/GitHub連携は本番と同じ値を使用）:
-   - `GOOGLE_CHAT_WEBHOOK_URL`, `GOOGLE_CHAT_SPACE_URL`（本番と同じ値）
-   - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`（ステージング用OAuth）
-   - `DRIVE_PARENT_ID`, `CHECKSHEET_TEMPLATE_ID`（本番と同じ値）
-   - `APP_ORIGIN`（ステージングURL）
-   - `GITHUB_TOKEN`（本番と同じ値）
-5. Cloud Functions サービスアカウントに `Secret Manager Secret Accessor` ロール付与
+#### A-2. Cloudflare Pages 設定
 
-#### A-3. Vercel ステージング設定
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) > Pages でプロジェクト作成
+2. Git リポジトリを接続
+3. ビルド設定:
+   - Production branch: `main`
+   - Preview branch: `staging`（staging ブランチ push で自動 Preview デプロイ）
+   - Build command: `cd frontend && bun run build`
+   - Build output directory: `frontend/dist`
 
-1. Vercelダッシュボード > Settings > Environment Variables
-2. Environment: **Preview** (Branch: `staging`) で以下を全て設定:
-   - `NEXT_PUBLIC_FIREBASE_*` 6個（A-1でメモした値）
-   - `NEXT_PUBLIC_FUNCTIONS_URL`（`https://asia-northeast1-<staging-project-id>.cloudfunctions.net`）
-   - `NEXT_PUBLIC_FUNCTION_CREATEGOOGLECHATTHREAD_URL`
-   - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
-   - `GOOGLE_OAUTH_*` 3個
-3. （任意）Settings > Domains でステージング用カスタムドメイン設定
+#### A-3. Cloudflare Workers 設定
 
-#### A-4. GitHub Secrets
+1. Workers > 新規作成で staging 用の Worker を作成
+2. 環境変数を設定（A-5 参照）
+3. カスタムドメイン or ルーティングを設定
+
+#### A-4. Clerk Development インスタンス
+
+1. [Clerk Dashboard](https://dashboard.clerk.com) で Development インスタンスを作成
+2. Google OAuth プロバイダーを有効化
+3. API Keys（Publishable Key + Secret Key）をメモ
+4. Allowed origins にステージング URL を追加
+
+#### A-5. 環境変数設定
+
+**Cloudflare Workers（staging）:**
+
+| 変数名                       | 値                                   |
+| ---------------------------- | ------------------------------------ |
+| `DATABASE_URL`               | Neon staging ブランチの接続文字列    |
+| `CLERK_SECRET_KEY`           | Clerk Development の Secret Key      |
+| `CLERK_PUBLISHABLE_KEY`      | Clerk Development の Publishable Key |
+| `GOOGLE_CHAT_WEBHOOK_URL`    | 本番と同じ値（※注意）                |
+| `GOOGLE_OAUTH_CLIENT_ID`     | ステージング用 OAuth Client ID       |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | ステージング用 OAuth Secret          |
+| `GITHUB_TOKEN`               | 本番と同じ値（※注意）                |
+
+**Cloudflare Pages（Preview 環境変数）:**
+
+| 変数名                       | 値                                   |
+| ---------------------------- | ------------------------------------ |
+| `VITE_API_URL`               | Workers staging の URL               |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk Development の Publishable Key |
+
+#### A-6. GitHub Secrets（CI/CD 用）
 
 1. リポジトリ Settings > Secrets and variables > Actions
-2. `FIREBASE_STAGING_SA_KEY` にサービスアカウントJSON鍵を設定
+2. 以下を設定:
+   - `CLOUDFLARE_API_TOKEN`: Cloudflare API トークン
+   - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare アカウント ID
+   - `NEON_API_KEY`: Neon API キー（オプション: CI でブランチ操作する場合）
 
 ---
 
 ### B. エージェント自動化作業（コード変更）
 
-#### B-1. `.firebaserc` 新規作成
+#### B-1. `wrangler.toml` にステージング環境追加
+
+```toml
+# wrangler.toml
+name = "chumo-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[env.staging]
+name = "chumo-api-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+name = "chumo-api"
+vars = { ENVIRONMENT = "production" }
+```
+
+#### B-2. `.env.example` 新規作成
+
+- 全環境変数の一覧テンプレート（値なし）を Git 管理
+- `.gitignore` に `.env.staging` を追加
+
+#### B-3. `package.json` にステージング用スクリプト追加
 
 ```json
 {
-  "projects": {
-    "production": "chumo-3506a",
-    "staging": "<staging-project-id>"
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "db:migrate:staging": "DATABASE_URL=$STAGING_DATABASE_URL drizzle-kit migrate",
+    "db:migrate:production": "DATABASE_URL=$PRODUCTION_DATABASE_URL drizzle-kit migrate"
   }
 }
 ```
 
-- ステージングのproject IDはユーザーに確認後に記入
+#### B-4. `.github/workflows/deploy-staging.yml` 新規作成
 
-#### B-2. `lib/firebase/admin.ts` ハードコード除去
+```yaml
+name: Deploy Staging
+on:
+  push:
+    branches: [staging]
 
-- **ファイル**: `lib/firebase/admin.ts:12-15`
-- `'chumo-3506a'` のフォールバックを削除し、環境変数必須に変更
-- これにより、環境変数未設定時に本番DBへ誤接続するリスクを排除
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd frontend && bun install && bun run build
+      # Cloudflare Pages は git push で自動デプロイされるため、
+      # 手動デプロイが必要な場合のみ wrangler pages deploy を使用
 
-#### B-3. `.env.example` 新規作成
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd backend && bun install
+      - run: cd backend && npx wrangler deploy --env staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-- 全環境変数の一覧テンプレート（値なし）をGit管理
-- `.gitignore` に `.env.staging` を追加
-
-#### B-4. シーディングスクリプトの `.env` パス柔軟化
-
-- **対象ファイル**: `scripts/` 配下の全6スクリプト
-- `config({ path: resolve(__dirname, '../.env.local') })` を環境変数 `DOTENV_CONFIG_PATH` 対応に修正
-- ステージングへのデータ投入時に `.env.staging` を指定可能にする
-
-#### B-5. `package.json` にステージング用スクリプト追加
-
-```json
-"firebase:use:staging": "firebase use staging",
-"firebase:use:production": "firebase use production",
-"staging:deploy:rules": "firebase use staging && firebase deploy --only firestore:rules,firestore:indexes,storage",
-"staging:deploy:functions": "firebase use staging && cd functions && npm run build && cd .. && firebase deploy --only functions",
-"staging:deploy:all": "npm run staging:deploy:rules && npm run staging:deploy:functions"
+  migrate-db:
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd backend && bun install
+      - run: cd backend && npx drizzle-kit migrate
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
 ```
-
-#### B-6. `.github/workflows/deploy-staging.yml` 新規作成
-
-- `staging` ブランチ push 時に自動デプロイ
-- Firestore rules/indexes + Storage rules + Cloud Functions を一括デプロイ
 
 ---
 
 ## 実施順序
 
-| 順番 | 作業                                   | 担当                     |
-| ---- | -------------------------------------- | ------------------------ |
-| 1    | Firebaseプロジェクト作成 + 各種有効化  | ユーザー (A-1)           |
-| 2    | GCP OAuth + Secret Manager設定         | ユーザー (A-2)           |
-| 3    | コード変更（B-1〜B-6）                 | エージェント             |
-| 4    | Vercel環境変数設定                     | ユーザー (A-3)           |
-| 5    | GitHub Secrets設定                     | ユーザー (A-4)           |
-| 6    | Firebase CLI でステージングにデプロイ  | エージェント or ユーザー |
-| 7    | シーディングスクリプトで初期データ投入 | エージェント or ユーザー |
-| 8    | `staging` ブランチ作成 + push          | エージェント             |
-| 9    | 動作検証                               | ユーザー                 |
+| 順番 | 作業                               | 担当                     |
+| ---- | ---------------------------------- | ------------------------ |
+| 1    | Neon staging ブランチ作成          | ユーザー (A-1)           |
+| 2    | Clerk Development インスタンス作成 | ユーザー (A-4)           |
+| 3    | Cloudflare Pages / Workers 設定    | ユーザー (A-2, A-3)      |
+| 4    | コード変更（B-1〜B-4）             | エージェント             |
+| 5    | 環境変数設定                       | ユーザー (A-5)           |
+| 6    | GitHub Secrets 設定                | ユーザー (A-6)           |
+| 7    | DB マイグレーション実行            | エージェント or ユーザー |
+| 8    | `staging` ブランチ作成 + push      | エージェント             |
+| 9    | 動作検証                           | ユーザー                 |
 
 ---
 
 ## 検証方法
 
-1. ステージングURLにアクセス → ログイン画面表示を確認
-2. Googleログインフロー完了を確認
-3. タスクCRUD操作の動作確認
-4. Cloud Functions（タイマー等）の動作確認
-5. `firebase use production` に戻して本番に影響がないことを確認
+1. ステージング URL にアクセス → ログイン画面表示を確認
+2. Clerk 経由の Google ログインフロー完了を確認
+3. タスク CRUD 操作の動作確認（Hono API → Neon staging ブランチ）
+4. 外部連携（Drive / GitHub / Chat）の動作確認
+5. 本番環境に影響がないことを確認（Neon main ブランチのデータが変更されていない）
 
 ---
 
 ## 注意点
 
-- **Cloud Functions のリージョン**: `NEXT_PUBLIC_FUNCTIONS_URL` は `asia-northeast1` を指す。本番と同じ構成なので問題なし
-- **Google Chat/Drive/GitHub連携**: 本番と同じ値を使用。ステージングからの操作が本番のChat/Drive/GitHubに反映される点に注意
-- **FCM VAPID Key**: Cloud Messaging使用時はステージングで別途生成が必要
-- **`.env.staging` の共有**: Git管理しないので、チーム共有方法を別途決めておく
+- **外部連携の分離**: Google Chat / Drive / GitHub 連携は本番と同じ値を使用する場合、ステージングからの操作が本番の Chat / Drive / GitHub に反映される点に注意
+- **Neon ブランチのリセット**: ステージングデータを本番に合わせたい場合は `neonctl branches reset staging --parent` で本番からコピーし直せる
+- **R2 ストレージ**: ステージング用に別バケットを作るか、本番と共用するか要検討（ファイルの分離が必要な場合は別バケット推奨）
+- **環境変数の共有**: `.env.staging` は Git 管理しないので、チーム共有方法を別途決めておく（Cloudflare の環境変数管理 or 1Password 等）
