@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@clerk/backend": "^1.0.0",
+    "@hono/zod-validator": "^0.7.6",
     "@neondatabase/serverless": "^0.10.0",
     "drizzle-orm": "^0.39.0",
-    "hono": "^4.7.0"
+    "hono": "^4.7.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",

@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

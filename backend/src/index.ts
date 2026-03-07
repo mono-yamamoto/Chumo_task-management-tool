@@ -1,5 +1,12 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { dbMiddleware } from './middleware/db';
+import { authMiddleware } from './middleware/auth';
+import tasksRoute from './routes/tasks';
+import commentsRoute from './routes/comments';
+import sessionsRoute from './routes/sessions';
+import usersRoute from './routes/users';
+import labelsRoute from './routes/labels';
 
 export type Env = {
   Bindings: {
@@ -21,12 +28,18 @@ app.use(
   })
 );
 
-// Health check
+// Health check (認証不要)
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
-// Routes will be added in Phase 2
-// app.route('/api/tasks', tasksRoute);
-// app.route('/api/users', usersRoute);
-// app.route('/api/labels', labelsRoute);
+// DB + Auth ミドルウェア（APIルート全体に適用）
+app.use('/api/*', dbMiddleware);
+app.use('/api/*', authMiddleware);
+
+// Routes
+app.route('/api/tasks', tasksRoute);
+app.route('/api/comments', commentsRoute);
+app.route('/api/sessions', sessionsRoute);
+app.route('/api/users', usersRoute);
+app.route('/api/labels', labelsRoute);
 
 export default app;
