@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { contacts } from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
@@ -54,6 +54,59 @@ function getContactTypeLabelForGitHub(type: string): string {
       return 'question';
   }
 }
+
+/**
+ * GET /
+ * お問い合わせ一覧（ステータスでフィルタ）
+ */
+app.get('/', async (c) => {
+  const db = c.get('db');
+  const status = c.req.query('status') as 'pending' | 'resolved' | undefined;
+
+  if (!status || !['pending', 'resolved'].includes(status)) {
+    return c.json({ error: 'status query parameter is required (pending or resolved)' }, 400);
+  }
+
+  const orderField = status === 'pending' ? contacts.createdAt : contacts.updatedAt;
+
+  const result = await db
+    .select()
+    .from(contacts)
+    .where(eq(contacts.status, status))
+    .orderBy(desc(orderField));
+
+  return c.json({ contacts: result });
+});
+
+/**
+ * PUT /:id
+ * お問い合わせステータス更新
+ */
+app.put('/:id', async (c) => {
+  const db = c.get('db');
+  const contactId = c.req.param('id');
+  const { status } = await c.req.json<{ status: 'pending' | 'resolved' }>();
+
+  if (!status || !['pending', 'resolved'].includes(status)) {
+    return c.json({ error: 'status is required (pending or resolved)' }, 400);
+  }
+
+  const [existing] = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(eq(contacts.id, contactId));
+
+  if (!existing) {
+    return c.json({ error: 'Contact not found' }, 404);
+  }
+
+  await db
+    .update(contacts)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(contacts.id, contactId));
+
+  return c.json({ success: true });
+});
 
 /**
  * POST /

@@ -41,7 +41,7 @@ function getContactTypeColor(type: ContactType): 'error' | 'info' | 'warning' {
 }
 
 export default function ContactPage() {
-  const { user, firebaseUser } = useAuth();
+  const { user, getToken } = useAuth();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'pending' | 'resolved'>('pending');
   const {
@@ -79,7 +79,12 @@ export default function ContactPage() {
     progress,
     handleSubmit,
     isSubmitting,
-  } = useContactFormState({ firebaseUser });
+  } = useContactFormState({
+    userId: user?.id ?? null,
+    userName: user?.displayName ?? null,
+    userEmail: user?.email ?? null,
+    getToken,
+  });
 
   // 未解決のお問い合わせを取得
   const { data: pendingContacts, isLoading: isLoadingPending } = useQuery({
