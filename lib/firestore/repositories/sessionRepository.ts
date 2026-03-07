@@ -1,4 +1,15 @@
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  Timestamp,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { PROJECT_TYPES } from '@/constants/projectTypes';
 import { TaskSession } from '@/types';
@@ -134,4 +145,93 @@ export async function fetchActiveSessionForTask(params: {
     console.error('Error fetching active session for task:', error);
     return null;
   }
+}
+
+/**
+ * セッションを追加する
+ */
+export async function addSession(params: {
+  projectType: string;
+  sessionData: {
+    taskId: string;
+    userId: string;
+    startedAt: Date;
+    endedAt: Date | null;
+    note?: string | null;
+  };
+}): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const sessionsRef = collection(db, 'projects', params.projectType, 'taskSessions');
+
+  let durationSec = 0;
+  if (params.sessionData.startedAt && params.sessionData.endedAt) {
+    durationSec = Math.floor(
+      (params.sessionData.endedAt.getTime() - params.sessionData.startedAt.getTime()) / 1000
+    );
+  }
+
+  await addDoc(sessionsRef, {
+    ...params.sessionData,
+    durationSec,
+    startedAt: Timestamp.fromDate(params.sessionData.startedAt),
+    endedAt: params.sessionData.endedAt ? Timestamp.fromDate(params.sessionData.endedAt) : null,
+  });
+}
+
+/**
+ * セッションを更新する
+ */
+export async function updateSession(params: {
+  projectType: string;
+  sessionId: string;
+  updates: Partial<{
+    startedAt: Date;
+    endedAt: Date | null;
+    userId: string;
+    note: string | null;
+  }>;
+  existingSession?: TaskSession;
+}): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const sessionRef = doc(db, 'projects', params.projectType, 'taskSessions', params.sessionId);
+
+  const updateData: Record<string, unknown> = {};
+  if (params.updates.startedAt) {
+    updateData.startedAt = Timestamp.fromDate(params.updates.startedAt);
+  }
+  if (params.updates.endedAt !== undefined) {
+    updateData.endedAt =
+      params.updates.endedAt === null ? null : Timestamp.fromDate(params.updates.endedAt);
+  }
+  if (params.updates.userId) {
+    updateData.userId = params.updates.userId;
+  }
+  if (params.updates.note !== undefined) {
+    updateData.note = params.updates.note;
+  }
+
+  // durationSecを再計算
+  const startedAt = params.updates.startedAt ?? params.existingSession?.startedAt;
+  const endedAt =
+    params.updates.endedAt !== undefined
+      ? params.updates.endedAt
+      : (params.existingSession?.endedAt ?? null);
+
+  if (startedAt && endedAt) {
+    updateData.durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+  }
+
+  await updateDoc(sessionRef, updateData);
+}
+
+/**
+ * セッションを削除する
+ */
+export async function deleteSession(projectType: string, sessionId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const sessionRef = doc(db, 'projects', projectType, 'taskSessions', sessionId);
+  await deleteDoc(sessionRef);
 }

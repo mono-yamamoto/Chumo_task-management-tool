@@ -1,16 +1,14 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { writeBatch, doc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
+import {
+  updateTasksOrder,
+  type TaskOrderUpdate,
+} from '@/lib/firestore/repositories/taskRepository';
 
-interface TaskOrderUpdate {
-  taskId: string;
-  projectType: ProjectType;
-  newOrder: number;
-}
+export type { TaskOrderUpdate };
 
 /**
  * 複数タスクのorder値を一括更新するmutation
@@ -21,21 +19,7 @@ export function useUpdateTasksOrder() {
 
   return useMutation({
     mutationFn: async (updates: TaskOrderUpdate[]) => {
-      if (!db) throw new Error('Firestore is not initialized');
-      if (updates.length === 0) return;
-
-      const batch = writeBatch(db);
-      const now = Timestamp.fromDate(new Date());
-
-      updates.forEach(({ taskId, projectType, newOrder }) => {
-        const taskRef = doc(db!, 'projects', projectType, 'tasks', taskId);
-        batch.update(taskRef, {
-          order: newOrder,
-          updatedAt: now,
-        });
-      });
-
-      await batch.commit();
+      await updateTasksOrder(updates);
     },
     // 楽観的更新
     onMutate: async (updates) => {

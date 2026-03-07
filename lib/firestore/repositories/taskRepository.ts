@@ -9,6 +9,11 @@ import {
   startAfter,
   QueryDocumentSnapshot,
   doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
@@ -105,4 +110,77 @@ export async function fetchAssignedOpenTasks(
   }
 
   return allTasks;
+}
+
+/**
+ * タスクを作成する
+ */
+export async function createTask(
+  projectType: ProjectType,
+  taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const data = {
+    ...taskData,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const docRef = await addDoc(collection(db, 'projects', projectType, 'tasks'), data);
+  return docRef.id;
+}
+
+/**
+ * タスクを更新する
+ */
+export async function updateTask(
+  projectType: ProjectType,
+  taskId: string,
+  updates: Partial<Task>
+): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
+  await updateDoc(taskRef, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+}
+
+/**
+ * タスクを削除する
+ */
+export async function deleteTask(projectType: ProjectType, taskId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
+  await deleteDoc(taskRef);
+}
+
+export interface TaskOrderUpdate {
+  taskId: string;
+  projectType: ProjectType;
+  newOrder: number;
+}
+
+/**
+ * 複数タスクのorder値を一括更新する（D&D並び替え用）
+ */
+export async function updateTasksOrder(updates: TaskOrderUpdate[]): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+  if (updates.length === 0) return;
+
+  const batch = writeBatch(db);
+  const now = Timestamp.fromDate(new Date());
+
+  updates.forEach(({ taskId, projectType, newOrder }) => {
+    const taskRef = doc(db!, 'projects', projectType, 'tasks', taskId);
+    batch.update(taskRef, {
+      order: newOrder,
+      updatedAt: now,
+    });
+  });
+
+  await batch.commit();
 }

@@ -1,4 +1,17 @@
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  arrayUnion,
+  Timestamp,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { PROJECT_TYPES } from '@/constants/projectTypes';
 import { TaskComment } from '@/types';
@@ -81,4 +94,100 @@ export async function fetchUnreadCommentTaskIds(userId: string): Promise<Set<str
   }
 
   return unreadTaskIds;
+}
+
+/**
+ * コメントを作成する
+ */
+export async function createComment(params: {
+  projectType: string;
+  taskId: string;
+  authorId: string;
+  content: string;
+  mentionedUserIds?: string[];
+}): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const commentsRef = collection(db, 'projects', params.projectType, 'taskComments');
+  const now = new Date();
+
+  const commentData: Record<string, unknown> = {
+    taskId: params.taskId,
+    authorId: params.authorId,
+    content: params.content,
+    readBy: [params.authorId],
+    createdAt: Timestamp.fromDate(now),
+    updatedAt: Timestamp.fromDate(now),
+  };
+
+  if (params.mentionedUserIds && params.mentionedUserIds.length > 0) {
+    commentData.mentionedUserIds = params.mentionedUserIds;
+  }
+
+  const docRef = await addDoc(commentsRef, commentData);
+  return docRef.id;
+}
+
+/**
+ * コメントを更新する
+ */
+export async function updateComment(params: {
+  projectType: string;
+  commentId: string;
+  content: string;
+  mentionedUserIds?: string[];
+}): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const commentRef = doc(db, 'projects', params.projectType, 'taskComments', params.commentId);
+  const updateData: Record<string, unknown> = {
+    content: params.content,
+    updatedAt: Timestamp.fromDate(new Date()),
+  };
+
+  if (params.mentionedUserIds !== undefined) {
+    updateData.mentionedUserIds = params.mentionedUserIds;
+  }
+
+  await updateDoc(commentRef, updateData);
+}
+
+/**
+ * コメントを削除する
+ */
+export async function deleteComment(projectType: string, commentId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const commentRef = doc(db, 'projects', projectType, 'taskComments', commentId);
+  await deleteDoc(commentRef);
+}
+
+/**
+ * タスクの全コメントを既読にする
+ */
+export async function markCommentsAsRead(params: {
+  projectType: string;
+  taskId: string;
+  userId: string;
+}): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const commentsRef = collection(db, 'projects', params.projectType, 'taskComments');
+  const q = query(commentsRef, where('taskId', '==', params.taskId));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return;
+
+  const batch = writeBatch(db);
+  snapshot.docs.forEach((docItem) => {
+    const data = docItem.data();
+    const readBy = Array.isArray(data.readBy) ? data.readBy : [];
+    if (!readBy.includes(params.userId)) {
+      batch.update(docItem.ref, {
+        readBy: arrayUnion(params.userId),
+      });
+    }
+  });
+
+  await batch.commit();
 }

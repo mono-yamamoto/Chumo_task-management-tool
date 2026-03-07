@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Timestamp } from 'firebase/firestore';
 import { FlowStatus, ProgressStatus, TaskSession, ProjectType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
@@ -170,12 +169,10 @@ export default function TaskDetailPage() {
   // 外部データ（Firestore）からの同期なのでuseEffect内でのsetStateは正当
   useEffect(() => {
     if (task) {
-      /* eslint-disable react-hooks/set-state-in-effect */
       setLocalTitle(task.title || '');
       setLocalDescription(task.description || '');
       setLocalBacklogUrl(task.backlogUrl || '');
       setLocalOver3Reason(task.over3Reason || '');
-      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -339,8 +336,8 @@ export default function TaskDetailPage() {
         projectType: task.projectType,
         sessionId: editingSession.id,
         updates: {
-          startedAt: Timestamp.fromDate(startedAt),
-          endedAt: endedAt ? Timestamp.fromDate(endedAt) : null,
+          startedAt,
+          endedAt: endedAt ?? null,
           userId: sessionFormData.userId,
           note: sessionFormData.note || null,
         },

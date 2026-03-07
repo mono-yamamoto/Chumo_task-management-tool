@@ -8,14 +8,7 @@ import {
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
-import {
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  collection,
-  QueryDocumentSnapshot,
-} from 'firebase/firestore';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
@@ -24,6 +17,9 @@ import { queryKeys } from '@/lib/queryKeys';
 import {
   fetchTaskByIdAcrossProjects,
   fetchTaskPage,
+  createTask,
+  updateTask,
+  deleteTask,
 } from '@/lib/firestore/repositories/taskRepository';
 type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
 type TaskPage = {
@@ -188,18 +184,10 @@ export function useCreateTask() {
       projectType: ProjectType;
       taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>;
     }) => {
-      if (!user || !db) {
+      if (!user) {
         throw new Error('ユーザーがログインしていません');
       }
-
-      const data = {
-        ...taskData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const docRef = await addDoc(collection(db, 'projects', projectType, 'tasks'), data);
-      return docRef.id;
+      return createTask(projectType, taskData);
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
@@ -225,13 +213,7 @@ export function useUpdateTask() {
       taskId: string;
       updates: Partial<Task>;
     }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
-      await updateDoc(taskRef, {
-        ...updates,
-        updatedAt: new Date(),
-      });
+      await updateTask(projectType, taskId, updates);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
@@ -250,10 +232,7 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: async ({ projectType, taskId }: { projectType: ProjectType; taskId: string }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const taskRef = doc(db, 'projects', projectType, 'tasks', taskId);
-      await deleteDoc(taskRef);
+      await deleteTask(projectType, taskId);
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
