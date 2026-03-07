@@ -11,6 +11,12 @@ import usersRoute from './users';
 import labelsRoute from './labels';
 import timerRoute from './timer';
 import reportsRoute from './reports';
+import backlogRoute from './backlog';
+import githubRoute from './github';
+import contactRoute from './contact';
+import chatRoute from './chat';
+import driveRoute from './drive';
+import notificationsRoute from './notifications';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_dev';
@@ -41,6 +47,12 @@ export function createTestApp(testUserId = 'test-user') {
   app.route('/api/labels', labelsRoute);
   app.route('/api/timer', timerRoute);
   app.route('/api/reports', reportsRoute);
+  app.route('/api/backlog', backlogRoute);
+  app.route('/api/github', githubRoute);
+  app.route('/api/contact', contactRoute);
+  app.route('/api/chat', chatRoute);
+  app.route('/api/drive', driveRoute);
+  app.route('/api/notifications', notificationsRoute);
 
   return app;
 }
