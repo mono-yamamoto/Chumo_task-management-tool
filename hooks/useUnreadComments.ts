@@ -1,9 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { db } from '@/lib/firebase/config';
+import { useAuth } from '@/hooks/useAuth';
 import { queryKeys } from '@/lib/queryKeys';
-import { fetchUnreadCommentTaskIds } from '@/lib/firestore/repositories/commentRepository';
+import { fetchUnreadCommentTaskIds } from '@/lib/api/commentRepository';
 
 // 未読コメントの更新間隔（60秒）
 const UNREAD_COMMENTS_REFETCH_INTERVAL_MS = 60000;
@@ -13,13 +13,15 @@ const UNREAD_COMMENTS_REFETCH_INTERVAL_MS = 60000;
  * @param userId ユーザーID
  */
 export function useUnreadComments(userId: string | null) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.unreadComments(userId),
     queryFn: async () => {
-      if (!userId || !db) return new Set<string>();
-      return fetchUnreadCommentTaskIds(userId);
+      if (!userId) return new Set<string>();
+      return fetchUnreadCommentTaskIds(userId, getToken);
     },
-    enabled: !!userId && !!db,
+    enabled: !!userId,
     refetchInterval: UNREAD_COMMENTS_REFETCH_INTERVAL_MS,
     // SetはJSON化できないため、シリアライズされた比較を避ける
     structuralSharing: false,

@@ -3,10 +3,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Task } from '@/types';
 import { ProjectType } from '@/constants/projectTypes';
-import {
-  updateTasksOrder,
-  type TaskOrderUpdate,
-} from '@/lib/firestore/repositories/taskRepository';
+import { useAuth } from '@/hooks/useAuth';
+import { updateTasksOrder, type TaskOrderUpdate } from '@/lib/api/taskRepository';
 
 export type { TaskOrderUpdate };
 
@@ -16,10 +14,11 @@ export type { TaskOrderUpdate };
  */
 export function useUpdateTasksOrder() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (updates: TaskOrderUpdate[]) => {
-      await updateTasksOrder(updates);
+      await updateTasksOrder(updates, getToken);
     },
     // 楽観的更新
     onMutate: async (updates) => {

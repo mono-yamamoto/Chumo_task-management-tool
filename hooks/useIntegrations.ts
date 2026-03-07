@@ -2,12 +2,8 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  getCreateDriveFolderUrl,
-  getCreateFireIssueUrl,
-  getCreateGoogleChatThreadUrl,
-} from '@/utils/functions';
-import { fetchJson, HttpError } from '@/lib/http/fetchJson';
+import { apiClient } from '@/lib/http/apiClient';
+import { HttpError } from '@/lib/http/fetchJson';
 import { queryKeys } from '@/lib/queryKeys';
 
 type DriveFolderResult = {
@@ -18,7 +14,7 @@ type DriveFolderResult = {
 
 export function useDriveIntegration() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
 
   const createDriveFolder = useMutation<
     DriveFolderResult,
@@ -30,21 +26,12 @@ export function useDriveIntegration() {
         throw new Error('ユーザーがログインしていません');
       }
 
-      const driveUrl = getCreateDriveFolderUrl();
-      console.debug('Creating drive folder with:', { projectType, taskId, userId: user.id });
       try {
-        return await fetchJson<DriveFolderResult>(
-          `${driveUrl}/projects/${projectType}/tasks/${taskId}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user.id,
-            }),
-          }
-        );
+        return await apiClient<DriveFolderResult>('/api/drive/folders', {
+          method: 'POST',
+          body: { projectType, taskId },
+          getToken,
+        });
       } catch (error) {
         if (
           error instanceof HttpError &&
@@ -68,12 +55,14 @@ export function useDriveIntegration() {
 
 export function useFireIntegration() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const createFireIssue = useMutation({
     mutationFn: async ({ projectType, taskId }: { projectType: string; taskId: string }) => {
-      const fireUrl = getCreateFireIssueUrl();
-      return fetchJson(`${fireUrl}/projects/${projectType}/tasks/${taskId}`, {
+      return apiClient('/api/github/issues', {
         method: 'POST',
+        body: { projectType, taskId },
+        getToken,
       });
     },
     onSuccess: (_result, variables) => {
@@ -88,6 +77,7 @@ export function useFireIntegration() {
 
 export function useGoogleChatIntegration() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const createGoogleChatThread = useMutation({
     mutationFn: async ({
@@ -99,38 +89,11 @@ export function useGoogleChatIntegration() {
       taskId: string;
       taskUrl: string;
     }) => {
-      const chatUrl = getCreateGoogleChatThreadUrl();
-      const requestUrl = `${chatUrl}/projects/${projectType}/tasks/${taskId}`;
-
-      console.debug('Creating Google Chat thread:', {
-        chatUrl,
-        requestUrl,
-        projectType,
-        taskId,
-        taskUrl,
+      return apiClient('/api/chat/threads', {
+        method: 'POST',
+        body: { projectType, taskId, taskUrl },
+        getToken,
       });
-
-      try {
-        return await fetchJson(requestUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ taskUrl }),
-        });
-      } catch (error) {
-        // fetch自体が失敗した場合（ネットワークエラー、CORSエラーなど）
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-          console.error('Google Chat thread creation network error:', {
-            requestUrl,
-            error,
-          });
-          throw new Error(
-            `ネットワークエラーが発生しました。Cloud FunctionのURLを確認してください: ${requestUrl}`
-          );
-        }
-        throw error;
-      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });

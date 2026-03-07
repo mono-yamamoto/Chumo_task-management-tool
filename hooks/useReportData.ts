@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { ReportResponse } from '@/types/report';
-import { getExportTimeReportCsvUrl, getTimeReportUrl } from '@/utils/functions';
+import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/lib/http/apiClient';
 
 type ReportTab = 'normal' | 'brg';
 
@@ -11,6 +12,8 @@ type UseReportDataOptions = {
   fromDate: string;
   toDate: string;
 };
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
 const getValidatedDates = (fromDate: string, toDate: string) => {
   const fallbackFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -32,6 +35,8 @@ const notify = (message: string) => {
 };
 
 export function useReportData({ activeTab, fromDate, toDate }: UseReportDataOptions) {
+  const { getToken } = useAuth();
+
   const { data, isLoading, error } = useQuery<ReportResponse>({
     queryKey: ['reports', activeTab, fromDate, toDate],
     queryFn: async () => {
@@ -43,19 +48,7 @@ export function useReportData({ activeTab, fromDate, toDate }: UseReportDataOpti
         type: activeTab,
       });
 
-      const reportUrl = getTimeReportUrl();
-      const response = await fetch(`${reportUrl}?${params}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: 'Unknown error',
-          details: `HTTP ${response.status}: ${response.statusText}`,
-        }));
-        const errorMessage =
-          errorData.error || `Failed to fetch report: ${response.status} ${response.statusText}`;
-        const errorDetails = errorData.details ? `\n詳細: ${errorData.details}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
-      }
-      return response.json();
+      return apiClient<ReportResponse>(`/api/reports/time?${params}`, { getToken });
     },
   });
 
@@ -68,8 +61,14 @@ export function useReportData({ activeTab, fromDate, toDate }: UseReportDataOpti
         type: activeTab,
       });
 
-      const csvUrl = getExportTimeReportCsvUrl();
-      const response = await fetch(`${csvUrl}?${params}`);
+      // CSV は blob で返ってくるので apiClient ではなく直接 fetch
+      const token = await getToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/reports/time/csv?${params}`, { headers });
       if (!response.ok) {
         notify('CSVのエクスポートに失敗しました');
         return;

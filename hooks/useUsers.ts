@@ -1,14 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllUsers } from '@/lib/firestore/repositories/userRepository';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchAllUsers } from '@/lib/api/userRepository';
 
 /**
  * すべてのユーザーを取得するカスタムフック
  */
 export function useUsers() {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: ['allUsers'],
-    queryFn: fetchAllUsers,
+    queryFn: () => fetchAllUsers(getToken),
   });
 }

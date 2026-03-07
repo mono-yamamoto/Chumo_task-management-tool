@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaskComment } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import {
   fetchTaskComments,
@@ -9,7 +10,7 @@ import {
   updateComment,
   deleteComment,
   markCommentsAsRead,
-} from '@/lib/firestore/repositories/commentRepository';
+} from '@/lib/api/commentRepository';
 
 /**
  * タスクのコメントを取得するカスタムフック
@@ -17,11 +18,13 @@ import {
  * @param taskId タスクID
  */
 export function useTaskComments(projectType: string | null, taskId: string | null) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: taskId ? queryKeys.taskComments(taskId) : ['taskComments', null],
     queryFn: async () => {
       if (!projectType || !taskId) return [];
-      return fetchTaskComments(projectType, taskId);
+      return fetchTaskComments(projectType, taskId, getToken);
     },
     enabled: !!projectType && !!taskId,
     retry: false,
@@ -33,6 +36,7 @@ export function useTaskComments(projectType: string | null, taskId: string | nul
  */
 export function useCreateComment() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (params: {
@@ -42,7 +46,7 @@ export function useCreateComment() {
       content: string;
       mentionedUserIds?: string[];
     }) => {
-      return createComment(params);
+      return createComment(params, getToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -60,6 +64,7 @@ export function useCreateComment() {
  */
 export function useUpdateComment() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (params: {
@@ -69,12 +74,15 @@ export function useUpdateComment() {
       mentionedUserIds?: string[];
       taskId: string;
     }) => {
-      await updateComment({
-        projectType: params.projectType,
-        commentId: params.commentId,
-        content: params.content,
-        mentionedUserIds: params.mentionedUserIds,
-      });
+      await updateComment(
+        {
+          projectType: params.projectType,
+          commentId: params.commentId,
+          content: params.content,
+          mentionedUserIds: params.mentionedUserIds,
+        },
+        getToken
+      );
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -89,10 +97,11 @@ export function useUpdateComment() {
  */
 export function useDeleteComment() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (params: { projectType: string; commentId: string; taskId: string }) => {
-      await deleteComment(params.projectType, params.commentId);
+      await deleteComment(params.projectType, params.commentId, getToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -110,10 +119,11 @@ export function useDeleteComment() {
  */
 export function useMarkCommentsAsRead() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (params: { projectType: string; taskId: string; userId: string }) => {
-      await markCommentsAsRead(params);
+      await markCommentsAsRead(params, getToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

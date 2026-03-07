@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { ContactType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useContactFormState } from '@/hooks/useContactFormState';
@@ -12,7 +10,7 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import { ContactFormDrawer } from '@/components/Drawer/ContactFormDrawer';
 import { ContactListSection } from '@/components/contact/ContactListSection';
 import { queryKeys } from '@/lib/queryKeys';
-import { fetchContactsByStatus } from '@/lib/firestore/repositories/contactRepository';
+import { fetchContactsByStatus, updateContactStatus } from '@/lib/api/contactRepository';
 
 function getContactTypeLabel(type: ContactType): string {
   switch (type) {
@@ -89,24 +87,18 @@ export default function ContactPage() {
   // 未解決のお問い合わせを取得
   const { data: pendingContacts, isLoading: isLoadingPending } = useQuery({
     queryKey: queryKeys.contacts('pending'),
-    queryFn: async () => {
-      if (!db) return [];
-      return fetchContactsByStatus('pending');
-    },
-    enabled: !!user && !!db,
+    queryFn: () => fetchContactsByStatus('pending', getToken),
+    enabled: !!user,
   });
 
   // 解決済みのお問い合わせを取得
   const { data: resolvedContacts, isLoading: isLoadingResolved } = useQuery({
     queryKey: queryKeys.contacts('resolved'),
-    queryFn: async () => {
-      if (!db) return [];
-      return fetchContactsByStatus('resolved');
-    },
-    enabled: !!user && !!db,
+    queryFn: () => fetchContactsByStatus('resolved', getToken),
+    enabled: !!user,
   });
 
-  const updateContactStatus = useMutation({
+  const updateContactStatusMutation = useMutation({
     mutationFn: async ({
       contactId,
       status,
@@ -114,11 +106,7 @@ export default function ContactPage() {
       contactId: string;
       status: 'pending' | 'resolved';
     }) => {
-      if (!db) throw new Error('Firestore not initialized');
-      await updateDoc(doc(db, 'contacts', contactId), {
-        status,
-        updatedAt: new Date(),
-      });
+      await updateContactStatus(contactId, status, getToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts('pending') });
@@ -127,7 +115,7 @@ export default function ContactPage() {
   });
 
   const handleToggleStatus = (contactId: string, status: 'pending' | 'resolved') => {
-    updateContactStatus.mutate({ contactId, status });
+    updateContactStatusMutation.mutate({ contactId, status });
   };
 
   if (!user) {
@@ -178,7 +166,7 @@ export default function ContactPage() {
             emptyMessage="対応中のお問い合わせはありません"
             variant="pending"
             onToggleStatus={handleToggleStatus}
-            isUpdating={updateContactStatus.isPending}
+            isUpdating={updateContactStatusMutation.isPending}
             getContactTypeLabel={getContactTypeLabel}
             getContactTypeColor={getContactTypeColor}
           />
@@ -193,7 +181,7 @@ export default function ContactPage() {
             emptyMessage="解決済みのお問い合わせはありません"
             variant="resolved"
             onToggleStatus={handleToggleStatus}
-            isUpdating={updateContactStatus.isPending}
+            isUpdating={updateContactStatusMutation.isPending}
             getContactTypeLabel={getContactTypeLabel}
             getContactTypeColor={getContactTypeColor}
           />

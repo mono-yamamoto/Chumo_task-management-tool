@@ -28,7 +28,7 @@ import { CommentList } from '@/components/comments/CommentList';
 import { generateBacklogUrlFromTitle, parseBacklogClipboard } from '@/utils/backlog';
 import { buildTaskDetailUrl } from '@/utils/taskLinks';
 import { queryKeys } from '@/lib/queryKeys';
-import { fetchActiveSessionForTask } from '@/lib/firestore/repositories/sessionRepository';
+import { fetchActiveSessionForTask } from '@/lib/api/sessionRepository';
 import { useTaskStore } from '@/stores/taskStore';
 import {
   Button,
@@ -65,7 +65,7 @@ import {
 import { format } from 'date-fns';
 
 export default function TaskDetailPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const params = useParams();
   const taskId = params?.taskId as string;
   const queryClient = useQueryClient();
@@ -131,11 +131,14 @@ export default function TaskDetailPage() {
     queryKey: queryKeys.activeSession(user?.id ?? null, taskId),
     queryFn: async () => {
       if (!task?.projectType || !user) return null;
-      const activeSessionInfo = await fetchActiveSessionForTask({
-        projectType: task.projectType,
-        taskId,
-        userId: user.id,
-      });
+      const activeSessionInfo = await fetchActiveSessionForTask(
+        {
+          projectType: task.projectType,
+          taskId,
+          userId: user.id,
+        },
+        getToken
+      );
       if (activeSessionInfo) {
         setActiveSession({
           projectType: activeSessionInfo.projectType as ProjectType,

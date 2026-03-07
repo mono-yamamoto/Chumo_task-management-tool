@@ -8,8 +8,6 @@ import {
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
-import { QueryDocumentSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { Task } from '@/types';
 import { PROJECT_TYPES, ProjectType } from '@/constants/projectTypes';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,23 +18,24 @@ import {
   createTask,
   updateTask,
   deleteTask,
-} from '@/lib/firestore/repositories/taskRepository';
-type ProjectCursorMap = Partial<Record<ProjectType, QueryDocumentSnapshot | null>>;
+} from '@/lib/api/taskRepository';
+
 type TaskPage = {
   tasks: (Task & { projectType: ProjectType })[];
-  lastDoc: QueryDocumentSnapshot | ProjectCursorMap | null;
   hasMore: boolean;
+  nextOffset: number;
 };
 
 /**
  * タスク一覧を取得するカスタムフック（無限スクロール対応）
- * @param projectType プロジェクトタイプ（'all'の場合は全プロジェクト、無限スクロール非対応）
+ * @param projectType プロジェクトタイプ（'all'の場合は全プロジェクト）
  */
 export function useTasks(
   projectType: ProjectType | 'all' | undefined = 'all'
 ): UseInfiniteQueryResult<InfiniteData<TaskPage>, Error> {
   const INITIAL_LIMIT = 10;
   const LOAD_MORE_LIMIT = 10;
+  const { getToken } = useAuth();
 
   const normalizedProjectType: ProjectType | 'all' =
     projectType === undefined || projectType === null ? 'all' : projectType;
@@ -47,108 +46,69 @@ export function useTasks(
     Error,
     InfiniteData<TaskPage>,
     ReturnType<typeof queryKeys.tasks>,
-    QueryDocumentSnapshot | ProjectCursorMap | null | undefined
+    number
   >({
     queryKey: queryKeys.tasks(isAllProjects ? 'all' : normalizedProjectType),
     queryFn: async ({ pageParam }) => {
-      if (!db) {
-        return {
-          tasks: [],
-          lastDoc: null,
-          hasMore: false,
-        };
-      }
-
-      const limitValue = pageParam ? LOAD_MORE_LIMIT : INITIAL_LIMIT;
+      const limitValue = pageParam > 0 ? LOAD_MORE_LIMIT : INITIAL_LIMIT;
+      const offset = pageParam;
 
       if (isAllProjects) {
-        const cursorMap = (pageParam as ProjectCursorMap | null) ?? {};
-        const perProjectSnapshots: Record<ProjectType, QueryDocumentSnapshot[]> = {} as Record<
-          ProjectType,
-          QueryDocumentSnapshot[]
-        >;
-        const perProjectTasks: Record<ProjectType, (Task & { projectType: ProjectType })[]> =
-          {} as Record<ProjectType, (Task & { projectType: ProjectType })[]>;
+        // 全プロジェクトタイプから取得してマージ
+        const results = await Promise.all(
+          PROJECT_TYPES.map(async (pt) => {
+            try {
+              return await fetchTaskPage({
+                projectType: pt,
+                limitValue,
+                offset,
+                getToken,
+              });
+            } catch (error) {
+              console.error(`Failed to fetch tasks for ${pt}:`, error);
+              return { tasks: [], hasMore: false };
+            }
+          })
+        );
 
-        for (const projectType of PROJECT_TYPES) {
-          const cursor = cursorMap[projectType] || null;
-          try {
-            const page = await fetchTaskPage({
-              projectType,
-              limitValue,
-              cursor,
-            });
-            perProjectSnapshots[projectType] = page.snapshots;
-            perProjectTasks[projectType] = page.tasks;
-          } catch (error) {
-            // エラーが発生したプロジェクトは空配列として扱う
-            console.error(`Failed to fetch tasks for ${projectType}:`, error);
-            perProjectSnapshots[projectType] = [];
-            perProjectTasks[projectType] = [];
-          }
-        }
-
-        const mergedTasks = PROJECT_TYPES.flatMap((type) => perProjectTasks[type]).sort((a, b) => {
-          const aTime = a.createdAt?.getTime() || 0;
-          const bTime = b.createdAt?.getTime() || 0;
-          return bTime - aTime;
-        });
+        const mergedTasks = results
+          .flatMap((r) => r.tasks)
+          .sort((a, b) => {
+            const aTime = a.createdAt?.getTime() || 0;
+            const bTime = b.createdAt?.getTime() || 0;
+            return bTime - aTime;
+          });
 
         const pageTasks = mergedTasks.slice(0, limitValue);
-        const consumedCounts = PROJECT_TYPES.reduce(
-          (acc, type) => ({ ...acc, [type]: 0 }),
-          {} as Record<ProjectType, number>
-        );
-        pageTasks.forEach((task) => {
-          consumedCounts[task.projectType] += 1;
-        });
-
-        const nextCursorMap: ProjectCursorMap = { ...cursorMap };
-        for (const projectType of PROJECT_TYPES) {
-          const consumed = consumedCounts[projectType];
-          if (consumed > 0) {
-            nextCursorMap[projectType] = perProjectSnapshots[projectType][consumed - 1] || null;
-          }
-        }
-
-        const totalFetched = mergedTasks.length;
-        const hasLeftoverWithinBatch = totalFetched > limitValue;
-        const projectMayHaveMore = PROJECT_TYPES.some(
-          (type) => perProjectSnapshots[type].length === limitValue
-        );
-        const hasMore = hasLeftoverWithinBatch || projectMayHaveMore;
+        const hasMore = results.some((r) => r.hasMore) || mergedTasks.length > limitValue;
 
         return {
           tasks: pageTasks,
-          lastDoc: nextCursorMap,
           hasMore,
+          nextOffset: offset + limitValue,
         };
       }
 
-      const cursor = pageParam as QueryDocumentSnapshot | null | undefined;
       const page = await fetchTaskPage({
         projectType: normalizedProjectType as ProjectType,
         limitValue,
-        cursor,
+        offset,
+        getToken,
       });
 
       return {
         tasks: page.tasks,
-        lastDoc: page.lastDoc,
         hasMore: page.hasMore,
+        nextOffset: offset + limitValue,
       };
     },
     getNextPageParam: (lastPage) => {
-      if (!lastPage || !lastPage.hasMore || !lastPage.lastDoc) {
+      if (!lastPage || !lastPage.hasMore) {
         return undefined;
       }
-      return lastPage.lastDoc;
+      return lastPage.nextOffset;
     },
-    initialPageParam: (isAllProjects ? ({} as ProjectCursorMap) : null) as
-      | ProjectCursorMap
-      | QueryDocumentSnapshot
-      | null,
-    enabled: !!db,
+    initialPageParam: 0,
   });
 
   return infiniteQuery;
@@ -159,11 +119,13 @@ export function useTasks(
  * @param taskId タスクID
  */
 export function useTask(taskId: string | null) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: taskId ? queryKeys.task(taskId) : ['task', null],
     queryFn: async () => {
-      if (!db || !taskId) return null;
-      return fetchTaskByIdAcrossProjects(taskId);
+      if (!taskId) return null;
+      return fetchTaskByIdAcrossProjects(taskId, getToken);
     },
     enabled: !!taskId,
   });
@@ -174,7 +136,7 @@ export function useTask(taskId: string | null) {
  */
 export function useCreateTask() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -187,7 +149,7 @@ export function useCreateTask() {
       if (!user) {
         throw new Error('ユーザーがログインしていません');
       }
-      return createTask(projectType, taskData);
+      return createTask(projectType, taskData, getToken);
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
@@ -202,6 +164,7 @@ export function useCreateTask() {
  */
 export function useUpdateTask() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -213,7 +176,7 @@ export function useUpdateTask() {
       taskId: string;
       updates: Partial<Task>;
     }) => {
-      await updateTask(projectType, taskId, updates);
+      await updateTask(projectType, taskId, updates, getToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });
@@ -229,10 +192,11 @@ export function useUpdateTask() {
  */
 export function useDeleteTask() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async ({ projectType, taskId }: { projectType: ProjectType; taskId: string }) => {
-      await deleteTask(projectType, taskId);
+      await deleteTask(projectType, taskId, getToken);
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });

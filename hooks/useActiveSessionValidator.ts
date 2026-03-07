@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react';
 import { ActiveSession } from '@/types';
-import { fetchActiveSessionForTask } from '@/lib/firestore/repositories/sessionRepository';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchActiveSessionForTask } from '@/lib/api/sessionRepository';
 
 /**
  * localStorageに永続化されたactiveSessionを検証するフック
- * ページロード時にFirestoreの実際のセッション状態と照合し、
+ * ページロード時にAPIの実際のセッション状態と照合し、
  * 不一致の場合はactiveSessionをクリアする
  *
  * @param userId ユーザーID
@@ -18,6 +19,8 @@ export function useActiveSessionValidator(
   activeSession: ActiveSession | null,
   setActiveSession: (_session: ActiveSession | null) => void
 ) {
+  const { getToken } = useAuth();
+
   useEffect(() => {
     // ユーザーIDまたはactiveSessionがない場合は検証不要
     if (!userId || !activeSession) {
@@ -29,20 +32,23 @@ export function useActiveSessionValidator(
       return;
     }
 
-    // Firestoreの実際のセッション状態と照合
+    // APIの実際のセッション状態と照合
     const validateSession = async () => {
       try {
-        const firestoreSession = await fetchActiveSessionForTask({
-          projectType: activeSession.projectType,
-          taskId: activeSession.taskId,
-          userId: userId,
-        });
+        const apiSession = await fetchActiveSessionForTask(
+          {
+            projectType: activeSession.projectType,
+            taskId: activeSession.taskId,
+            userId: userId,
+          },
+          getToken
+        );
 
-        // Firestoreにセッションが存在しない、またはセッションIDが一致しない場合
-        if (!firestoreSession || firestoreSession.sessionId !== activeSession.sessionId) {
-          console.warn('localStorage内のactiveSessionがFirestoreと不一致のためクリアします', {
+        // APIにセッションが存在しない、またはセッションIDが一致しない場合
+        if (!apiSession || apiSession.sessionId !== activeSession.sessionId) {
+          console.warn('localStorage内のactiveSessionがAPIと不一致のためクリアします', {
             localStorage: activeSession,
-            firestore: firestoreSession,
+            api: apiSession,
           });
           setActiveSession(null);
         }
