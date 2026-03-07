@@ -10,8 +10,20 @@ ENVIRONMENT = "development"
 binding = "UPLOAD_BUCKET"
 bucket_name = "chumo-uploads"
 
-# [env.staging]
-# vars = { ENVIRONMENT = "staging" }
+# --- Staging ---
+[env.staging]
+name = "chumo-api-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"
+[[env.staging.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads-staging"
 
-# [env.production]
-# vars = { ENVIRONMENT = "production" }
+# --- Production ---
+[env.production]
+name = "chumo-api-production"
+[env.production.vars]
+ENVIRONMENT = "production"
+[[env.production.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"
