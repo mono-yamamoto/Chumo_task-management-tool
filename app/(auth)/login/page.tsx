@@ -1,55 +1,12 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Box, Typography, Alert, Container } from '@mui/material';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useLoginErrorMessage, ERROR_MESSAGES } from '@/hooks/useLoginErrorMessage';
-import { useEffect, Suspense } from 'react';
+import { SignIn } from '@clerk/nextjs';
+import { Box, Typography } from '@mui/material';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
 function LoginContent() {
-  const { login, user, loading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { error, setError } = useLoginErrorMessage({ searchParams });
-
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
-
-  const handleLogin = async () => {
-    setError(null); // エラーメッセージをクリア
-    try {
-      await login();
-    } catch (error: any) {
-      // 許可されていないユーザーのエラーを区別
-      if (error.code === 'auth/not-allowed' || error.message === 'NOT_ALLOWED') {
-        setError(ERROR_MESSAGES.NOT_ALLOWED);
-      } else {
-        setError(ERROR_MESSAGES.LOGIN_FAILED);
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          minHeight: '100vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Typography>読み込み中...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box
       sx={{
@@ -59,29 +16,26 @@ function LoginContent() {
         justifyContent: 'center',
       }}
     >
-      <Container maxWidth="sm">
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
-            p: 4,
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          alignItems: 'center',
+        }}
+      >
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
+          タスク管理ツール
+        </Typography>
+        <SignIn
+          routing="hash"
+          appearance={{
+            elements: {
+              rootBox: { width: '100%', maxWidth: 400 },
+            },
           }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
-              タスク管理ツール
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-              Googleアカウントでログイン
-            </Typography>
-          </Box>
-          {error && <Alert severity="error">{error}</Alert>}
-          <Button onClick={handleLogin} fullWidth size="lg">
-            Googleでログイン
-          </Button>
-        </Box>
-      </Container>
+        />
+      </Box>
     </Box>
   );
 }
