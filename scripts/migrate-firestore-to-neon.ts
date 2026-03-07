@@ -621,29 +621,45 @@ async function migrateProjects(fsDb: Firestore, db: ReturnType<typeof initNeon>)
 
   // Firestore の projects コレクションにはプロジェクト設定ドキュメントがある
   // また、PROJECT_TYPES で定義されたキーでサブコレクション用のドキュメントがある
+  // nameフィールドがない場合はIDをnameとして使用
   const snapshot = await fsDb.collection('projects').get();
-  stats[collection].firestore = snapshot.size;
-  console.info(`  Firestore: ${snapshot.size} docs`);
+  const firestoreIds = new Set(snapshot.docs.map((doc) => doc.id));
 
-  const rows = snapshot.docs
-    .filter((doc) => {
-      const d = doc.data();
-      // name フィールドがあるものだけがプロジェクト設定ドキュメント
-      return d.name;
-    })
-    .map((doc) => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        name: d.name || '',
-        owner_id: d.ownerId || '',
-        member_ids: toStringArray(d.memberIds),
-        backlog_project_key: d.backlogProjectKey || null,
-        drive_parent_id: d.driveParentId || null,
-        created_at: toDateRequired(d.createdAt),
-        updated_at: toDateRequired(d.updatedAt),
-      };
-    });
+  // Firestoreにドキュメントがあるものを移行
+  const rows = snapshot.docs.map((doc) => {
+    const d = doc.data();
+    return {
+      id: doc.id,
+      name: d.name || doc.id,
+      owner_id: d.ownerId || '',
+      member_ids: toStringArray(d.memberIds),
+      backlog_project_key: d.backlogProjectKey || null,
+      drive_parent_id: d.driveParentId || null,
+      created_at: d.createdAt ? toDateRequired(d.createdAt) : new Date(),
+      updated_at: d.updatedAt ? toDateRequired(d.updatedAt) : new Date(),
+    };
+  });
+
+  // Firestoreにドキュメントがないが PROJECT_TYPES に定義されているものも追加
+  for (const pt of PROJECT_TYPES) {
+    if (!firestoreIds.has(pt)) {
+      rows.push({
+        id: pt,
+        name: pt,
+        owner_id: '',
+        member_ids: [],
+        backlog_project_key: null,
+        drive_parent_id: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
+  }
+
+  stats[collection].firestore = rows.length;
+  console.info(
+    `  Projects: ${rows.length} (${snapshot.size} from Firestore + ${rows.length - snapshot.size} from PROJECT_TYPES)`
+  );
 
   if (!DRY_RUN && rows.length > 0) {
     for (const batch of chunk(rows, BATCH_SIZE)) {
