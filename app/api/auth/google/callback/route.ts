@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { createHmac } from 'crypto';
-import { adminDb } from '@/lib/firebase/admin';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || '';
 
 // リダイレクトURIの構築
 function getRedirectUri(): string {
-  // 優先順位: GOOGLE_OAUTH_REDIRECT_URI > SERVER_URL > NEXT_PUBLIC_FUNCTIONS_URL > localhost
   if (process.env.GOOGLE_OAUTH_REDIRECT_URI) {
     return process.env.GOOGLE_OAUTH_REDIRECT_URI;
   }
@@ -19,7 +20,7 @@ function getRedirectUri(): string {
   return `${baseUrl}/api/auth/google/callback`;
 }
 
-// OAuth2クライアントの取得（環境変数チェック付き）
+// OAuth2クライアントの取得
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
@@ -39,54 +40,36 @@ function verifyStateToken(stateToken: string): string | null {
     const secret = process.env.OAUTH_STATE_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
     const decoded = Buffer.from(stateToken, 'base64url').toString('utf-8');
 
-    // 最後のコロンでペイロードと署名を分割
     const lastColonIndex = decoded.lastIndexOf(':');
-    if (lastColonIndex === -1) {
-      return null;
-    }
+    if (lastColonIndex === -1) return null;
+
     const payload = decoded.substring(0, lastColonIndex);
     const signature = decoded.substring(lastColonIndex + 1);
 
-    if (!payload || !signature) {
-      return null;
-    }
+    if (!payload || !signature) return null;
 
-    // 署名を検証
     const hmac = createHmac('sha256', secret);
     hmac.update(payload);
     const expectedSignature = hmac.digest('hex');
 
-    if (signature !== expectedSignature) {
-      return null; // 署名が一致しない
-    }
+    if (signature !== expectedSignature) return null;
 
-    // ペイロードからuserId、nonce、timestampを抽出
     const parts = payload.split(':');
-    if (parts.length < 3) {
-      return null;
-    }
+    if (parts.length < 3) return null;
+
     const [userId, nonce, timestamp] = parts;
+    if (!userId || !nonce || !timestamp) return null;
 
-    if (!userId || !nonce || !timestamp) {
-      return null;
-    }
-
-    // タイムスタンプの検証
     const timestampMs = parseInt(timestamp, 10);
-    if (Number.isNaN(timestampMs)) {
-      return null;
-    }
+    if (Number.isNaN(timestampMs)) return null;
 
-    // タイムスタンプの有効期限チェック（30分以内）
     const tokenAge = Date.now() - timestampMs;
-    const maxAge = 30 * 60 * 1000; // 30分
-    if (tokenAge > maxAge || tokenAge < 0) {
-      return null; // トークンが期限切れ
-    }
+    const maxAge = 30 * 60 * 1000;
+    if (tokenAge > maxAge || tokenAge < 0) return null;
 
     return userId;
   } catch {
-    return null; // パースエラー
+    return null;
   }
 }
 
@@ -106,7 +89,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/settings?error=missing_params', request.url));
   }
 
-  // stateトークンを検証してuserIdを取得
   const userId = verifyStateToken(stateToken);
   if (!userId) {
     console.error('Invalid or expired state token');
@@ -114,7 +96,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 認証コードをトークンに交換
     const oauth2Client = getOAuth2Client();
     const { tokens } = await oauth2Client.getToken(code);
 
@@ -122,30 +103,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/settings?error=no_refresh_token', request.url));
     }
 
-    // Firestoreにリフレッシュトークンを保存
-    if (!adminDb) {
-      throw new Error('Firestore Admin is not initialized');
-    }
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('Saving refresh token for userId:', userId);
-      console.debug('Refresh token length:', tokens.refresh_token?.length || 0);
-    }
-
-    // ユーザードキュメントが存在するか確認
-    const userDoc = await adminDb.collection('users').doc(userId).get();
-    if (!userDoc.exists) {
-      console.error('User document does not exist for userId:', userId);
-      return NextResponse.redirect(new URL('/settings?error=user_not_found', request.url));
-    }
-
-    await adminDb.collection('users').doc(userId).update({
-      googleRefreshToken: tokens.refresh_token,
-      googleOAuthUpdatedAt: new Date(),
+    // バックエンドAPIを通じてリフレッシュトークンを保存
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Key': INTERNAL_API_KEY,
+        'X-Internal-User-Id': userId,
+      },
+      body: JSON.stringify({
+        googleRefreshToken: tokens.refresh_token,
+        googleOAuthUpdatedAt: new Date().toISOString(),
+      }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Failed to save refresh token:', errorData);
+      return NextResponse.redirect(new URL('/settings?error=save_failed', request.url));
+    }
 
     console.info('Refresh token saved successfully for userId:', userId);
 
-    // 設定ページにリダイレクト（成功メッセージ付き）
     return NextResponse.redirect(new URL('/settings?success=oauth_connected', request.url));
   } catch (callbackError) {
     console.error('OAuth callback error:', callbackError);

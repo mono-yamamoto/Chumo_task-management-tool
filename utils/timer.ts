@@ -1,4 +1,3 @@
-// import { Timestamp } from 'firebase/firestore';
 import { TaskSession } from '@/types';
 
 export function calculateTotalDuration(sessions: TaskSession[]): number {

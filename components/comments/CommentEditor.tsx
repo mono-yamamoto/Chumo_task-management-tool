@@ -21,7 +21,8 @@ import Image from '@tiptap/extension-image';
 import { ReactRenderer } from '@tiptap/react';
 import { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { User } from '@/types';
-import { uploadCommentImage } from '@/lib/firebase/storage';
+import { uploadFile } from '@/lib/api/uploadRepository';
+import { useAuth } from '@/hooks/useAuth';
 
 // メンションリストコンポーネント
 interface MentionListProps {
@@ -143,6 +144,7 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
     },
     ref
   ) => {
+    const { getToken } = useAuth();
     const mentionedUserIdsRef = useRef<Set<string>>(new Set());
     const usersRef = useRef<User[]>(users);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,7 +164,8 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
 
         setIsUploading(true);
         try {
-          const url = await uploadCommentImage(file, projectType, taskId);
+          const path = `comments/${projectType}/${taskId}`;
+          const url = await uploadFile(file, path, getToken);
           editorInstance.chain().focus().setImage({ src: url }).run();
         } catch (error) {
           console.error('Failed to upload image:', error);
@@ -170,7 +173,7 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
           setIsUploading(false);
         }
       },
-      [projectType, taskId]
+      [projectType, taskId, getToken]
     );
 
     // メンションのサジェスト設定（refを使って最新のusersを参照）

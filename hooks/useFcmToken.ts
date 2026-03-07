@@ -2,23 +2,24 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import {
   getFcmToken,
   requestNotificationPermission,
   getNotificationPermissionStatus,
   onForegroundMessage,
 } from '@/lib/firebase/messaging';
+import { addFcmToken, removeFcmToken } from '@/lib/api/userRepository';
 import { useAuth } from './useAuth';
 
 type NotificationPermissionStatus = globalThis.NotificationPermission | 'unsupported';
 
 /**
  * FCMトークンを管理するカスタムフック
+ * Firebase Messaging: プッシュ通知のトランスポート（トークン取得・フォアグラウンドメッセージ受信）
+ * API: トークンのサーバー側保存・削除
  */
 export function useFcmToken() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>('default');
@@ -30,32 +31,20 @@ export function useFcmToken() {
     setPermissionStatus(getNotificationPermissionStatus());
   }, []);
 
-  // トークンをFirestoreに保存
+  // トークンをAPIに保存
   const saveTokenMutation = useMutation({
-    mutationFn: async ({ userId, fcmToken }: { userId: string; fcmToken: string }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        fcmTokens: arrayUnion(fcmToken),
-        updatedAt: new Date(),
-      });
+    mutationFn: async ({ fcmToken }: { fcmToken: string }) => {
+      await addFcmToken(fcmToken, getToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
   });
 
-  // トークンをFirestoreから削除
+  // トークンをAPIから削除
   const removeTokenMutation = useMutation({
-    mutationFn: async ({ userId, fcmToken }: { userId: string; fcmToken: string }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        fcmTokens: arrayRemove(fcmToken),
-        updatedAt: new Date(),
-      });
+    mutationFn: async ({ fcmToken }: { fcmToken: string }) => {
+      await removeFcmToken(fcmToken, getToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
@@ -107,7 +96,6 @@ export function useFcmToken() {
               });
             });
           }
-          // registration.active が既にある場合はそのまま進む
         } catch (swError) {
           console.error('Service Worker registration failed:', swError);
           setError(new Error('Failed to register Service Worker'));
@@ -115,7 +103,7 @@ export function useFcmToken() {
         }
       }
 
-      // トークンを取得
+      // FCMトークンを取得（Firebase Messaging SDK）
       const fcmToken = await getFcmToken();
       if (!fcmToken) {
         setError(new Error('Failed to get FCM token'));
@@ -124,8 +112,8 @@ export function useFcmToken() {
 
       setToken(fcmToken);
 
-      // Firestoreに保存
-      await saveTokenMutation.mutateAsync({ userId: user.id, fcmToken });
+      // APIに保存
+      await saveTokenMutation.mutateAsync({ fcmToken });
 
       return true;
     } catch (err) {
@@ -147,7 +135,7 @@ export function useFcmToken() {
     setError(null);
 
     try {
-      await removeTokenMutation.mutateAsync({ userId: user.id, fcmToken: token });
+      await removeTokenMutation.mutateAsync({ fcmToken: token });
       setToken(null);
       return true;
     } catch (err) {
@@ -164,7 +152,6 @@ export function useFcmToken() {
     if (!token) return;
 
     const unsubscribe = onForegroundMessage((payload) => {
-      // ブラウザ通知を表示（フォアグラウンドでも表示したい場合）
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (window.Notification.permission === 'granted' && payload.notification) {
           new window.Notification(payload.notification.title || 'Chumo通知', {
