@@ -293,11 +293,15 @@ async function migrateContacts(fsDb: Firestore, db: ReturnType<typeof initNeon>)
 }
 
 /** tasks サブコレクション（全プロジェクトタイプ横断） */
-async function migrateTasks(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
+async function migrateTasks(
+  fsDb: Firestore,
+  db: ReturnType<typeof initNeon>
+): Promise<Set<string>> {
   const collection = 'tasks';
+  const taskIds = new Set<string>();
   if (SKIP_COLLECTIONS.includes(collection)) {
     console.info(`  [SKIP] ${collection}`);
-    return;
+    return taskIds;
   }
   initStats(collection);
   initStats('task_externals');
@@ -312,6 +316,7 @@ async function migrateTasks(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
     for (const doc of snapshot.docs) {
       const d = doc.data();
       stats[collection].firestore++;
+      taskIds.add(doc.id);
 
       allTasks.push({
         id: doc.id,
@@ -400,10 +405,16 @@ async function migrateTasks(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
       stats['task_externals'].neon += batch.length;
     }
   }
+
+  return taskIds;
 }
 
 /** taskSessions サブコレクション */
-async function migrateTaskSessions(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
+async function migrateTaskSessions(
+  fsDb: Firestore,
+  db: ReturnType<typeof initNeon>,
+  validTaskIds: Set<string>
+) {
   const collection = 'task_sessions';
   if (SKIP_COLLECTIONS.includes(collection)) {
     console.info(`  [SKIP] ${collection}`);
@@ -421,9 +432,15 @@ async function migrateTaskSessions(fsDb: Firestore, db: ReturnType<typeof initNe
       const d = doc.data();
       stats[collection].firestore++;
 
+      const taskId = d.taskId || '';
+      if (validTaskIds.size > 0 && !validTaskIds.has(taskId)) {
+        stats[collection].errors++;
+        continue;
+      }
+
       allRows.push({
         id: doc.id,
-        task_id: d.taskId || '',
+        task_id: taskId,
         project_type: projectType,
         user_id: d.userId || '',
         started_at: toDateRequired(d.startedAt),
@@ -434,7 +451,9 @@ async function migrateTaskSessions(fsDb: Firestore, db: ReturnType<typeof initNe
     }
   }
 
-  console.info(`  Firestore total: ${stats[collection].firestore} sessions`);
+  console.info(
+    `  Firestore total: ${stats[collection].firestore} sessions (${stats[collection].errors} orphaned, skipped)`
+  );
 
   if (!DRY_RUN && allRows.length > 0) {
     for (const batch of chunk(allRows, BATCH_SIZE)) {
@@ -458,7 +477,11 @@ async function migrateTaskSessions(fsDb: Firestore, db: ReturnType<typeof initNe
 }
 
 /** taskComments サブコレクション */
-async function migrateTaskComments(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
+async function migrateTaskComments(
+  fsDb: Firestore,
+  db: ReturnType<typeof initNeon>,
+  validTaskIds: Set<string>
+) {
   const collection = 'task_comments';
   if (SKIP_COLLECTIONS.includes(collection)) {
     console.info(`  [SKIP] ${collection}`);
@@ -476,9 +499,15 @@ async function migrateTaskComments(fsDb: Firestore, db: ReturnType<typeof initNe
       const d = doc.data();
       stats[collection].firestore++;
 
+      const taskId = d.taskId || '';
+      if (validTaskIds.size > 0 && !validTaskIds.has(taskId)) {
+        stats[collection].errors++;
+        continue;
+      }
+
       allRows.push({
         id: doc.id,
-        task_id: d.taskId || '',
+        task_id: taskId,
         project_type: projectType,
         author_id: d.authorId || '',
         content: d.content || '',
@@ -490,7 +519,9 @@ async function migrateTaskComments(fsDb: Firestore, db: ReturnType<typeof initNe
     }
   }
 
-  console.info(`  Firestore total: ${stats[collection].firestore} comments`);
+  console.info(
+    `  Firestore total: ${stats[collection].firestore} comments (${stats[collection].errors} orphaned, skipped)`
+  );
 
   if (!DRY_RUN && allRows.length > 0) {
     for (const batch of chunk(allRows, BATCH_SIZE)) {
@@ -514,7 +545,11 @@ async function migrateTaskComments(fsDb: Firestore, db: ReturnType<typeof initNe
 }
 
 /** taskActivities サブコレクション */
-async function migrateTaskActivities(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
+async function migrateTaskActivities(
+  fsDb: Firestore,
+  db: ReturnType<typeof initNeon>,
+  validTaskIds: Set<string>
+) {
   const collection = 'task_activities';
   if (SKIP_COLLECTIONS.includes(collection)) {
     console.info(`  [SKIP] ${collection}`);
@@ -532,9 +567,15 @@ async function migrateTaskActivities(fsDb: Firestore, db: ReturnType<typeof init
       const d = doc.data();
       stats[collection].firestore++;
 
+      const taskId = d.taskId || '';
+      if (validTaskIds.size > 0 && !validTaskIds.has(taskId)) {
+        stats[collection].errors++;
+        continue;
+      }
+
       allRows.push({
         id: doc.id,
-        task_id: d.taskId || '',
+        task_id: taskId,
         project_type: projectType,
         type: d.type || 'update',
         actor_id: d.actorId || '',
@@ -544,7 +585,9 @@ async function migrateTaskActivities(fsDb: Firestore, db: ReturnType<typeof init
     }
   }
 
-  console.info(`  Firestore total: ${stats[collection].firestore} activities`);
+  console.info(
+    `  Firestore total: ${stats[collection].firestore} activities (${stats[collection].errors} orphaned, skipped)`
+  );
 
   if (!DRY_RUN && allRows.length > 0) {
     for (const batch of chunk(allRows, BATCH_SIZE)) {
@@ -678,16 +721,16 @@ async function main() {
   await migrateContacts(fsDb, db);
 
   console.info('[5/8] tasks + task_externals');
-  await migrateTasks(fsDb, db);
+  const validTaskIds = await migrateTasks(fsDb, db);
 
   console.info('[6/8] task_sessions');
-  await migrateTaskSessions(fsDb, db);
+  await migrateTaskSessions(fsDb, db, validTaskIds);
 
   console.info('[7/8] task_comments');
-  await migrateTaskComments(fsDb, db);
+  await migrateTaskComments(fsDb, db, validTaskIds);
 
   console.info('[8/8] task_activities');
-  await migrateTaskActivities(fsDb, db);
+  await migrateTaskActivities(fsDb, db, validTaskIds);
 
   // 結果サマリー
   console.info('');
