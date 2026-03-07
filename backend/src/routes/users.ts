@@ -212,54 +212,52 @@ app.delete('/me/fcm-tokens', zValidator('json', z.object({ token: z.string() }))
  * users テーブルの主キーと、全テーブルのユーザーID参照を更新
  */
 async function migrateUserId(db: Database, oldId: string, newId: string) {
-  await db.transaction(async (tx) => {
-    // users テーブルのID更新
-    await tx.update(users).set({ id: newId, updatedAt: new Date() }).where(eq(users.id, oldId));
+  // neon-http ドライバーはトランザクション非対応のため逐次実行
+  // ユーザーごとに1回きりの移行処理
 
-    // tasks.createdBy
-    await tx.update(tasks).set({ createdBy: newId }).where(eq(tasks.createdBy, oldId));
+  // users テーブルのID更新（最初に実行）
+  await db.update(users).set({ id: newId, updatedAt: new Date() }).where(eq(users.id, oldId));
 
-    // tasks.assigneeIds (配列内のID置換)
-    await tx.execute(
-      sql`UPDATE tasks SET assignee_ids = array_replace(assignee_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(assignee_ids)`
-    );
+  // tasks.createdBy
+  await db.update(tasks).set({ createdBy: newId }).where(eq(tasks.createdBy, oldId));
 
-    // task_sessions.userId
-    await tx.update(taskSessions).set({ userId: newId }).where(eq(taskSessions.userId, oldId));
+  // tasks.assigneeIds (配列内のID置換)
+  await db.execute(
+    sql`UPDATE tasks SET assignee_ids = array_replace(assignee_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(assignee_ids)`
+  );
 
-    // task_comments.authorId
-    await tx.update(taskComments).set({ authorId: newId }).where(eq(taskComments.authorId, oldId));
+  // task_sessions.userId
+  await db.update(taskSessions).set({ userId: newId }).where(eq(taskSessions.userId, oldId));
 
-    // task_comments.mentionedUserIds
-    await tx.execute(
-      sql`UPDATE task_comments SET mentioned_user_ids = array_replace(mentioned_user_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(mentioned_user_ids)`
-    );
+  // task_comments.authorId
+  await db.update(taskComments).set({ authorId: newId }).where(eq(taskComments.authorId, oldId));
 
-    // task_comments.readBy
-    await tx.execute(
-      sql`UPDATE task_comments SET read_by = array_replace(read_by, ${oldId}, ${newId}) WHERE ${oldId} = ANY(read_by)`
-    );
+  // task_comments.mentionedUserIds
+  await db.execute(
+    sql`UPDATE task_comments SET mentioned_user_ids = array_replace(mentioned_user_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(mentioned_user_ids)`
+  );
 
-    // task_activities.actorId
-    await tx
-      .update(taskActivities)
-      .set({ actorId: newId })
-      .where(eq(taskActivities.actorId, oldId));
+  // task_comments.readBy
+  await db.execute(
+    sql`UPDATE task_comments SET read_by = array_replace(read_by, ${oldId}, ${newId}) WHERE ${oldId} = ANY(read_by)`
+  );
 
-    // contacts.userId
-    await tx.update(contacts).set({ userId: newId }).where(eq(contacts.userId, oldId));
+  // task_activities.actorId
+  await db.update(taskActivities).set({ actorId: newId }).where(eq(taskActivities.actorId, oldId));
 
-    // labels.ownerId
-    await tx.update(labels).set({ ownerId: newId }).where(eq(labels.ownerId, oldId));
+  // contacts.userId
+  await db.update(contacts).set({ userId: newId }).where(eq(contacts.userId, oldId));
 
-    // projects.ownerId
-    await tx.update(projects).set({ ownerId: newId }).where(eq(projects.ownerId, oldId));
+  // labels.ownerId
+  await db.update(labels).set({ ownerId: newId }).where(eq(labels.ownerId, oldId));
 
-    // projects.memberIds
-    await tx.execute(
-      sql`UPDATE projects SET member_ids = array_replace(member_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(member_ids)`
-    );
-  });
+  // projects.ownerId
+  await db.update(projects).set({ ownerId: newId }).where(eq(projects.ownerId, oldId));
+
+  // projects.memberIds
+  await db.execute(
+    sql`UPDATE projects SET member_ids = array_replace(member_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(member_ids)`
+  );
 }
 
 export default app;
