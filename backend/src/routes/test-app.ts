@@ -9,6 +9,8 @@ import commentsRoute from './comments';
 import sessionsRoute from './sessions';
 import usersRoute from './users';
 import labelsRoute from './labels';
+import timerRoute from './timer';
+import reportsRoute from './reports';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_dev';
@@ -37,6 +39,8 @@ export function createTestApp(testUserId = 'test-user') {
   app.route('/api/sessions', sessionsRoute);
   app.route('/api/users', usersRoute);
   app.route('/api/labels', labelsRoute);
+  app.route('/api/timer', timerRoute);
+  app.route('/api/reports', reportsRoute);
 
   return app;
 }

@@ -7,6 +7,8 @@ import commentsRoute from './routes/comments';
 import sessionsRoute from './routes/sessions';
 import usersRoute from './routes/users';
 import labelsRoute from './routes/labels';
+import timerRoute from './routes/timer';
+import reportsRoute from './routes/reports';
 
 export type Env = {
   Bindings: {
@@ -41,5 +43,7 @@ app.route('/api/comments', commentsRoute);
 app.route('/api/sessions', sessionsRoute);
 app.route('/api/users', usersRoute);
 app.route('/api/labels', labelsRoute);
+app.route('/api/timer', timerRoute);
+app.route('/api/reports', reportsRoute);
 
 export default app;
