@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: chumo-postgres
+    environment:
+      POSTGRES_USER: chumo
+      POSTGRES_PASSWORD: chumo_dev
+      POSTGRES_DB: chumo_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    shm_size: 128mb
+
+volumes:
+  postgres_data:
