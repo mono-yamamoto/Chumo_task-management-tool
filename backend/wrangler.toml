@@ -6,6 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 
+[[r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"
+
 # [env.staging]
 # vars = { ENVIRONMENT = "staging" }
 
