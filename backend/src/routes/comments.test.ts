@@ -39,7 +39,7 @@ describe('Comments API', () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.id).toBeDefined();
     });
   });
@@ -58,7 +58,7 @@ describe('Comments API', () => {
       const res = await app.request('/api/comments?taskId=task-c&projectType=MONO');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.comments).toHaveLength(1);
       expect(body.comments[0].content).toBe('コメント1');
     });

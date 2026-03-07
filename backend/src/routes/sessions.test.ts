@@ -39,7 +39,7 @@ describe('Sessions API', () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.id).toBeDefined();
     });
 
@@ -59,7 +59,7 @@ describe('Sessions API', () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       const [session] = await db
         .select()
@@ -83,7 +83,7 @@ describe('Sessions API', () => {
       const res = await app.request('/api/sessions?taskId=task-s&projectType=MONO');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.sessions).toHaveLength(1);
     });
   });
@@ -114,7 +114,7 @@ describe('Sessions API', () => {
       const res = await app.request('/api/sessions/active');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.sessions).toHaveLength(1);
       expect(body.sessions[0].id).toBe('session-active');
     });

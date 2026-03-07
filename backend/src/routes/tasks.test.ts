@@ -27,7 +27,7 @@ describe('Tasks API', () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.id).toBeDefined();
       expect(typeof body.id).toBe('string');
     });
@@ -79,7 +79,7 @@ describe('Tasks API', () => {
       const res = await app.request('/api/tasks?projectType=MONO');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.tasks).toHaveLength(2);
       expect(body.tasks.every((t: { projectType: string }) => t.projectType === 'MONO')).toBe(true);
     });
@@ -105,7 +105,7 @@ describe('Tasks API', () => {
       const res = await app.request('/api/tasks/task-detail');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.task.title).toBe('詳細タスク');
       expect(body.task.description).toBe('説明文');
     });
@@ -140,7 +140,7 @@ describe('Tasks API', () => {
 
       // 更新を確認
       const getRes = await app.request('/api/tasks/task-update');
-      const body = await getRes.json();
+      const body = (await getRes.json()) as any;
       expect(body.task.title).toBe('更新後');
       expect(body.task.flowStatus).toBe('コーディング');
     });

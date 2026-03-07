@@ -32,7 +32,7 @@ describe('Backlog API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.projectType).toBe('BRGREG');
       expect(body.issueKey).toBe('BRGREG-2905');
@@ -63,7 +63,7 @@ describe('Backlog API', () => {
         }),
       });
       expect(res1.status).toBe(200);
-      const body1 = await res1.json();
+      const body1 = (await res1.json()) as any;
 
       // 2回目: 更新
       const res2 = await app.request('/api/backlog/webhook', {
@@ -75,7 +75,7 @@ describe('Backlog API', () => {
         }),
       });
       expect(res2.status).toBe(200);
-      const body2 = await res2.json();
+      const body2 = (await res2.json()) as any;
       expect(body2.updated).toBe(true);
       expect(body2.taskId).toBe(body1.taskId);
 
@@ -130,7 +130,7 @@ describe('Backlog API', () => {
         }),
       });
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.projectType).toBe('MONO');
     });
 
@@ -153,7 +153,7 @@ describe('Backlog API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       const [task] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, body.taskId));
       expect(task.itUpDate).not.toBeNull();
@@ -176,7 +176,7 @@ describe('Backlog API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
     });
 

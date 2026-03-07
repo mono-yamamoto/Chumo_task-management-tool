@@ -165,7 +165,7 @@ describe('Reports API', () => {
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       // normal = BRGREG以外 → task-mono-1(5400) + task-mono-over3(14400)
       expect(body.items).toHaveLength(2);
       expect(body.totalDurationSec).toBe(5400 + 14400);
@@ -189,7 +189,7 @@ describe('Reports API', () => {
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=brg');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       // brg = BRGREGのみ → task-brg-1(7200)
       expect(body.items).toHaveLength(1);
       expect(body.totalDurationSec).toBe(7200);
@@ -200,7 +200,7 @@ describe('Reports API', () => {
       await seedReportData();
 
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       const devTask = body.items.find((i: { taskId: string }) => i.taskId === 'task-mono-dev');
       expect(devTask).toBeUndefined();
@@ -210,7 +210,7 @@ describe('Reports API', () => {
       await seedReportData();
 
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // task-mono-1のdurationSecは5400（範囲外の3600は含まれない）
       const mono1 = body.items.find((i: { taskId: string }) => i.taskId === 'task-mono-1');
@@ -232,7 +232,7 @@ describe('Reports API', () => {
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.items).toHaveLength(0);
       expect(body.totalDurationSec).toBe(0);
     });
@@ -243,7 +243,7 @@ describe('Reports API', () => {
       const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30');
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       // normalと同じ結果
       expect(body.items).toHaveLength(2);
     });

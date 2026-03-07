@@ -40,7 +40,7 @@ describe('Timer API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.sessionId).toBeDefined();
       expect(typeof body.sessionId).toBe('string');
@@ -84,7 +84,7 @@ describe('Timer API', () => {
         }),
       });
       expect(res2.status).toBe(400);
-      const body = await res2.json();
+      const body = (await res2.json()) as any;
       expect(body.code).toBe('TIMER_ALREADY_RUNNING');
     });
 
@@ -141,7 +141,7 @@ describe('Timer API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.durationSec).toBeGreaterThanOrEqual(299); // ~5分
       expect(body.durationMin).toBeGreaterThanOrEqual(4);
@@ -200,7 +200,7 @@ describe('Timer API', () => {
         }),
       });
       expect(startRes.status).toBe(200);
-      const { sessionId } = await startRes.json();
+      const { sessionId } = (await startRes.json()) as any;
 
       // Stop
       const stopRes = await app.request('/api/timer/stop', {
@@ -212,7 +212,7 @@ describe('Timer API', () => {
         }),
       });
       expect(stopRes.status).toBe(200);
-      const stopBody = await stopRes.json();
+      const stopBody = (await stopRes.json()) as any;
       expect(stopBody.success).toBe(true);
       expect(stopBody.durationSec).toBeGreaterThanOrEqual(0);
 

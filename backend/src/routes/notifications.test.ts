@@ -68,7 +68,7 @@ describe('Notifications API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.sent).toBe(2); // token-1, token-2
       expect(body.notification.title).toContain('投稿者');
@@ -93,7 +93,7 @@ describe('Notifications API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.sent).toBe(0);
     });
 
@@ -114,7 +114,7 @@ describe('Notifications API', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.sent).toBe(0);
     });
 
@@ -134,7 +134,7 @@ describe('Notifications API', () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.notification.body).toContain('太字 & 斜体');
       expect(body.notification.body).not.toContain('<');
     });
