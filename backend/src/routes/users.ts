@@ -2,7 +2,17 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, sql } from 'drizzle-orm';
-import { users } from '../db/schema';
+import { createClerkClient } from '@clerk/backend';
+import {
+  users,
+  tasks,
+  taskSessions,
+  taskComments,
+  taskActivities,
+  contacts,
+  labels,
+  projects,
+} from '../db/schema';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -23,18 +33,50 @@ app.get('/', async (c) => {
 /**
  * GET /me
  * 現在のユーザー情報
+ * Clerk IDで見つからない場合、メールアドレスで検索しIDを移行する
+ * （Firebase UID → Clerk ID 移行対応）
  */
 app.get('/me', async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
 
+  // まずClerk IDで検索
   const [user] = await db.select().from(users).where(eq(users.id, userId));
 
-  if (!user) {
-    return c.json({ error: 'User not found' }, 404);
+  if (user) {
+    return c.json({ user });
   }
 
-  return c.json({ user });
+  // Clerk IDで見つからない場合、Clerkからメールを取得してメールで検索
+  try {
+    const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
+    const clerkUser = await clerkClient.users.getUser(userId);
+    const email = clerkUser.emailAddresses.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId
+    )?.emailAddress;
+
+    if (!email) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+
+    if (!existingUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // 旧ID(Firebase UID)から新ID(Clerk ID)へ全テーブルの参照を更新
+    const oldId = existingUser.id;
+    const newId = userId;
+
+    await migrateUserId(db, oldId, newId);
+
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, newId));
+    return c.json({ user: updatedUser });
+  } catch (e) {
+    console.error('User ID migration failed:', e);
+    return c.json({ error: 'User not found' }, 404);
+  }
 });
 
 /**
@@ -164,5 +206,60 @@ app.delete('/me/fcm-tokens', zValidator('json', z.object({ token: z.string() }))
 
   return c.json({ success: true });
 });
+
+/**
+ * Firebase UID → Clerk ID へユーザーIDを移行する
+ * users テーブルの主キーと、全テーブルのユーザーID参照を更新
+ */
+async function migrateUserId(db: Database, oldId: string, newId: string) {
+  await db.transaction(async (tx) => {
+    // users テーブルのID更新
+    await tx.update(users).set({ id: newId, updatedAt: new Date() }).where(eq(users.id, oldId));
+
+    // tasks.createdBy
+    await tx.update(tasks).set({ createdBy: newId }).where(eq(tasks.createdBy, oldId));
+
+    // tasks.assigneeIds (配列内のID置換)
+    await tx.execute(
+      sql`UPDATE tasks SET assignee_ids = array_replace(assignee_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(assignee_ids)`
+    );
+
+    // task_sessions.userId
+    await tx.update(taskSessions).set({ userId: newId }).where(eq(taskSessions.userId, oldId));
+
+    // task_comments.authorId
+    await tx.update(taskComments).set({ authorId: newId }).where(eq(taskComments.authorId, oldId));
+
+    // task_comments.mentionedUserIds
+    await tx.execute(
+      sql`UPDATE task_comments SET mentioned_user_ids = array_replace(mentioned_user_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(mentioned_user_ids)`
+    );
+
+    // task_comments.readBy
+    await tx.execute(
+      sql`UPDATE task_comments SET read_by = array_replace(read_by, ${oldId}, ${newId}) WHERE ${oldId} = ANY(read_by)`
+    );
+
+    // task_activities.actorId
+    await tx
+      .update(taskActivities)
+      .set({ actorId: newId })
+      .where(eq(taskActivities.actorId, oldId));
+
+    // contacts.userId
+    await tx.update(contacts).set({ userId: newId }).where(eq(contacts.userId, oldId));
+
+    // labels.ownerId
+    await tx.update(labels).set({ ownerId: newId }).where(eq(labels.ownerId, oldId));
+
+    // projects.ownerId
+    await tx.update(projects).set({ ownerId: newId }).where(eq(projects.ownerId, oldId));
+
+    // projects.memberIds
+    await tx.execute(
+      sql`UPDATE projects SET member_ids = array_replace(member_ids, ${oldId}, ${newId}) WHERE ${oldId} = ANY(member_ids)`
+    );
+  });
+}
 
 export default app;

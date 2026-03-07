@@ -41,7 +41,12 @@ const app = new Hono<Env>();
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000'],
+    origin: (origin, c) => {
+      const allowed = ['http://localhost:3000'];
+      const appOrigin = c.env.APP_ORIGIN;
+      if (appOrigin) allowed.push(appOrigin);
+      return allowed.includes(origin) ? origin : allowed[0];
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key', 'X-Internal-User-Id'],
   })
