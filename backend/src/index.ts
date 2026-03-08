@@ -74,13 +74,14 @@ app.get('/api/files/*', async (c) => {
   const SAFE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   const contentType = object.httpMetadata?.contentType || 'application/octet-stream';
   const fileName = raw.split('/').pop() || 'file';
+  const safeFileName = fileName.replace(/["\r\n\\]/g, '_');
 
   const headers = new Headers();
   if (SAFE_CONTENT_TYPES.includes(contentType)) {
     headers.set('Content-Type', contentType);
   } else {
     headers.set('Content-Type', 'application/octet-stream');
-    headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    headers.set('Content-Disposition', `attachment; filename="${safeFileName}"`);
   }
   headers.set('Cache-Control', 'public, max-age=31536000');
   return new Response(object.body, { headers });

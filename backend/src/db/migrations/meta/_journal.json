@@ -15,6 +15,13 @@
       "when": 1772945400000,
       "tag": "0001_timer_unique_active_session",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772945500000,
+      "tag": "0002_assignee_ids_gin_index",
+      "breakpoints": true
     }
   ]
 }

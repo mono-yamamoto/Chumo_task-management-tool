@@ -143,7 +143,7 @@ export const tasks = pgTable(
   (table) => [
     index('tasks_project_type_idx').on(table.projectType),
     index('tasks_flow_status_idx').on(table.flowStatus),
-    index('tasks_assignee_ids_idx').on(table.assigneeIds),
+    index('tasks_assignee_ids_idx').using('gin', table.assigneeIds),
     index('tasks_order_idx').on(table.order),
     index('tasks_project_type_flow_status_idx').on(table.projectType, table.flowStatus),
   ]
