@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { taskSessions, tasks } from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
@@ -37,33 +37,31 @@ app.post('/start', zValidator('json', startTimerSchema), async (c) => {
     return c.json({ error: 'Task not found' }, 404);
   }
 
-  // 排他制御: 同一ユーザーの未終了セッションをチェック
-  const [activeSession] = await db
-    .select({ id: taskSessions.id })
-    .from(taskSessions)
-    .where(and(eq(taskSessions.userId, userId), isNull(taskSessions.endedAt)));
-
-  if (activeSession) {
-    return c.json(
-      {
-        error: '他のタイマーが稼働中。停止してから開始してね',
-        code: 'TIMER_ALREADY_RUNNING',
-      },
-      400
-    );
-  }
-
-  // セッション作成
+  // セッション作成（DB側のユニーク部分インデックスで排他制御）
   const sessionId = generateId();
-  await db.insert(taskSessions).values({
-    id: sessionId,
-    taskId,
-    projectType: projectType as (typeof taskSessions.projectType.enumValues)[number],
-    userId,
-    startedAt: new Date(),
-    endedAt: null,
-    durationSec: 0,
-  });
+  try {
+    await db.insert(taskSessions).values({
+      id: sessionId,
+      taskId,
+      projectType: projectType as (typeof taskSessions.projectType.enumValues)[number],
+      userId,
+      startedAt: new Date(),
+      endedAt: null,
+      durationSec: 0,
+    });
+  } catch (e: unknown) {
+    // ユニーク制約違反 = 既にアクティブセッションが存在
+    if (e instanceof Error && e.message.includes('task_sessions_user_active_idx')) {
+      return c.json(
+        {
+          error: '他のタイマーが稼働中。停止してから開始してね',
+          code: 'TIMER_ALREADY_RUNNING',
+        },
+        400
+      );
+    }
+    throw e;
+  }
 
   return c.json({ success: true, sessionId });
 });
@@ -74,9 +72,13 @@ app.post('/start', zValidator('json', startTimerSchema), async (c) => {
  */
 app.post('/stop', zValidator('json', stopTimerSchema), async (c) => {
   const db = c.get('db');
+  const userId = c.get('userId');
   const { sessionId } = c.req.valid('json');
 
-  const [session] = await db.select().from(taskSessions).where(eq(taskSessions.id, sessionId));
+  const [session] = await db
+    .select()
+    .from(taskSessions)
+    .where(and(eq(taskSessions.id, sessionId), eq(taskSessions.userId, userId)));
 
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
@@ -89,7 +91,10 @@ app.post('/stop', zValidator('json', stopTimerSchema), async (c) => {
   const endedAt = new Date();
   const durationSec = Math.floor((endedAt.getTime() - session.startedAt.getTime()) / 1000);
 
-  await db.update(taskSessions).set({ endedAt, durationSec }).where(eq(taskSessions.id, sessionId));
+  await db
+    .update(taskSessions)
+    .set({ endedAt, durationSec })
+    .where(and(eq(taskSessions.id, sessionId), eq(taskSessions.userId, userId)));
 
   return c.json({
     success: true,

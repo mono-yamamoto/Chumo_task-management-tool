@@ -22,6 +22,16 @@ app.post('/', async (c) => {
     return c.json({ error: 'No file provided' }, 400);
   }
 
+  // パストラバーサル防止
+  if (
+    pathPrefix.includes('..') ||
+    pathPrefix.startsWith('/') ||
+    pathPrefix.includes('\0') ||
+    pathPrefix.includes('\\')
+  ) {
+    return c.json({ error: 'Invalid path' }, 400);
+  }
+
   // ファイル名をユニークにする
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);

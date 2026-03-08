@@ -26,6 +26,11 @@ export async function fetchAllUsers(getToken: GetToken): Promise<User[]> {
   return data.users.map(mapUser);
 }
 
+export async function fetchMe(getToken: GetToken): Promise<User | null> {
+  const data = await apiClient<{ user: UserRaw }>('/api/users/me', { getToken });
+  return data.user ? mapUser(data.user) : null;
+}
+
 export async function fetchUser(userId: string, getToken: GetToken): Promise<User | null> {
   const data = await apiClient<{ user: UserRaw }>(`/api/users/${userId}`, { getToken });
   return data.user ? mapUser(data.user) : null;

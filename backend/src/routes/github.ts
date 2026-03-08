@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { tasks, taskExternals, users } from '../db/schema';
 import type { Env } from '../index';
 import type { Database } from '../db';
@@ -32,6 +32,23 @@ app.post('/issues', zValidator('json', createIssueSchema), async (c) => {
   // 既に Issue が作成済みならスキップ
   if (task.fireIssueUrl) {
     return c.json({ success: true, url: task.fireIssueUrl, alreadyExists: true });
+  }
+
+  // 楽観ロック: 作成中マーカーを原子的にセット（TOCTOU防止）
+  const CREATING_MARKER = 'creating...';
+  const [claimed] = await db
+    .update(tasks)
+    .set({ fireIssueUrl: CREATING_MARKER, updatedAt: new Date() })
+    .where(and(eq(tasks.id, taskId), isNull(tasks.fireIssueUrl)))
+    .returning({ id: tasks.id });
+
+  if (!claimed) {
+    // 別リクエストが先にclaimした
+    const [current] = await db
+      .select({ fireIssueUrl: tasks.fireIssueUrl })
+      .from(tasks)
+      .where(eq(tasks.id, taskId));
+    return c.json({ success: true, url: current?.fireIssueUrl, alreadyExists: true });
   }
 
   // 外部連携情報を取得
@@ -86,6 +103,11 @@ app.post('/issues', zValidator('json', createIssueSchema), async (c) => {
   });
 
   if (!res.ok) {
+    // 失敗時はマーカーをクリアしてリトライ可能にする
+    await db
+      .update(tasks)
+      .set({ fireIssueUrl: null, updatedAt: new Date() })
+      .where(eq(tasks.id, taskId));
     const errorText = await res.text();
     return c.json({ error: `GitHub API error: ${errorText}` }, 500);
   }

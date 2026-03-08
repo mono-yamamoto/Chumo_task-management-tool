@@ -20,13 +20,27 @@ type UserEnv = Env & { Variables: { db: Database; userId: string } };
 
 const app = new Hono<UserEnv>();
 
+// 安全な返却カラム（機密情報を除外）
+const safeUserColumns = {
+  id: users.id,
+  email: users.email,
+  displayName: users.displayName,
+  role: users.role,
+  isAllowed: users.isAllowed,
+  githubUsername: users.githubUsername,
+  chatId: users.chatId,
+  googleOAuthUpdatedAt: users.googleOAuthUpdatedAt,
+  createdAt: users.createdAt,
+  updatedAt: users.updatedAt,
+};
+
 /**
  * GET /
- * ユーザー一覧
+ * ユーザー一覧（認証済みユーザーのみ、機密情報は除外）
  */
 app.get('/', async (c) => {
   const db = c.get('db');
-  const result = await db.select().from(users);
+  const result = await db.select(safeUserColumns).from(users);
   return c.json({ users: result });
 });
 
@@ -87,7 +101,7 @@ app.get('/:id', async (c) => {
   const db = c.get('db');
   const id = c.req.param('id');
 
-  const [user] = await db.select().from(users).where(eq(users.id, id));
+  const [user] = await db.select(safeUserColumns).from(users).where(eq(users.id, id));
 
   if (!user) {
     return c.json({ error: 'User not found' }, 404);
@@ -144,11 +158,10 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     return c.json({ user: updated });
   }
 
-  // 自分自身の更新
+  // 自分自身の更新（isAllowedは自己変更不可 — admin専用）
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (body.githubUsername !== undefined) updateData.githubUsername = body.githubUsername;
   if (body.chatId !== undefined) updateData.chatId = body.chatId || null;
-  if (body.isAllowed !== undefined) updateData.isAllowed = body.isAllowed;
   if (body.googleRefreshToken !== undefined)
     updateData.googleRefreshToken = body.googleRefreshToken;
   if (body.googleOAuthUpdatedAt !== undefined) {

@@ -57,11 +57,17 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // ファイル配信（認証不要、DB不要）
 app.get('/api/files/*', async (c) => {
-  const key = c.req.path.replace('/api/files/', '');
+  const raw = c.req.path.replace('/api/files/', '');
+
+  // パストラバーサル防止
+  if (raw.includes('..') || raw.startsWith('/') || raw.includes('\0') || raw.includes('\\')) {
+    return c.json({ error: 'Invalid path' }, 400);
+  }
+
   const bucket = c.env.UPLOAD_BUCKET;
   if (!bucket) return c.json({ error: 'Storage not configured' }, 500);
 
-  const object = await bucket.get(key);
+  const object = await bucket.get(raw);
   if (!object) return c.json({ error: 'File not found' }, 404);
 
   const headers = new Headers();

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchUser, fetchAllUsers, updateUser } from '@/lib/api/userRepository';
+import { fetchMe, fetchAllUsers, updateUser } from '@/lib/api/userRepository';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -28,12 +28,11 @@ export default function SettingsPage() {
   const [editingChatIds, setEditingChatIds] = useState<Record<string, string>>({});
   const [isEditingChatIds, setIsEditingChatIds] = useState<Record<string, boolean>>({});
 
-  // 現在のユーザー情報を取得
+  // 現在のユーザー情報を取得（/api/users/me経由でClerk ID移行にも対応）
   const { data: currentUser = null } = useQuery({
-    queryKey: ['user', user?.id],
+    queryKey: ['user', 'me'],
     queryFn: async () => {
-      if (!user) return null;
-      return fetchUser(user.id, getToken);
+      return fetchMe(getToken);
     },
     enabled: !!user,
   });
@@ -77,9 +76,9 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
-      queryClient.refetchQueries({ queryKey: ['user', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['user', 'me'] });
     },
   });
 
@@ -90,9 +89,9 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
-      queryClient.refetchQueries({ queryKey: ['user', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['user', 'me'] });
       setMessage('Google ChatユーザーIDを保存しました');
     },
   });
