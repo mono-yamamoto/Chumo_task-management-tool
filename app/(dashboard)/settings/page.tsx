@@ -1,10 +1,8 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { User } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchMe, fetchAllUsers, updateUser } from '@/lib/api/userRepository';
 import { Button } from '@/components/ui/button';
 import {
   Box,
@@ -23,23 +21,20 @@ import { AdminUserList } from '@/components/settings/AdminUserList';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [editingChatIds, setEditingChatIds] = useState<Record<string, string>>({});
   const [isEditingChatIds, setIsEditingChatIds] = useState<Record<string, boolean>>({});
 
-  // OAuth認証状態を確認
+  // 現在のユーザー情報を取得（/api/users/me経由でClerk ID移行にも対応）
   const { data: currentUser = null } = useQuery({
-    queryKey: ['user', user?.id],
+    queryKey: ['user', 'me'],
     queryFn: async () => {
-      if (!user || !db) return null;
-      const userDoc = await getDoc(doc(db, 'users', user.id));
-      if (!userDoc.exists()) return null;
-      return { id: userDoc.id, ...userDoc.data() } as User;
+      return fetchMe(getToken);
     },
-    enabled: !!user && !!db,
+    enabled: !!user,
   });
 
   const { oauthStatus, githubUsername, setGithubUsername, chatId, setChatId, message, setMessage } =
@@ -53,13 +48,7 @@ export default function SettingsPage() {
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      if (!db) return [];
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      return snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      })) as User[];
+      return fetchAllUsers(getToken);
     },
     enabled: user?.role === 'admin',
   });
@@ -82,49 +71,36 @@ export default function SettingsPage() {
 
   const updateGithubUsername = useMutation({
     mutationFn: async (username: string) => {
-      if (!user || !db) throw new Error('Not authenticated or Firestore not initialized');
-      await updateDoc(doc(db, 'users', user.id), {
-        githubUsername: username,
-        updatedAt: new Date(),
-      });
+      if (!user) throw new Error('Not authenticated');
+      await updateUser(user.id, { githubUsername: username }, getToken);
     },
     onSuccess: () => {
-      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
-      queryClient.refetchQueries({ queryKey: ['user', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['user', 'me'] });
     },
   });
 
   const updateChatId = useMutation({
     mutationFn: async (chatIdValue: string) => {
-      if (!user || !db) throw new Error('Not authenticated or Firestore not initialized');
-      await updateDoc(doc(db, 'users', user.id), {
-        chatId: chatIdValue.trim() || null,
-        updatedAt: new Date(),
-      });
+      if (!user) throw new Error('Not authenticated');
+      await updateUser(user.id, { chatId: chatIdValue.trim() || null }, getToken);
     },
     onSuccess: () => {
-      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
-      queryClient.refetchQueries({ queryKey: ['user', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['user', 'me'] });
       setMessage('Google ChatユーザーIDを保存しました');
     },
   });
 
   const updateUserChatId = useMutation({
     mutationFn: async ({ userId, chatIdValue }: { userId: string; chatIdValue: string }) => {
-      if (!db) throw new Error('Firestore not initialized');
-      await updateDoc(doc(db, 'users', userId), {
-        chatId: chatIdValue.trim() || null,
-        updatedAt: new Date(),
-      });
+      await updateUser(userId, { chatId: chatIdValue.trim() || null }, getToken);
     },
     onSuccess: () => {
-      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
       setMessage('Google ChatユーザーIDを保存しました');
@@ -133,14 +109,9 @@ export default function SettingsPage() {
 
   const toggleUserAllowed = useMutation({
     mutationFn: async ({ userId, isAllowed }: { userId: string; isAllowed: boolean }) => {
-      if (!db) throw new Error('Firestore not initialized');
-      await updateDoc(doc(db, 'users', userId), {
-        isAllowed,
-        updatedAt: new Date(),
-      });
+      await updateUser(userId, { isAllowed }, getToken);
     },
     onSuccess: () => {
-      // クエリを無効化して即座に再取得
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.refetchQueries({ queryKey: ['users'] });
     },

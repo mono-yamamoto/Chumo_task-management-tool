@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase/config';
+import { uploadFile } from '@/lib/api/uploadRepository';
 import { compressImage } from '@/utils/imageCompression';
+import { useAuth } from './useAuth';
 
 export function useImageUpload() {
+  const { getToken } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -19,11 +20,6 @@ export function useImageUpload() {
       maxSizeKB?: number;
     }
   ): Promise<string | null> => {
-    if (!storage) {
-      setError('Storage is not initialized');
-      return null;
-    }
-
     setUploading(true);
     setError(null);
     setProgress(0);
@@ -44,22 +40,26 @@ export function useImageUpload() {
         setProgress(30);
       }
 
-      // Firebase Storageにアップロード
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, fileToUpload);
-      setProgress(80);
+      // BlobをFileに変換（uploadFileがFile型を受け取るため）
+      const uploadableFile =
+        fileToUpload instanceof File
+          ? fileToUpload
+          : new File([fileToUpload], file.name, { type: file.type });
 
-      // ダウンロードURLを取得
-      const downloadURL = await getDownloadURL(storageRef);
+      setProgress(50);
+
+      // APIアップロード
+      const downloadURL = await uploadFile(uploadableFile, path, getToken);
       setProgress(100);
 
       return downloadURL;
-    } catch (err: any) {
-      setError(err.message || '画像のアップロードに失敗しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '画像のアップロードに失敗しました';
+      setError(message);
       return null;
     } finally {
       setUploading(false);
-      setTimeout(() => setProgress(0), 1000); // 1秒後にプログレスをリセット
+      setTimeout(() => setProgress(0), 1000);
     }
   };
 

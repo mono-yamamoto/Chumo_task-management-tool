@@ -1,15 +1,17 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, doc, updateDoc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { TaskSession, ActiveSession, ProjectType } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import { ACTIVE_SESSION_REFETCH_INTERVAL_MS } from '@/constants/timer';
 import {
   fetchActiveSessionsByUser,
   fetchTaskSessions,
-} from '@/lib/firestore/repositories/sessionRepository';
+  addSession,
+  updateSession,
+  deleteSession,
+} from '@/lib/api/sessionRepository';
 
 /**
  * タスクのセッション履歴を取得するカスタムフック
@@ -17,11 +19,13 @@ import {
  * @param taskId タスクID
  */
 export function useTaskSessions(projectType: string | null, taskId: string | null) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: taskId ? queryKeys.taskSessions(taskId) : ['taskSessions', null],
     queryFn: async () => {
       if (!projectType || !taskId) return [];
-      return fetchTaskSessions(projectType, taskId);
+      return fetchTaskSessions(projectType, taskId, getToken);
     },
     enabled: !!projectType && !!taskId,
     retry: false,
@@ -37,11 +41,13 @@ export function useActiveSession(
   userId: string | null,
   onActiveSessionChange?: (_session: ActiveSession | null) => void
 ) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.activeSession(userId ?? null),
     queryFn: async () => {
-      if (!userId || !db) return null;
-      const allSessions = await fetchActiveSessionsByUser(userId);
+      if (!userId) return null;
+      const allSessions = await fetchActiveSessionsByUser(userId, getToken);
 
       if (allSessions.length > 0) {
         const firstSession = allSessions[0];
@@ -57,8 +63,7 @@ export function useActiveSession(
       onActiveSessionChange?.(null);
       return null;
     },
-    enabled: !!userId && !!db,
-    // Zustandでグローバル状態を管理しているため、ポーリング頻度を削減してFirestore読み取りコストを最適化
+    enabled: !!userId,
     refetchInterval: ACTIVE_SESSION_REFETCH_INTERVAL_MS,
   });
 }
@@ -68,12 +73,10 @@ export function useActiveSession(
  */
 export function useAddSession() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: async ({
-      projectType,
-      sessionData,
-    }: {
+    mutationFn: async (params: {
       projectType: string;
       sessionData: {
         taskId: string;
@@ -83,24 +86,7 @@ export function useAddSession() {
         note?: string | null;
       };
     }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const sessionsRef = collection(db, 'projects', projectType, 'taskSessions');
-
-      // startedAtとendedAtからdurationSecを計算
-      let durationSec = 0;
-      if (sessionData.startedAt && sessionData.endedAt) {
-        durationSec = Math.floor(
-          (sessionData.endedAt.getTime() - sessionData.startedAt.getTime()) / 1000
-        );
-      }
-
-      await addDoc(sessionsRef, {
-        ...sessionData,
-        durationSec,
-        startedAt: Timestamp.fromDate(sessionData.startedAt),
-        endedAt: sessionData.endedAt ? Timestamp.fromDate(sessionData.endedAt) : null,
-      });
+      await addSession(params, getToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -118,85 +104,21 @@ export function useAddSession() {
  */
 export function useUpdateSession() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: async ({
-      projectType,
-      sessionId,
-      updates,
-      existingSession,
-    }: {
+    mutationFn: async (params: {
       projectType: string;
       sessionId: string;
       updates: Partial<{
-        startedAt: Date | Timestamp;
-        endedAt: Date | Timestamp | null;
+        startedAt: Date;
+        endedAt: Date | null;
         userId: string;
         note: string | null;
       }>;
       existingSession?: TaskSession;
     }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const sessionRef = doc(db, 'projects', projectType, 'taskSessions', sessionId);
-
-      // startedAtとendedAtを更新する場合、durationSecも再計算
-      const updateData: Partial<{
-        startedAt: Timestamp;
-        endedAt: Timestamp | null;
-        userId: string;
-        note: string | null;
-        durationSec: number;
-      }> = {};
-      if (updates.startedAt) {
-        updateData.startedAt =
-          updates.startedAt instanceof Date
-            ? Timestamp.fromDate(updates.startedAt)
-            : updates.startedAt;
-      }
-      if (updates.endedAt !== undefined) {
-        updateData.endedAt =
-          updates.endedAt === null
-            ? null
-            : updates.endedAt instanceof Date
-              ? Timestamp.fromDate(updates.endedAt)
-              : updates.endedAt;
-      }
-      if (updates.userId) {
-        updateData.userId = updates.userId;
-      }
-      if (updates.note !== undefined) {
-        updateData.note = updates.note;
-      }
-
-      // durationSecを再計算
-      let startedAt: Date | undefined;
-      if (updates.startedAt) {
-        startedAt =
-          updates.startedAt instanceof Date
-            ? updates.startedAt
-            : (updates.startedAt as Timestamp).toDate();
-      } else {
-        startedAt = existingSession?.startedAt;
-      }
-
-      let endedAt: Date | null | undefined;
-      if (updates.endedAt !== null && updates.endedAt !== undefined) {
-        endedAt =
-          updates.endedAt instanceof Date
-            ? updates.endedAt
-            : (updates.endedAt as Timestamp).toDate();
-      } else if (updates.endedAt === null) {
-        endedAt = null;
-      } else {
-        endedAt = existingSession?.endedAt || null;
-      }
-
-      if (startedAt && endedAt) {
-        updateData.durationSec = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
-      }
-
-      await updateDoc(sessionRef, updateData);
+      await updateSession(params, getToken);
     },
     onSuccess: (_result, variables) => {
       if (variables.existingSession?.taskId) {
@@ -207,7 +129,6 @@ export function useUpdateSession() {
           queryKey: queryKeys.sessionHistory(variables.existingSession.taskId),
         });
       } else {
-        // taskIdが不明な場合は、全てのtaskSessionsとsessionHistoryを無効化
         console.warn('taskId not available in existingSession, invalidating all task sessions');
         queryClient.invalidateQueries({
           predicate: (query) =>
@@ -223,19 +144,11 @@ export function useUpdateSession() {
  */
 export function useDeleteSession() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
     mutationFn: async (variables: { projectType: string; sessionId: string; taskId: string }) => {
-      if (!db) throw new Error('Firestore is not initialized');
-
-      const sessionRef = doc(
-        db,
-        'projects',
-        variables.projectType,
-        'taskSessions',
-        variables.sessionId
-      );
-      await deleteDoc(sessionRef);
+      await deleteSession(variables.projectType, variables.sessionId, getToken);
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.taskSessions(variables.taskId) });

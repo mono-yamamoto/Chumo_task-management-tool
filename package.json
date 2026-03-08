@@ -10,6 +10,8 @@
     "lint": "eslint . --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
     "create-user": "bun scripts/create-user.ts",
     "create-sample-tasks": "bun scripts/create-sample-tasks.ts",
     "delete-old-tasks": "bun scripts/delete-old-tasks.ts",
@@ -24,6 +26,7 @@
     "mcp:serena": "uvx --from git+https://github.com/oraios/serena serena start-mcp-server"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.0.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -53,12 +56,15 @@
   },
   "devDependencies": {
     "@evilmartians/lefthook": "^2.0.16",
+    "@neondatabase/serverless": "^1.0.2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^20.19.24",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.1",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-airbnb-typescript": "^18.0.0",
@@ -68,8 +74,10 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-oxlint": "^1.28.0",
     "eslint-plugin-react": "^7.37.5",
+    "happy-dom": "^20.8.3",
     "oxfmt": "^0.27.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
   }
 }

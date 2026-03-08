@@ -17,6 +17,7 @@ export default [
       '*.config.js',
       '*.config.mjs',
       'functions/**', // functionsは別のtsconfigを使用するため除外
+      'backend/**', // backendは別のtsconfigを使用するため除外
       'coverage/**',
       '*.min.js',
       'next-env.d.ts',

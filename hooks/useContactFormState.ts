@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { User as FirebaseUser } from 'firebase/auth';
 import {
   BrowserType,
   ContactType,
@@ -14,13 +13,22 @@ import {
   SmartphoneType,
 } from '@/types';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { apiClient } from '@/lib/http/apiClient';
 import { queryKeys } from '@/lib/queryKeys';
 
 type UseContactFormStateOptions = {
-  firebaseUser: FirebaseUser | null;
+  userId: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  getToken: () => Promise<string | null>;
 };
 
-export function useContactFormState({ firebaseUser }: UseContactFormStateOptions) {
+export function useContactFormState({
+  userId,
+  userName,
+  userEmail,
+  getToken,
+}: UseContactFormStateOptions) {
   const queryClient = useQueryClient();
   const {
     uploadImage,
@@ -100,12 +108,12 @@ export function useContactFormState({ firebaseUser }: UseContactFormStateOptions
 
   // 画像アップロード処理
   const handleImageUpload = async () => {
-    if (!errorScreenshotFile || !firebaseUser) {
+    if (!errorScreenshotFile || !userId) {
       return;
     }
 
     const timestamp = Date.now();
-    const fileName = `${firebaseUser.uid}/${timestamp}_${errorScreenshotFile.name}`;
+    const fileName = `${userId}/${timestamp}_${errorScreenshotFile.name}`;
     const path = `contacts/${fileName}`;
 
     const url = await uploadImage(errorScreenshotFile, path, {
@@ -131,26 +139,19 @@ export function useContactFormState({ firebaseUser }: UseContactFormStateOptions
       content: string;
       errorReportDetails?: ErrorReportDetails;
     }) => {
-      if (!firebaseUser) {
+      if (!userId) {
         throw new Error('認証が必要です');
       }
 
-      const token = await firebaseUser.getIdToken();
-      const response = await fetch('/api/contact', {
+      return apiClient('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+        body: {
+          ...data,
+          userName: userName || '',
+          userEmail: userEmail || '',
         },
-        body: JSON.stringify(data),
+        getToken,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || error.message || 'お問い合わせの送信に失敗しました');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       setMessage({ type: 'success', text: 'お問い合わせを送信しました。ありがとうございます。' });

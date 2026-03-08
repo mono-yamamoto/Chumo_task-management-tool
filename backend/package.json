@@ -1,0 +1,32 @@
+{
+  "name": "chumo-backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@clerk/backend": "^1.0.0",
+    "@hono/zod-validator": "^0.7.6",
+    "@neondatabase/serverless": "^0.10.0",
+    "drizzle-orm": "^0.39.0",
+    "hono": "^4.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "drizzle-kit": "^0.30.0",
+    "postgres": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

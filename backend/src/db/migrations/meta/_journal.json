@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1772845195954,
+      "tag": "0000_parched_cargill",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772945400000,
+      "tag": "0001_timer_unique_active_session",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772945500000,
+      "tag": "0002_assignee_ids_gin_index",
+      "breakpoints": true
+    }
+  ]
+}

@@ -2,8 +2,6 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import { useKubunLabels } from '@/hooks/useKubunLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -12,6 +10,7 @@ import { useTaskDetailActions } from '@/hooks/useTaskDetailActions';
 import { useTaskDetailState } from '@/hooks/useTaskDetailState';
 import { useTaskDrawer } from '@/hooks/useTaskDrawer';
 import { useUpdateTasksOrder, calculateNewOrder } from '@/hooks/useUpdateTasksOrder';
+import { ProjectType } from '@/constants/projectTypes';
 import { Button as CustomButton } from '@/components/ui/button';
 import {
   Box,
@@ -33,11 +32,11 @@ import { TaskDetailDrawer } from '@/components/Drawer/TaskDetailDrawer';
 import { TaskListTable } from '@/components/tasks/TaskListTable';
 import { TaskCardGrid } from '@/components/tasks/TaskCardGrid';
 import { queryKeys } from '@/lib/queryKeys';
-import { fetchAssignedOpenTasks } from '@/lib/firestore/repositories/taskRepository';
+import { fetchAssignedOpenTasks } from '@/lib/api/taskRepository';
 import { useTaskStore, DashboardViewMode } from '@/stores/taskStore';
 
 function DashboardPageContent() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const queryClient = useQueryClient();
   const { dashboardViewMode, setDashboardViewMode, sortMode, setSortMode } = useTaskStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,10 +60,10 @@ function DashboardPageContent() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: queryKeys.dashboardTasks(user?.id),
     queryFn: async () => {
-      if (!db || !user) return [];
-      return fetchAssignedOpenTasks(user.id);
+      if (!user) return [];
+      return fetchAssignedOpenTasks(user.id, getToken);
     },
-    enabled: !!user && !!db,
+    enabled: !!user,
   });
 
   // すべてのユーザーを取得（アサイン表示用）
@@ -211,7 +210,7 @@ function DashboardPageContent() {
   };
 
   const handleDeleteTask = async () => {
-    if (!deleteTaskId || !deleteProjectType || !db) return;
+    if (!deleteTaskId || !deleteProjectType) return;
 
     const taskToDelete = sortedTasks?.find((t) => t.id === deleteTaskId);
     if (!taskToDelete) {
@@ -228,8 +227,8 @@ function DashboardPageContent() {
     }
 
     try {
-      const taskRef = doc(db, 'projects', deleteProjectType, 'tasks', deleteTaskId);
-      await deleteDoc(taskRef);
+      const { deleteTask } = await import('@/lib/api/taskRepository');
+      await deleteTask(deleteProjectType as ProjectType, deleteTaskId, getToken);
 
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardTasks(user?.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks('all') });

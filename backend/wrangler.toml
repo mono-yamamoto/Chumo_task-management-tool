@@ -1,0 +1,29 @@
+name = "chumo-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+[[r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"
+
+# --- Staging ---
+[env.staging]
+name = "chumo-api-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"
+[[env.staging.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads-staging"
+
+# --- Production ---
+[env.production]
+name = "chumo-api-production"
+[env.production.vars]
+ENVIRONMENT = "production"
+[[env.production.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"
