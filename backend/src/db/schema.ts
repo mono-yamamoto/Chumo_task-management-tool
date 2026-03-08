@@ -8,7 +8,9 @@ import {
   jsonb,
   pgEnum,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // --- Enums ---
 
@@ -179,6 +181,9 @@ export const taskSessions = pgTable(
     index('task_sessions_task_id_idx').on(table.taskId),
     index('task_sessions_user_id_idx').on(table.userId),
     index('task_sessions_ended_at_idx').on(table.endedAt),
+    uniqueIndex('task_sessions_user_active_idx')
+      .on(table.userId)
+      .where(sql`${table.endedAt} is null`),
   ]
 );
 

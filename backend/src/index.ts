@@ -70,8 +70,18 @@ app.get('/api/files/*', async (c) => {
   const object = await bucket.get(raw);
   if (!object) return c.json({ error: 'File not found' }, 404);
 
+  // 安全なContent-Typeのみインライン表示、それ以外はダウンロード強制
+  const SAFE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const contentType = object.httpMetadata?.contentType || 'application/octet-stream';
+  const fileName = raw.split('/').pop() || 'file';
+
   const headers = new Headers();
-  headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+  if (SAFE_CONTENT_TYPES.includes(contentType)) {
+    headers.set('Content-Type', contentType);
+  } else {
+    headers.set('Content-Type', 'application/octet-stream');
+    headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+  }
   headers.set('Cache-Control', 'public, max-age=31536000');
   return new Response(object.body, { headers });
 });

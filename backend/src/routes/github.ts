@@ -30,12 +30,18 @@ app.post('/issues', zValidator('json', createIssueSchema), async (c) => {
   }
 
   // 既に Issue が作成済みならスキップ
-  if (task.fireIssueUrl) {
+  const CREATING_MARKER = 'creating...';
+  if (task.fireIssueUrl && task.fireIssueUrl !== CREATING_MARKER) {
     return c.json({ success: true, url: task.fireIssueUrl, alreadyExists: true });
   }
 
+  // GitHubトークンの確認（claim前に実施）
+  const githubToken = c.env.GITHUB_TOKEN;
+  if (!githubToken) {
+    return c.json({ error: 'GitHub token not configured' }, 500);
+  }
+
   // 楽観ロック: 作成中マーカーを原子的にセット（TOCTOU防止）
-  const CREATING_MARKER = 'creating...';
   const [claimed] = await db
     .update(tasks)
     .set({ fireIssueUrl: CREATING_MARKER, updatedAt: new Date() })
@@ -48,80 +54,89 @@ app.post('/issues', zValidator('json', createIssueSchema), async (c) => {
       .select({ fireIssueUrl: tasks.fireIssueUrl })
       .from(tasks)
       .where(eq(tasks.id, taskId));
-    return c.json({ success: true, url: current?.fireIssueUrl, alreadyExists: true });
-  }
-
-  // 外部連携情報を取得
-  const [external] = await db.select().from(taskExternals).where(eq(taskExternals.taskId, taskId));
-
-  // GitHubトークン
-  const githubToken = c.env.GITHUB_TOKEN;
-  if (!githubToken) {
-    return c.json({ error: 'GitHub token not configured' }, 500);
-  }
-
-  // アサインされたユーザーのGitHub usernameを取得
-  const assignees: string[] = [];
-  if (task.assigneeIds.length > 0) {
-    const assignedUsers = await db
-      .select({ githubUsername: users.githubUsername })
-      .from(users)
-      .where(inArray(users.id, task.assigneeIds));
-
-    for (const u of assignedUsers) {
-      if (u.githubUsername) {
-        assignees.push(u.githubUsername);
-      }
+    if (!current?.fireIssueUrl || current.fireIssueUrl === CREATING_MARKER) {
+      return c.json({ error: 'Issue creation in progress' }, 409);
     }
+    return c.json({ success: true, url: current.fireIssueUrl, alreadyExists: true });
   }
 
-  // Issue タイトル構築（issueKey重複防止）
-  const titleStartsWithIssueKey = external?.issueKey && task.title.startsWith(external.issueKey);
-  const issueTitle =
-    external?.issueKey && !titleStartsWithIssueKey
-      ? `${external.issueKey} ${task.title}`
-      : task.title;
-
-  const issueBody = [external?.url ? `Backlog: ${external.url}` : '', task.description || '']
-    .filter(Boolean)
-    .join('\n\n');
-
-  // GitHub API 呼び出し
-  const res = await fetch('https://api.github.com/repos/monosus/ss-fire-design-system/issues', {
-    method: 'POST',
-    headers: {
-      Authorization: `token ${githubToken}`,
-      Accept: 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      'User-Agent': 'chumo-api',
-    },
-    body: JSON.stringify({
-      title: issueTitle,
-      body: issueBody,
-      assignees: assignees.length > 0 ? assignees : undefined,
-    }),
-  });
-
-  if (!res.ok) {
-    // 失敗時はマーカーをクリアしてリトライ可能にする
+  // マーカーをクリアするヘルパー
+  const clearMarker = async () => {
     await db
       .update(tasks)
       .set({ fireIssueUrl: null, updatedAt: new Date() })
+      .where(and(eq(tasks.id, taskId), eq(tasks.fireIssueUrl, CREATING_MARKER)));
+  };
+
+  try {
+    // 外部連携情報を取得
+    const [external] = await db
+      .select()
+      .from(taskExternals)
+      .where(eq(taskExternals.taskId, taskId));
+
+    // アサインされたユーザーのGitHub usernameを取得
+    const assignees: string[] = [];
+    if (task.assigneeIds.length > 0) {
+      const assignedUsers = await db
+        .select({ githubUsername: users.githubUsername })
+        .from(users)
+        .where(inArray(users.id, task.assigneeIds));
+
+      for (const u of assignedUsers) {
+        if (u.githubUsername) {
+          assignees.push(u.githubUsername);
+        }
+      }
+    }
+
+    // Issue タイトル構築（issueKey重複防止）
+    const titleStartsWithIssueKey = external?.issueKey && task.title.startsWith(external.issueKey);
+    const issueTitle =
+      external?.issueKey && !titleStartsWithIssueKey
+        ? `${external.issueKey} ${task.title}`
+        : task.title;
+
+    const issueBody = [external?.url ? `Backlog: ${external.url}` : '', task.description || '']
+      .filter(Boolean)
+      .join('\n\n');
+
+    // GitHub API 呼び出し
+    const res = await fetch('https://api.github.com/repos/monosus/ss-fire-design-system/issues', {
+      method: 'POST',
+      headers: {
+        Authorization: `token ${githubToken}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'chumo-api',
+      },
+      body: JSON.stringify({
+        title: issueTitle,
+        body: issueBody,
+        assignees: assignees.length > 0 ? assignees : undefined,
+      }),
+    });
+
+    if (!res.ok) {
+      await clearMarker();
+      const errorText = await res.text();
+      return c.json({ error: `GitHub API error: ${errorText}` }, 500);
+    }
+
+    const issueData = (await res.json()) as { html_url: string };
+    const issueUrl = issueData.html_url;
+
+    // タスクにURLを保存
+    await db
+      .update(tasks)
+      .set({ fireIssueUrl: issueUrl, updatedAt: new Date() })
       .where(eq(tasks.id, taskId));
-    const errorText = await res.text();
-    return c.json({ error: `GitHub API error: ${errorText}` }, 500);
+
+    return c.json({ success: true, url: issueUrl });
+  } catch (error) {
+    await clearMarker();
+    throw error;
   }
-
-  const issueData = (await res.json()) as { html_url: string };
-  const issueUrl = issueData.html_url;
-
-  // タスクにURLを保存
-  await db
-    .update(tasks)
-    .set({ fireIssueUrl: issueUrl, updatedAt: new Date() })
-    .where(eq(tasks.id, taskId));
-
-  return c.json({ success: true, url: issueUrl });
 });
 
 export default app;

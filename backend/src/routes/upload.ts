@@ -32,6 +32,18 @@ app.post('/', async (c) => {
     return c.json({ error: 'Invalid path' }, 400);
   }
 
+  // MIMEタイプ制限（画像のみ許可）
+  const ALLOWED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+  ];
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return c.json({ error: `File type not allowed: ${file.type}` }, 400);
+  }
+
   // ファイル名をユニークにする
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
