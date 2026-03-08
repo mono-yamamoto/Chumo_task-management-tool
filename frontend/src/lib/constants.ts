@@ -66,14 +66,3 @@ export const COMPLETED_PROGRESS_STATUSES: ProgressStatus[] = [
   'ST連絡済み',
   'SENJU登録',
 ];
-
-/**
- * ナビゲーション項目
- */
-export const NAV_ITEMS = [
-  { path: '/dashboard', label: 'ダッシュボード', icon: 'LayoutDashboard' },
-  { path: '/tasks', label: 'タスク', icon: 'ListTodo' },
-  { path: '/report', label: 'レポート', icon: 'BarChart3' },
-  { path: '/contact', label: 'お問い合わせ', icon: 'MessageSquare' },
-  { path: '/settings', label: '設定', icon: 'Settings' },
-] as const;

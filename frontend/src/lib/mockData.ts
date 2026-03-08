@@ -319,6 +319,13 @@ export function getLabelById(labelId: string): Label | undefined {
   return MOCK_LABELS.find((l) => l.id === labelId);
 }
 
+/** アサイニーIDの配列からUserの配列を解決する */
+export function resolveAssignees(assigneeIds: string[]): User[] {
+  return assigneeIds
+    .map((id) => getUserById(id))
+    .filter((u): u is NonNullable<typeof u> => u != null);
+}
+
 /** 現在のユーザーのタスク（マイタスク）を取得 */
 export function getMyTasks(): Task[] {
   return MOCK_TASKS.filter((t) => t.assigneeIds.includes(MOCK_CURRENT_USER.id));

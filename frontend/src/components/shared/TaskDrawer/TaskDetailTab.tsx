@@ -5,7 +5,8 @@ import { Badge } from '../../ui/Badge';
 import { Avatar } from '../../ui/Avatar';
 import { FLOW_STATUS_LABELS } from '../../../lib/constants';
 import { formatDate } from '../../../lib/taskUtils';
-import { getUserById, getLabelById, MOCK_SESSIONS } from '../../../lib/mockData';
+import { resolveAssignees, getUserById, getLabelById, MOCK_SESSIONS } from '../../../lib/mockData';
+import { formatDuration } from '../../../lib/taskUtils';
 
 interface TaskDetailTabProps {
   task: Task;
@@ -13,9 +14,7 @@ interface TaskDetailTabProps {
 
 export function TaskDetailTab({ task }: TaskDetailTabProps) {
   const label = getLabelById(task.kubunLabelId);
-  const assignees = task.assigneeIds
-    .map((id) => getUserById(id))
-    .filter((u): u is NonNullable<typeof u> => u != null);
+  const assignees = resolveAssignees(task.assigneeIds);
 
   const sessions = MOCK_SESSIONS.filter((s) => s.taskId === task.id);
 
@@ -106,17 +105,7 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
             {sessions.map((session) => {
               const user = getUserById(session.userId);
               const startDate = new Date(session.startedAt);
-              const hours = Math.floor(session.durationSec / 3600);
-              const minutes = Math.floor((session.durationSec % 3600) / 60);
-              const seconds = session.durationSec % 60;
-
-              const durationText = [
-                hours > 0 ? `${hours}時間` : '',
-                minutes > 0 ? `${minutes}分` : '',
-                seconds > 0 ? `${seconds}秒` : '',
-              ]
-                .filter(Boolean)
-                .join('');
+              const durationText = formatDuration(session.durationSec);
 
               return (
                 <div key={session.id} className="flex items-center justify-between py-2 text-sm">

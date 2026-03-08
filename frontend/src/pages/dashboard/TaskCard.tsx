@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/Badge';
 import { AvatarGroup } from '../../components/ui/AvatarGroup';
 import { cn } from '../../lib/utils';
 import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../lib/taskUtils';
-import { getUserById, getLabelById } from '../../lib/mockData';
+import { resolveAssignees, getLabelById } from '../../lib/mockData';
 
 interface TaskCardProps {
   task: Task;
@@ -16,9 +16,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   const bgClass = getTaskBgClass(bgVariant);
   const label = getLabelById(task.kubunLabelId);
 
-  const assignees = task.assigneeIds
-    .map((id) => getUserById(id))
-    .filter((u): u is NonNullable<typeof u> => u != null);
+  const assignees = resolveAssignees(task.assigneeIds);
 
   return (
     <div

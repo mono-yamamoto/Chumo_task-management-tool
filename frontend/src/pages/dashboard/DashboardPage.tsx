@@ -19,7 +19,7 @@ export function DashboardPage() {
   const activeTasks = useMemo(() => myTasks.filter((t) => t.flowStatus !== '完了'), [myTasks]);
   const stats = useDashboardStats(myTasks);
   const { viewMode, setViewMode } = useViewMode();
-  const { selectedTaskId, isOpen, openDrawer, closeDrawer } = useTaskDrawer();
+  const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
   const selectedTask = useMemo<Task | null>(
     () => myTasks.find((t) => t.id === selectedTaskId) ?? null,
@@ -63,7 +63,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <TaskDrawer task={selectedTask} isOpen={isOpen} onClose={closeDrawer} />
+      <TaskDrawer task={selectedTask} onClose={closeDrawer} />
     </>
   );
 }

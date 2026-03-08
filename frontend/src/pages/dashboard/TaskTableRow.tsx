@@ -5,7 +5,7 @@ import { AvatarGroup } from '../../components/ui/AvatarGroup';
 import { cn } from '../../lib/utils';
 import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../lib/taskUtils';
 import { FLOW_STATUS_LABELS } from '../../lib/constants';
-import { getUserById, getLabelById } from '../../lib/mockData';
+import { resolveAssignees, getLabelById } from '../../lib/mockData';
 
 interface TaskTableRowProps {
   task: Task;
@@ -17,9 +17,7 @@ export function TaskTableRow({ task, onClick }: TaskTableRowProps) {
   const bgClass = getTaskBgClass(bgVariant);
   const label = getLabelById(task.kubunLabelId);
 
-  const assignees = task.assigneeIds
-    .map((id) => getUserById(id))
-    .filter((u): u is NonNullable<typeof u> => u != null);
+  const assignees = resolveAssignees(task.assigneeIds);
 
   return (
     <div

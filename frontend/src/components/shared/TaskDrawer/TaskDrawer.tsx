@@ -9,11 +9,12 @@ import { CommentTab } from './CommentTab';
 
 interface TaskDrawerProps {
   task: Task | null;
-  isOpen: boolean;
   onClose: () => void;
 }
 
-export function TaskDrawer({ task, isOpen, onClose }: TaskDrawerProps) {
+export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
+  const isOpen = task != null;
+
   // ESCキーで閉じる
   useEffect(() => {
     if (!isOpen) return;
@@ -26,7 +27,7 @@ export function TaskDrawer({ task, isOpen, onClose }: TaskDrawerProps) {
 
   return (
     <AnimatePresence>
-      {isOpen && task && (
+      {task && (
         <>
           {/* オーバーレイ */}
           <motion.div

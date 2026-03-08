@@ -24,13 +24,6 @@ export function TaskCardView({ tasks, onTaskClick }: TaskCardViewProps) {
       if (existing) {
         existing.push(task);
       }
-      // 完了カラムは完了タスクがある場合のみ追加
-    }
-
-    // 完了タスクがある場合にカラムを追加
-    const completedTasks = tasks.filter((t) => t.flowStatus === '完了');
-    if (completedTasks.length > 0) {
-      grouped.set('完了', completedTasks);
     }
 
     return grouped;
