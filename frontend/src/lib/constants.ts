@@ -7,6 +7,17 @@ import type { FlowStatus, ProgressStatus } from '../types';
 export const DUE_SOON_THRESHOLD_DAYS = 7;
 
 /**
+ * 新着タスクの閾値（日数）
+ * 未アサイン＋作成からこの日数以内 → 新着（info）扱い
+ */
+export const NEW_TASK_THRESHOLD_DAYS = 7;
+
+/**
+ * 完了ステータス（フィルタリング判定用）
+ */
+export const FLOW_STATUS_COMPLETED: FlowStatus = '完了';
+
+/**
  * カードビューのFlowStatusカラム表示順序
  */
 export const FLOW_STATUS_ORDER: FlowStatus[] = [

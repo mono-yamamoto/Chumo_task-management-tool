@@ -1,7 +1,17 @@
 import type { Task } from '../types';
-import { COMPLETED_PROGRESS_STATUSES, DUE_SOON_THRESHOLD_DAYS } from './constants';
+import {
+  COMPLETED_PROGRESS_STATUSES,
+  DUE_SOON_THRESHOLD_DAYS,
+  FLOW_STATUS_COMPLETED,
+  NEW_TASK_THRESHOLD_DAYS,
+} from './constants';
 
-export type TaskBgVariant = 'error' | 'warning' | 'normal';
+export type TaskBgVariant = 'error' | 'warning' | 'info' | 'normal';
+
+export interface TaskBgVariantOptions {
+  /** true にすると未アサイン＋作成7日以内 → info バリアントを返す */
+  enableInfoVariant?: boolean;
+}
 
 /**
  * タスクの背景色バリアントを判定する
@@ -16,31 +26,40 @@ export type TaskBgVariant = 'error' | 'warning' | 'normal';
  * - 進捗が完了・連絡段階（IT連絡済み/ST連絡済み/SENJU登録）
  * - IT日が未設定（null）
  */
-export function getTaskBgVariant(task: Task): TaskBgVariant {
+export function getTaskBgVariant(task: Task, options?: TaskBgVariantOptions): TaskBgVariant {
   // 完了タスクは背景色なし
-  if (task.flowStatus === '完了') return 'normal';
+  if (task.flowStatus === FLOW_STATUS_COMPLETED) return 'normal';
 
   // 完了・連絡段階の進捗は背景色なし
   if (task.progressStatus && COMPLETED_PROGRESS_STATUSES.includes(task.progressStatus)) {
     return 'normal';
   }
 
-  // IT日未設定は通常
-  if (!task.itUpDate) return 'normal';
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const itDate = new Date(task.itUpDate);
-  itDate.setHours(0, 0, 0, 0);
+  // IT日が設定されている場合のみ期限判定
+  if (task.itUpDate) {
+    const itDate = new Date(task.itUpDate);
+    itDate.setHours(0, 0, 0, 0);
 
-  // 期限超過
-  if (itDate < today) return 'error';
+    // 期限超過
+    if (itDate < today) return 'error';
 
-  // 期限間近（7日以内、当日含む）
-  const thresholdDate = new Date(today);
-  thresholdDate.setDate(thresholdDate.getDate() + DUE_SOON_THRESHOLD_DAYS);
-  if (itDate <= thresholdDate) return 'warning';
+    // 期限間近（7日以内、当日含む）
+    const thresholdDate = new Date(today);
+    thresholdDate.setDate(thresholdDate.getDate() + DUE_SOON_THRESHOLD_DAYS);
+    if (itDate <= thresholdDate) return 'warning';
+  }
+
+  // 新着判定（未アサイン＋作成7日以内）— タスク一覧のみ
+  if (options?.enableInfoVariant && task.assigneeIds.length === 0) {
+    const createdAt = new Date(task.createdAt);
+    createdAt.setHours(0, 0, 0, 0);
+    const newThreshold = new Date(today);
+    newThreshold.setDate(newThreshold.getDate() - NEW_TASK_THRESHOLD_DAYS);
+    if (createdAt >= newThreshold) return 'info';
+  }
 
   return 'normal';
 }
@@ -54,6 +73,8 @@ export function getTaskBgClass(variant: TaskBgVariant): string {
       return 'bg-error-bg';
     case 'warning':
       return 'bg-warning-bg';
+    case 'info':
+      return 'bg-info-bg';
     default:
       return '';
   }
