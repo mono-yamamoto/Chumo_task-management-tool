@@ -6,14 +6,14 @@ import './index.css';
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-if (!CLERK_PUBLISHABLE_KEY) {
-  throw new Error('VITE_CLERK_PUBLISHABLE_KEY is not set');
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    {CLERK_PUBLISHABLE_KEY ? (
+      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+        <App />
+      </ClerkProvider>
+    ) : (
       <App />
-    </ClerkProvider>
+    )}
   </StrictMode>
 );
