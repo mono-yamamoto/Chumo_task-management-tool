@@ -183,5 +183,29 @@ export default [
       'no-undef': 'off',
     },
   },
+  {
+    files: [
+      'frontend/src/**/*.ts',
+      'frontend/src/**/*.tsx',
+    ],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: ['./frontend/tsconfig.app.json'],
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+    },
+  },
   // functionsはignoresで除外しているため、この設定は不要
 ];
