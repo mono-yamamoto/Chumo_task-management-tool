@@ -279,6 +279,55 @@ export const MOCK_TASKS: Task[] = [
     createdAt: new Date('2026-02-10'),
     updatedAt: new Date('2026-02-25'),
   },
+  // ===== タスク一覧専用（ダッシュボードには出ない）=====
+  // 未アサイン＋作成3日前 → info 対象
+  {
+    id: 'task-13',
+    projectType: 'REG2017',
+    title: 'REG2017-2310【未アサイン】火災_新規LP制作依頼',
+    flowStatus: '未着手',
+    progressStatus: '未着手',
+    assigneeIds: [],
+    itUpDate: daysFromNow(14),
+    releaseDate: daysFromNow(21),
+    kubunLabelId: 'label-kobetsu',
+    order: 13,
+    createdBy: 'user-2',
+    createdAt: daysFromNow(-3),
+    updatedAt: daysFromNow(-3),
+  },
+  // 未アサイン＋作成1日前 → info 対象
+  {
+    id: 'task-14',
+    projectType: 'BRGREG',
+    title: 'BRGREG-470【未アサイン】地震_緊急メンテナンスページ作成',
+    flowStatus: '未着手',
+    progressStatus: null,
+    assigneeIds: [],
+    itUpDate: null,
+    releaseDate: null,
+    kubunLabelId: 'label-unyo',
+    order: 14,
+    createdBy: 'user-3',
+    createdAt: daysFromNow(-1),
+    updatedAt: daysFromNow(-1),
+  },
+  // 他ユーザーのみアサイン（currentUser含まない）→ ダッシュボードには出ない
+  {
+    id: 'task-15',
+    projectType: 'MONO',
+    title: 'MONO-460 管理画面レポート出力バッチ改修',
+    flowStatus: 'コーディング',
+    progressStatus: 'コーディング',
+    assigneeIds: ['user-3', 'user-4'],
+    itUpDate: daysFromNow(8),
+    releaseDate: daysFromNow(12),
+    kubunLabelId: 'label-kobetsu',
+    order: 15,
+    createdBy: 'user-3',
+    createdAt: new Date('2026-02-20'),
+    updatedAt: new Date('2026-03-01'),
+  },
 ];
 
 // ダミーセッション
@@ -329,4 +378,9 @@ export function resolveAssignees(assigneeIds: string[]): User[] {
 /** 現在のユーザーのタスク（マイタスク）を取得 */
 export function getMyTasks(): Task[] {
   return MOCK_TASKS.filter((t) => t.assigneeIds.includes(MOCK_CURRENT_USER.id));
+}
+
+/** 全タスクを取得（タスク一覧ページ用） */
+export function getAllTasks(): Task[] {
+  return MOCK_TASKS;
 }

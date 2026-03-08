@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
-import type { Task, FlowStatus } from '../../types';
-import { FLOW_STATUS_ORDER, FLOW_STATUS_LABELS } from '../../lib/constants';
+import type { Task, FlowStatus } from '../../../types';
+import { FLOW_STATUS_ORDER, FLOW_STATUS_LABELS } from '../../../lib/constants';
 import { CardSectionHeader } from './CardSectionHeader';
 import { TaskCard } from './TaskCard';
 
 interface TaskCardViewProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  enableInfoBg?: boolean;
 }
 
-export function TaskCardView({ tasks, onTaskClick }: TaskCardViewProps) {
+export function TaskCardView({ tasks, onTaskClick, enableInfoBg }: TaskCardViewProps) {
   const columns = useMemo(() => {
     const grouped = new Map<FlowStatus, Task[]>();
 
@@ -36,7 +37,12 @@ export function TaskCardView({ tasks, onTaskClick }: TaskCardViewProps) {
           <CardSectionHeader label={FLOW_STATUS_LABELS[status]} count={statusTasks.length} />
           <div className="space-y-2">
             {statusTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onClick={onTaskClick} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                onClick={onTaskClick}
+                enableInfoBg={enableInfoBg}
+              />
             ))}
           </div>
         </div>
