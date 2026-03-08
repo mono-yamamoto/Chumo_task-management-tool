@@ -184,10 +184,7 @@ export default [
     },
   },
   {
-    files: [
-      'frontend/src/**/*.ts',
-      'frontend/src/**/*.tsx',
-    ],
+    files: ['frontend/src/**/*.ts', 'frontend/src/**/*.tsx'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {

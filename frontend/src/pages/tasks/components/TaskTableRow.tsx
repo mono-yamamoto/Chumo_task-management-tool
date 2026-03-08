@@ -1,19 +1,20 @@
 import { Pin, PlayCircle } from 'lucide-react';
-import type { Task } from '../../types';
-import { Badge } from '../../components/ui/Badge';
-import { AvatarGroup } from '../../components/ui/AvatarGroup';
-import { cn } from '../../lib/utils';
-import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../lib/taskUtils';
-import { FLOW_STATUS_LABELS } from '../../lib/constants';
-import { resolveAssignees, getLabelById } from '../../lib/mockData';
+import type { Task } from '../../../types';
+import { Badge } from '../../../components/ui/Badge';
+import { AvatarGroup } from '../../../components/ui/AvatarGroup';
+import { cn } from '../../../lib/utils';
+import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../../lib/taskUtils';
+import { FLOW_STATUS_LABELS } from '../../../lib/constants';
+import { resolveAssignees, getLabelById } from '../../../lib/mockData';
 
 interface TaskTableRowProps {
   task: Task;
   onClick: (task: Task) => void;
+  enableInfoBg?: boolean;
 }
 
-export function TaskTableRow({ task, onClick }: TaskTableRowProps) {
-  const bgVariant = getTaskBgVariant(task);
+export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps) {
+  const bgVariant = getTaskBgVariant(task, { enableInfoVariant: enableInfoBg });
   const bgClass = getTaskBgClass(bgVariant);
   const label = getLabelById(task.kubunLabelId);
 
@@ -25,7 +26,8 @@ export function TaskTableRow({ task, onClick }: TaskTableRowProps) {
         'flex h-[52px] items-center gap-2 border-b border-border-default px-4 cursor-pointer transition-colors hover:bg-bg-secondary',
         bgClass,
         bgVariant === 'error' && 'border-l-[3px] border-l-error-text',
-        bgVariant === 'warning' && 'border-l-[3px] border-l-warning-text'
+        bgVariant === 'warning' && 'border-l-[3px] border-l-warning-text',
+        bgVariant === 'info' && 'border-l-[3px] border-l-info-text'
       )}
       onClick={() => onClick(task)}
       role="row"

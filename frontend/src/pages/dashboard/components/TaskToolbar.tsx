@@ -1,7 +1,7 @@
 import { LayoutList, LayoutGrid, Filter } from 'lucide-react';
-import { ToggleGroup } from '../../components/ui/ToggleGroup';
-import { Button } from '../../components/ui/Button';
-import type { ViewMode } from '../../hooks/useViewMode';
+import { ToggleGroup } from '../../../components/ui/ToggleGroup';
+import { Button } from '../../../components/ui/Button';
+import type { ViewMode } from '../../../hooks/useViewMode';
 
 interface TaskToolbarProps {
   taskCount: number;

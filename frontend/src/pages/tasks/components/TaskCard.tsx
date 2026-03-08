@@ -1,18 +1,19 @@
 import { Timer } from 'lucide-react';
-import type { Task } from '../../types';
-import { Badge } from '../../components/ui/Badge';
-import { AvatarGroup } from '../../components/ui/AvatarGroup';
-import { cn } from '../../lib/utils';
-import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../lib/taskUtils';
-import { resolveAssignees, getLabelById } from '../../lib/mockData';
+import type { Task } from '../../../types';
+import { Badge } from '../../../components/ui/Badge';
+import { AvatarGroup } from '../../../components/ui/AvatarGroup';
+import { cn } from '../../../lib/utils';
+import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../../lib/taskUtils';
+import { resolveAssignees, getLabelById } from '../../../lib/mockData';
 
 interface TaskCardProps {
   task: Task;
   onClick: (task: Task) => void;
+  enableInfoBg?: boolean;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
-  const bgVariant = getTaskBgVariant(task);
+export function TaskCard({ task, onClick, enableInfoBg }: TaskCardProps) {
+  const bgVariant = getTaskBgVariant(task, { enableInfoVariant: enableInfoBg });
   const bgClass = getTaskBgClass(bgVariant);
   const label = getLabelById(task.kubunLabelId);
 
