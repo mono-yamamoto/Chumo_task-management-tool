@@ -185,3 +185,16 @@ export interface TaskComment {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type ReportType = 'normal' | 'brg';
+
+export interface ReportEntry {
+  id: string;
+  taskId: string;
+  title: string;
+  type: ReportType;
+  totalDurationSec: number;
+  over3Reason?: string;
+  sessions: TaskSession[];
+  date: Date;
+}

@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { TaskListPage } from './pages/tasks/TaskListPage';
 import { MemberTaskListPage } from './pages/tasks/MemberTaskListPage';
+import { ReportPage } from './pages/reports/ReportPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/tasks" element={<TaskListPage />} />
             <Route path="/tasks/members" element={<MemberTaskListPage />} />
+            <Route path="/report" element={<ReportPage />} />
           </Route>
           <Route path="/login" element={<div>Login</div>} />
         </Routes>
