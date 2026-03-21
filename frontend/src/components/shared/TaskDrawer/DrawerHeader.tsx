@@ -1,4 +1,5 @@
 import { X, Trash2 } from 'lucide-react';
+import { Button } from '../../ui/Button';
 
 interface DrawerHeaderProps {
   title: string;
@@ -23,13 +24,14 @@ export function DrawerHeader({ title, onClose }: DrawerHeaderProps) {
 
       {/* 削除ボタン */}
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-error-text transition-colors hover:bg-error-bg"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-3 text-xs text-error-text hover:bg-error-bg"
         >
           <Trash2 size={14} />
           削除
-        </button>
+        </Button>
       </div>
     </div>
   );
