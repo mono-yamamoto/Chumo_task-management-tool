@@ -4,6 +4,8 @@ import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { TaskTableView } from './components/TaskTableView';
 import { TaskCardView } from './components/TaskCardView';
 import { TaskListToolbar } from './components/TaskListToolbar';
+import { TaskFilterPanel } from './components/TaskFilterPanel';
+import { Pagination } from '../../components/ui/Pagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
 import { getAllTasks } from '../../lib/mockData';
@@ -12,6 +14,11 @@ import type { Task } from '../../types';
 
 const allTasks = getAllTasks();
 const activeTasks = allTasks.filter((t) => t.flowStatus !== FLOW_STATUS_COMPLETED);
+
+// 静的実装: ページネーション用の定数
+const TOTAL_ITEMS = 245;
+const PER_PAGE = 30;
+const CURRENT_PAGE = 1;
 
 export function TaskListPage() {
   const { viewMode, setViewMode } = useViewMode('tasks');
@@ -37,6 +44,8 @@ export function TaskListPage() {
           onViewModeChange={setViewMode}
         />
 
+        <TaskFilterPanel />
+
         {/* 凡例行 */}
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center rounded-full bg-warning-bg px-3 py-1 text-xs font-medium text-warning-text">
@@ -45,13 +54,14 @@ export function TaskListPage() {
           <span className="inline-flex items-center rounded-full bg-error-bg px-3 py-1 text-xs font-medium text-error-text">
             期限超過
           </span>
-          <span className="inline-flex items-center rounded-full bg-info-bg px-3 py-1 text-xs font-medium text-info-text">
-            新着
-          </span>
         </div>
 
         {viewMode === 'table' ? (
-          <TaskTableView tasks={activeTasks} onTaskClick={handleTaskClick} enableInfoBg />
+          <div className="space-y-4">
+            <Pagination totalItems={TOTAL_ITEMS} currentPage={CURRENT_PAGE} perPage={PER_PAGE} />
+            <TaskTableView tasks={activeTasks} onTaskClick={handleTaskClick} enableInfoBg />
+            <Pagination totalItems={TOTAL_ITEMS} currentPage={CURRENT_PAGE} perPage={PER_PAGE} />
+          </div>
         ) : (
           <TaskCardView tasks={activeTasks} onTaskClick={handleTaskClick} enableInfoBg />
         )}

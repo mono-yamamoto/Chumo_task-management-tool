@@ -1,4 +1,5 @@
 import { LayoutList, LayoutGrid, Users, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ToggleGroup } from '../../../components/ui/ToggleGroup';
 import { Button } from '../../../components/ui/Button';
 import type { ViewMode } from '../../../hooks/useViewMode';
@@ -19,10 +20,12 @@ export function TaskListToolbar({ taskCount, viewMode, onViewModeChange }: TaskL
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="text-text-secondary text-xs">
-          <Users size={16} />
-          メンバー別タスク一覧
-        </Button>
+        <Link to="/tasks/members">
+          <Button variant="outline" size="sm" className="text-text-secondary text-xs">
+            <Users size={16} />
+            メンバー別タスク一覧
+          </Button>
+        </Link>
         <ToggleGroup
           items={[
             {
