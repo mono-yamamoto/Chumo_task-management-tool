@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 export type ViewMode = 'table' | 'card';
-export type ViewModeScope = 'dashboard' | 'tasks';
+export type ViewModeScope = 'dashboard' | 'tasks' | 'members';
 
 const STORAGE_KEY_PREFIX = 'chumo-view-mode';
 
