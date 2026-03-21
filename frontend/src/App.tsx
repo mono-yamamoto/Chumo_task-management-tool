@@ -6,6 +6,7 @@ import { TaskListPage } from './pages/tasks/TaskListPage';
 import { MemberTaskListPage } from './pages/tasks/MemberTaskListPage';
 import { ReportPage } from './pages/reports/ReportPage';
 import { ContactPage } from './pages/contacts/ContactPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ export function App() {
             <Route path="/tasks/members" element={<MemberTaskListPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
           <Route path="/login" element={<div>Login</div>} />
         </Routes>
