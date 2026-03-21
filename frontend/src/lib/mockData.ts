@@ -1,4 +1,4 @@
-import type { Task, User, Label, TaskSession, ReportEntry } from '../types';
+import type { Task, User, Label, TaskSession, ReportEntry, Contact } from '../types';
 
 // ダミーユーザー
 export const MOCK_USERS: User[] = [
@@ -514,6 +514,106 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     date: new Date('2026-01-24'),
   },
 ];
+
+// ダミーお問い合わせデータ
+export const MOCK_CONTACTS: Contact[] = [
+  {
+    id: 'contact-1',
+    type: 'error',
+    title: 'ダッシュボードの読み込みが完了しない',
+    content:
+      'ダッシュボードを開いた後、しばらくローディングが表示に留まり、データの表示がされません。コンソールにエラーが表示されます。',
+    userId: 'user-2',
+    userName: '佐藤花子',
+    userEmail: 'sato@example.com',
+    errorReportDetails: {
+      issue:
+        'ダッシュボードを開いた後、しばらくローディングが表示に留まり、データの表示がされません。',
+      reproductionSteps:
+        '1. ログイン後ダッシュボードに遷移\n2. 10秒以上待機\n3. データが表示されずスピナーが回り続ける',
+      environment: {
+        device: 'PC',
+        os: 'Mac',
+        browser: 'Chrome',
+        browserVersion: '120.0.6099.71',
+      },
+    },
+    status: 'pending',
+    createdAt: new Date('2026-03-15T10:30:00'),
+    updatedAt: new Date('2026-03-15T10:30:00'),
+  },
+  {
+    id: 'contact-2',
+    type: 'feature',
+    title: 'タスクの一括更新機能がほしい',
+    content:
+      '複数のタスクを選択してステータスやアサイン先を一括で更新できる機能があると、月末の棚卸し作業が大幅に効率化されます。',
+    userId: 'user-3',
+    userName: '鈴木一郎',
+    userEmail: 'suzuki@example.com',
+    status: 'pending',
+    createdAt: new Date('2026-03-14T15:00:00'),
+    updatedAt: new Date('2026-03-14T15:00:00'),
+  },
+  {
+    id: 'contact-3',
+    type: 'other',
+    title: '操作マニュアルの更新依頼',
+    content:
+      '先月のUIリニューアル後について、操作マニュアルに記載がない機能も見つけたのでお問い合わせしたいです。',
+    userId: 'user-4',
+    userName: '高橋美咲',
+    userEmail: 'takahashi@example.com',
+    status: 'pending',
+    createdAt: new Date('2026-03-12T09:15:00'),
+    updatedAt: new Date('2026-03-12T09:15:00'),
+  },
+  {
+    id: 'contact-4',
+    type: 'error',
+    title: 'レポートCSV出力で文字化けが発生',
+    content: 'レポートをCSVエクスポートした際、Excel で開くと日本語が文字化けします。',
+    userId: 'user-5',
+    userName: '伊藤健太',
+    userEmail: 'ito@example.com',
+    errorReportDetails: {
+      issue: 'レポートのCSVエクスポートでExcel展開時に日本語文字化け',
+      reproductionSteps:
+        '1. レポートページで期間を設定\n2. CSVエクスポートをクリック\n3. Excelで開く',
+      environment: {
+        device: 'PC',
+        os: 'Windows',
+        browser: 'Chrome',
+        browserVersion: '120.0.6099.71',
+      },
+    },
+    status: 'resolved',
+    createdAt: new Date('2026-03-10T11:00:00'),
+    updatedAt: new Date('2026-03-11T14:00:00'),
+  },
+  {
+    id: 'contact-5',
+    type: 'feature',
+    title: 'ダークモード対応の要望',
+    content: '長時間作業していると目が疲れるので、ダークモードに対応してほしいです。',
+    userId: 'user-6',
+    userName: '渡辺雄大',
+    userEmail: 'watanabe@example.com',
+    status: 'resolved',
+    createdAt: new Date('2026-03-05T16:30:00'),
+    updatedAt: new Date('2026-03-08T10:00:00'),
+  },
+];
+
+/** ステータスでフィルタしたお問い合わせを取得 */
+export function getContactsByStatus(status: 'pending' | 'resolved'): Contact[] {
+  return MOCK_CONTACTS.filter((c) => c.status === status);
+}
+
+/** 全お問い合わせを取得 */
+export function getAllContacts(): Contact[] {
+  return MOCK_CONTACTS;
+}
 
 /** ユーザーIDからユーザーを検索するヘルパー */
 export function getUserById(userId: string): User | undefined {
