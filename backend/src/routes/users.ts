@@ -186,6 +186,10 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     .where(eq(users.id, targetId))
     .returning(safeUserColumns);
 
+  if (!updated) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
   return c.json({ user: updated });
 });
 
