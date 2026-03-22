@@ -3,7 +3,7 @@ import { verifyToken } from '@clerk/backend';
 import type { Env } from '../index';
 
 // ミドルウェアをスキップするパス
-const SKIP_PATHS = ['/api/files/'];
+const SKIP_PATHS = ['/api/files/', '/api/drive/callback'];
 
 /**
  * Clerk JWT検証ミドルウェア

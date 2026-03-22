@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { HardDrive, Github, MessageCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
+import { apiClient } from '../../../lib/api';
 
 interface IntegrationCardProps {
   icon: React.ReactNode;
@@ -82,9 +85,16 @@ function IntegrationCard({
 export function IntegrationsTab() {
   const { data: currentUser, isLoading } = useCurrentUser();
   const updateUser = useUpdateUser();
+  const { getToken } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [githubUsername, setGithubUsername] = useState('');
   const [chatUserId, setChatUserId] = useState('');
+  const [driveConnecting, setDriveConnecting] = useState(false);
+  const [driveMessage, setDriveMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -93,7 +103,36 @@ export function IntegrationsTab() {
     }
   }, [currentUser]);
 
+  // OAuth コールバック結果の検知
+  useEffect(() => {
+    const driveStatus = searchParams.get('drive');
+    if (driveStatus === 'connected') {
+      setDriveMessage({ type: 'success', text: 'Google Driveとの連携が完了しました' });
+      searchParams.delete('drive');
+      setSearchParams(searchParams, { replace: true });
+    } else if (driveStatus === 'error') {
+      const msg = searchParams.get('message') || '連携に失敗しました';
+      setDriveMessage({ type: 'error', text: msg });
+      searchParams.delete('drive');
+      searchParams.delete('message');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const driveConnected = currentUser?.googleOAuthUpdatedAt != null;
+
+  const handleDriveConnect = async () => {
+    setDriveConnecting(true);
+    try {
+      const data = await apiClient<{ url: string }>('/api/drive/auth-url', {
+        getToken,
+      });
+      window.location.href = data.url;
+    } catch {
+      setDriveMessage({ type: 'error', text: 'OAuth URL の取得に失敗しました' });
+      setDriveConnecting(false);
+    }
+  };
 
   const handleSaveGithub = () => {
     if (!currentUser) return;
@@ -120,13 +159,25 @@ export function IntegrationsTab() {
         <p className="text-sm text-text-secondary">外部サービスとの連携を管理します</p>
       </div>
 
+      {driveMessage && (
+        <div
+          className={`rounded-md px-4 py-3 text-sm ${
+            driveMessage.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}
+        >
+          {driveMessage.text}
+        </div>
+      )}
+
       <IntegrationCard
         icon={<HardDrive size={20} className="text-blue-600" />}
         iconBg="bg-blue-50"
         name="Google Drive"
         description="レポートの自動エクスポート先"
         connected={driveConnected}
-        onConnect={() => {}}
+        onConnect={driveConnecting ? undefined : handleDriveConnect}
       />
 
       <IntegrationCard
