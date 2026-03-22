@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
@@ -22,9 +22,28 @@ interface StoredActiveSession {
   startedAt: string;
 }
 
+function readCachedSession(): StoredActiveSession | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatElapsed(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
 /**
  * アクティブセッション（稼働中タイマー）を取得
  * GET /api/sessions/active + localStorage 永続化
+ *
+ * API レスポンス前は localStorage キャッシュを初期値として返す（リロード対応）
  */
 export function useActiveSession() {
   const { getToken, isSignedIn } = useAuth();
@@ -35,14 +54,13 @@ export function useActiveSession() {
       const res = await apiClient<ActiveSessionsResponse>('/api/sessions/active', { getToken });
       const session = res.sessions[0] ?? null;
 
-      // localStorage に保存（リロード対応）
       if (session) {
         localStorage.setItem(
           ACTIVE_SESSION_KEY,
           JSON.stringify({
             sessionId: session.id,
             taskId: session.taskId,
-            projectType: (session as TaskSession & { projectType?: string }).projectType ?? '',
+            projectType: session.projectType ?? '',
             startedAt: session.startedAt,
           })
         );
@@ -53,18 +71,10 @@ export function useActiveSession() {
       return session;
     },
     enabled: isSignedIn,
-    staleTime: 1000 * 10, // 10秒
+    staleTime: 1000 * 10,
   });
 
-  // localStorage からの初期値（API レスポンス前にUIを表示するため）
-  const cached = useMemo<StoredActiveSession | null>(() => {
-    try {
-      const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }, []);
+  const cached = useMemo(readCachedSession, []);
 
   return { ...query, cached };
 }
@@ -98,8 +108,7 @@ export function useTimer() {
     onSuccess: () => {
       localStorage.removeItem(ACTIVE_SESSION_KEY);
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() });
-      // セッション一覧も更新
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions('') });
     },
   });
 
@@ -143,13 +152,5 @@ export function useElapsedTime(startedAt: string | Date | null) {
     return () => clearInterval(interval);
   }, [startedAt]);
 
-  const format = useCallback((sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
-    return `${m}m ${String(s).padStart(2, '0')}s`;
-  }, []);
-
-  return { elapsed, formatted: format(elapsed) };
+  return { elapsed, formatted: formatElapsed(elapsed) };
 }

@@ -1,11 +1,12 @@
+import { memo } from 'react';
 import { Square, Timer } from 'lucide-react';
 import { useActiveSession, useTimer, useElapsedTime } from '../../hooks/useTimer';
 
 /**
  * ヘッダーに表示するコンパクトなタイマーウィジェット
- * アクティブセッションがある場合のみ表示
+ * memo 化して毎秒の再レンダーが親に伝播しないようにする
  */
-export function TimerWidget() {
+export const TimerWidget = memo(function TimerWidget() {
   const { data: activeSession, cached } = useActiveSession();
   const { stop } = useTimer();
 
@@ -38,4 +39,4 @@ export function TimerWidget() {
       </button>
     </div>
   );
-}
+});
