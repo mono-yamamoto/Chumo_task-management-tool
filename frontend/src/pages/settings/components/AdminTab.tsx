@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, ChevronDown, Check } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Trash2, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
 import { Spinner } from '../../../components/ui/Spinner';
@@ -8,6 +8,7 @@ import { DeleteMemberModal } from './DeleteMemberModal';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUsers } from '../../../hooks/useUsers';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
+import { useInviteUser } from '../../../hooks/useInviteUser';
 import type { User } from '../../../types';
 
 const TABLE_COLUMNS = [
@@ -80,17 +81,36 @@ export function AdminTab() {
   const { data: currentUser } = useCurrentUser();
   const { data: users = [], isLoading } = useUsers();
   const updateUser = useUpdateUser();
+  const inviteUser = useInviteUser();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [inviteMessage, setInviteMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const handleRoleChange = (userId: string, role: 'admin' | 'member') => {
     if (userId === currentUser?.id) return;
     updateUser.mutate({ userId, data: { role } });
   };
 
-  const handleAddMember = (_email: string, _role: 'Admin' | 'Member') => {
-    // TODO: メンバー追加 API（Clerk ユーザー招待）
-    setAddModalOpen(false);
+  const handleAddMember = (email: string, role: 'Admin' | 'Member') => {
+    inviteUser.mutate(
+      { email, role: role.toLowerCase() as 'admin' | 'member' },
+      {
+        onSuccess: (data) => {
+          setAddModalOpen(false);
+          const msg = (data as { restored?: boolean }).restored
+            ? `${email} のアカウントを再有効化しました`
+            : `${email} に招待メールを送信しました`;
+          setInviteMessage({ type: 'success', text: msg });
+        },
+        onError: (error) => {
+          const msg = error instanceof Error ? error.message : '招待に失敗しました';
+          setInviteMessage({ type: 'error', text: msg });
+        },
+      }
+    );
   };
 
   const handleDeleteMember = () => {
@@ -98,6 +118,13 @@ export function AdminTab() {
     updateUser.mutate({ userId: deleteTarget.id, data: { isAllowed: false } });
     setDeleteTarget(null);
   };
+
+  const handleRestoreMember = (userId: string) => {
+    updateUser.mutate({ userId, data: { isAllowed: true } });
+  };
+
+  const activeUsers = useMemo(() => users.filter((u) => u.isAllowed), [users]);
+  const disabledUsers = useMemo(() => users.filter((u) => !u.isAllowed), [users]);
 
   if (isLoading) {
     return (
@@ -127,6 +154,18 @@ export function AdminTab() {
         </Button>
       </div>
 
+      {inviteMessage && (
+        <div
+          className={`rounded-md px-4 py-3 text-sm ${
+            inviteMessage.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}
+        >
+          {inviteMessage.text}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
         <div className="flex h-11 items-center gap-4 px-5">
           {TABLE_COLUMNS.map((col) => (
@@ -139,7 +178,7 @@ export function AdminTab() {
           ))}
         </div>
 
-        {users.map((user) => (
+        {activeUsers.map((user) => (
           <div
             key={user.id}
             className="flex h-[52px] items-center gap-4 border-t border-border-default px-5"
@@ -171,6 +210,39 @@ export function AdminTab() {
           </div>
         ))}
       </div>
+
+      {disabledUsers.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium text-text-tertiary">無効化されたメンバー</h3>
+          <div className="overflow-hidden rounded-lg border border-border-default bg-bg-secondary">
+            {disabledUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex h-[52px] items-center gap-4 border-t border-border-default px-5 first:border-t-0 opacity-60"
+              >
+                <span className="w-[230px] truncate text-sm text-text-tertiary">
+                  {user.displayName}
+                </span>
+                <span className="w-[240px] truncate text-sm text-text-tertiary">{user.email}</span>
+                <span className="w-[170px] truncate text-sm text-text-tertiary">
+                  {user.chatId ?? '-'}
+                </span>
+                <span className="w-[100px] text-xs text-text-tertiary">無効</span>
+                <div className="w-[76px]">
+                  <button
+                    type="button"
+                    onClick={() => handleRestoreMember(user.id)}
+                    className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-border-default text-xs font-medium text-text-secondary transition-colors hover:bg-bg-primary"
+                  >
+                    <RotateCcw size={12} />
+                    復元
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <AddMemberModal
         isOpen={addModalOpen}

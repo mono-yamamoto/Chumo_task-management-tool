@@ -193,6 +193,77 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
   return c.json({ user: updated });
 });
 
+const inviteSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(userRoleEnum.enumValues),
+});
+
+/**
+ * POST /invite
+ * メンバー招待（Clerk Invitation API + DBプレースホルダー作成）
+ * admin権限が必要
+ */
+app.post('/invite', zValidator('json', inviteSchema), async (c) => {
+  const db = c.get('db');
+  const currentUserId = c.get('userId');
+  const { email, role } = c.req.valid('json');
+
+  // admin権限チェック
+  const [currentUser] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, currentUserId));
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return c.json({ error: '管理者権限が必要です' }, 403);
+  }
+
+  // 既存メール重複チェック
+  const [existing] = await db
+    .select({ id: users.id, isAllowed: users.isAllowed })
+    .from(users)
+    .where(eq(users.email, email));
+
+  if (existing) {
+    // 無効化されたユーザーなら再有効化
+    if (!existing.isAllowed) {
+      await db
+        .update(users)
+        .set({ isAllowed: true, role, updatedAt: new Date() })
+        .where(eq(users.id, existing.id));
+      return c.json({ success: true, restored: true });
+    }
+    return c.json({ error: 'このメールアドレスは既に登録されています' }, 409);
+  }
+
+  // Clerk 招待送信
+  const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
+  const appOrigin = c.env.APP_ORIGIN;
+
+  try {
+    await clerkClient.invitations.createInvitation({
+      emailAddress: email,
+      redirectUrl: `${appOrigin}/login`,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
+    return c.json({ error: message }, 500);
+  }
+
+  // DBにプレースホルダーユーザー作成
+  // 招待ユーザーが初回ログインすると /me のID移行ロジックでClerk IDに更新される
+  const invitedId = `invited_${crypto.randomUUID()}`;
+  await db.insert(users).values({
+    id: invitedId,
+    email,
+    displayName: email.split('@')[0],
+    role,
+    isAllowed: true,
+  });
+
+  return c.json({ success: true });
+});
+
 /**
  * POST /me/fcm-tokens
  * FCMトークンを追加
