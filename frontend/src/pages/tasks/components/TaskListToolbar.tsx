@@ -20,11 +20,12 @@ export function TaskListToolbar({ taskCount, viewMode, onViewModeChange }: TaskL
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <Link to="/tasks/members">
-          <Button variant="outline" size="sm" className="text-text-secondary text-xs">
-            <Users size={16} />
-            メンバー別タスク一覧
-          </Button>
+        <Link
+          to="/tasks/members"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-default px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary"
+        >
+          <Users size={16} />
+          メンバー別タスク一覧
         </Link>
         <ToggleGroup
           items={[

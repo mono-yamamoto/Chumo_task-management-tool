@@ -41,7 +41,7 @@ export function TaskSessionHistory() {
             <span>追加</span>
           </button>
         </div>
-        <span className="text-sm text-text-secondary">合計: 6時間53分</span>
+        <span className="text-sm text-text-secondary">合計: 6時間44分</span>
       </div>
 
       {/* セッション一覧 */}
