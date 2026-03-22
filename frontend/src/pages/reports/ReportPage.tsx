@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Header } from '../../components/layout/Header';
 import { Tabs, TabList, Tab, TabPanel } from '../../components/ui/Tabs';
 import { Modal } from '../../components/ui/Modal';
@@ -12,7 +12,6 @@ import { ReportTable } from './components/ReportTable';
 import { ExportModalContent } from './components/ExportModalContent';
 import { SessionEditModalContent } from './components/SessionEditModalContent';
 import { useReportData, downloadReportCsv } from '../../hooks/useReportData';
-import type { ReportItem } from '../../hooks/useReportData';
 import { useAuth } from '../../hooks/useAuth';
 import type { ReportEntry, ReportType, TaskSession } from '../../types';
 
@@ -39,8 +38,11 @@ export function ReportPage() {
   // タブ状態
   const [activeTab, setActiveTab] = useState<ReportType | 'all'>('all');
 
-  // モーダル状態
+  // エクスポート状態
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportRange, setExportRange] = useState<'all' | 'normal' | 'brg'>('all');
+
+  // セッション編集
   const [editingSession, setEditingSession] = useState<{
     entry: ReportEntry;
     session: TaskSession;
@@ -59,17 +61,21 @@ export function ReportPage() {
 
   const totalDurationSec = data?.totalDurationSec ?? 0;
 
-  // API ReportItem → フロント ReportEntry にマッピング
-  const entries: ReportEntry[] = (data?.items ?? []).map((item: ReportItem) => ({
-    id: item.taskId,
-    taskId: item.taskId,
-    title: item.title,
-    type: reportType,
-    totalDurationSec: item.durationSec,
-    over3Reason: item.over3hours,
-    sessions: [],
-    date: new Date(fromDate),
-  }));
+  // API ReportItem → フロント ReportEntry にマッピング（メモ化）
+  const entries = useMemo<ReportEntry[]>(
+    () =>
+      (data?.items ?? []).map((item) => ({
+        id: item.taskId,
+        taskId: item.taskId,
+        title: item.title,
+        type: reportType,
+        totalDurationSec: item.durationSec,
+        over3Reason: item.over3hours,
+        sessions: [],
+        date: new Date(year, month - 1, 1),
+      })),
+    [data?.items, reportType, year, month]
+  );
 
   // 表示用日付
   const startDate = formatDateSlash(year, month, 1);
@@ -108,13 +114,11 @@ export function ReportPage() {
     setActiveTab(key as ReportType | 'all');
   };
 
-  const handleExport = useCallback(
-    async (exportType: 'normal' | 'brg') => {
-      await downloadReportCsv(exportType, fromDate, toDate, getToken);
-      setIsExportModalOpen(false);
-    },
-    [fromDate, toDate, getToken]
-  );
+  const handleExport = useCallback(async () => {
+    const csvType = exportRange === 'all' ? 'normal' : exportRange;
+    await downloadReportCsv(csvType, fromDate, toDate, getToken);
+    setIsExportModalOpen(false);
+  }, [exportRange, fromDate, toDate, getToken]);
 
   return (
     <>
@@ -162,7 +166,6 @@ export function ReportPage() {
         </Tabs>
       </div>
 
-      {/* 共通ドロワー（レポート詳細タブを差し込み） */}
       <TaskDrawer
         isOpen={selectedEntry != null}
         title={selectedEntry?.title ?? ''}
@@ -187,7 +190,7 @@ export function ReportPage() {
           />
         }
       >
-        <ExportModalContent />
+        <ExportModalContent range={exportRange} onRangeChange={setExportRange} />
       </Modal>
 
       <Modal

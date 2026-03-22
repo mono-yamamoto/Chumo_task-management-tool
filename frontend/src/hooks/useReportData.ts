@@ -61,5 +61,5 @@ export async function downloadReportCsv(
   a.href = blobUrl;
   a.download = `report_${type}_${fromDate}_${toDate}.csv`;
   a.click();
-  URL.revokeObjectURL(blobUrl);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }

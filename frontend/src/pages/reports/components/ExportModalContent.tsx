@@ -1,14 +1,14 @@
-import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 type ExportRange = 'all' | 'normal' | 'brg';
-type ExportMethod = 'create' | 'update';
 
-export function ExportModalContent() {
-  const [range, setRange] = useState<ExportRange>('all');
-  const [method, setMethod] = useState<ExportMethod>('create');
+interface ExportModalContentProps {
+  range: ExportRange;
+  onRangeChange: (range: ExportRange) => void;
+}
 
+export function ExportModalContent({ range, onRangeChange }: ExportModalContentProps) {
   return (
     <div className="space-y-6">
       {/* 出力範囲 */}
@@ -20,42 +20,21 @@ export function ExportModalContent() {
             value="all"
             label="全て"
             checked={range === 'all'}
-            onChange={() => setRange('all')}
+            onChange={() => onRangeChange('all')}
           />
           <RadioOption
             name="range"
             value="normal"
             label="通常のみ"
             checked={range === 'normal'}
-            onChange={() => setRange('normal')}
+            onChange={() => onRangeChange('normal')}
           />
           <RadioOption
             name="range"
             value="brg"
             label="BRGのみ"
             checked={range === 'brg'}
-            onChange={() => setRange('brg')}
-          />
-        </div>
-      </div>
-
-      {/* 出力方法 */}
-      <div className="space-y-3">
-        <span className="text-sm font-medium text-text-primary">出力方法</span>
-        <div className="space-y-2">
-          <RadioOption
-            name="method"
-            value="create"
-            label="新規作成"
-            checked={method === 'create'}
-            onChange={() => setMethod('create')}
-          />
-          <RadioOption
-            name="method"
-            value="update"
-            label="更新"
-            checked={method === 'update'}
-            onChange={() => setMethod('update')}
+            onChange={() => onRangeChange('brg')}
           />
         </div>
       </div>
@@ -65,7 +44,7 @@ export function ExportModalContent() {
 
 interface FooterProps {
   onCancel: () => void;
-  onExport?: (type: 'normal' | 'brg') => void;
+  onExport: () => void;
 }
 
 ExportModalContent.Footer = function ExportModalFooter({ onCancel, onExport }: FooterProps) {
@@ -74,7 +53,7 @@ ExportModalContent.Footer = function ExportModalFooter({ onCancel, onExport }: F
       <Button variant="outline" size="sm" onPress={onCancel}>
         キャンセル
       </Button>
-      <Button variant="primary" size="sm" onPress={() => onExport?.('normal')}>
+      <Button variant="primary" size="sm" onPress={onExport}>
         <Upload size={16} />
         出力
       </Button>
