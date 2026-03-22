@@ -75,9 +75,8 @@ export function AdminTab() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  const handleRoleChange = (_userId: string, _role: 'admin' | 'member') => {
-    // TODO: ロール変更はバックエンド updateUser API で未サポート（isAllowed/chatId のみ admin 更新可能）
-    // バックエンドに role 更新エンドポイント追加後に実装
+  const handleRoleChange = (userId: string, role: 'admin' | 'member') => {
+    updateUser.mutate({ userId, data: { role } });
   };
 
   const handleAddMember = (_email: string, _role: 'Admin' | 'Member') => {

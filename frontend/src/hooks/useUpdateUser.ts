@@ -4,9 +4,11 @@ import { queryKeys } from '../lib/queryKeys';
 import { useAuth } from './useAuth';
 
 interface UpdateUserData {
+  displayName?: string;
   githubUsername?: string;
   chatId?: string | null;
   isAllowed?: boolean;
+  role?: 'admin' | 'member';
 }
 
 /**

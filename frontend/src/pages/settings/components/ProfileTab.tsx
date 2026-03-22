@@ -39,9 +39,10 @@ export function ProfileTab() {
 
   const handleSave = () => {
     if (!currentUser) return;
-    // TODO: displayName はバックエンド updateUser API で未サポート（githubUsername/chatId/isAllowed のみ）
-    // バックエンド拡張後にここで displayName を送信する
-    updateUser.mutate({ userId: currentUser.id, data: {} });
+    updateUser.mutate({
+      userId: currentUser.id,
+      data: { displayName },
+    });
   };
 
   if (isLoading) {
