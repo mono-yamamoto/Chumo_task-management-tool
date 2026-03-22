@@ -67,7 +67,8 @@ export function useDeleteTask() {
         method: 'DELETE',
         getToken,
       }),
-    onSuccess: () => {
+    onSuccess: (_result, taskId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.task(taskId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: queryKeys.assignedTasks() });
     },
