@@ -23,11 +23,6 @@ export function DashboardPage() {
   const { viewMode, setViewMode } = useViewMode('dashboard');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
-  const selectedTask = useMemo<Task | null>(
-    () => myTasks.find((t) => t.id === selectedTaskId) ?? null,
-    [myTasks, selectedTaskId]
-  );
-
   const handleTaskClick = (task: Task) => {
     openDrawer(task.id);
   };
@@ -69,7 +64,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <TaskDrawer task={selectedTask} onClose={closeDrawer} />
+      <TaskDrawer taskId={selectedTaskId} onClose={closeDrawer} />
     </>
   );
 }

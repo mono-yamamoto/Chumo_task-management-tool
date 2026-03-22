@@ -26,11 +26,6 @@ export function MemberTaskListPage() {
   const { viewMode, setViewMode } = useViewMode('members');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
-  const selectedTask = useMemo<Task | null>(
-    () => tasks.find((t) => t.id === selectedTaskId) ?? null,
-    [tasks, selectedTaskId]
-  );
-
   // メンバーごとにタスクをグループ化
   const memberGroups = useMemo(() => {
     const grouped = new Map<string, Task[]>();
@@ -110,7 +105,7 @@ export function MemberTaskListPage() {
         )}
       </div>
 
-      <TaskDrawer task={selectedTask} onClose={closeDrawer} />
+      <TaskDrawer taskId={selectedTaskId} onClose={closeDrawer} />
     </>
   );
 }
