@@ -33,11 +33,6 @@ export function TaskListPage() {
   const { viewMode, setViewMode } = useViewMode('tasks');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
-  const selectedTask = useMemo<Task | null>(
-    () => tasks.find((t) => t.id === selectedTaskId) ?? null,
-    [tasks, selectedTaskId]
-  );
-
   const handleTaskClick = (task: Task) => {
     openDrawer(task.id);
   };
@@ -94,7 +89,7 @@ export function TaskListPage() {
         )}
       </div>
 
-      <TaskDrawer task={selectedTask} onClose={closeDrawer} />
+      <TaskDrawer taskId={selectedTaskId} onClose={closeDrawer} />
     </>
   );
 }

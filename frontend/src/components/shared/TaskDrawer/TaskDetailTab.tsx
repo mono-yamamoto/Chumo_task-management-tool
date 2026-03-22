@@ -5,18 +5,21 @@ import { Badge } from '../../ui/Badge';
 import { Avatar } from '../../ui/Avatar';
 import { FLOW_STATUS_LABELS } from '../../../lib/constants';
 import { formatDate } from '../../../lib/taskUtils';
-import { resolveAssignees, getUserById, getLabelById, MOCK_SESSIONS } from '../../../lib/mockData';
-import { formatDuration } from '../../../lib/taskUtils';
+import { useUsers } from '../../../hooks/useUsers';
+import { useLabels } from '../../../hooks/useLabels';
 
 interface TaskDetailTabProps {
   task: Task;
 }
 
 export function TaskDetailTab({ task }: TaskDetailTabProps) {
-  const label = getLabelById(task.kubunLabelId);
-  const assignees = resolveAssignees(task.assigneeIds);
+  const { getUserById } = useUsers();
+  const { getLabelById } = useLabels();
 
-  const sessions = MOCK_SESSIONS.filter((s) => s.taskId === task.id);
+  const label = getLabelById(task.kubunLabelId);
+  const assignees = task.assigneeIds
+    .map((id) => getUserById(id))
+    .filter((u): u is NonNullable<typeof u> => u != null);
 
   return (
     <div className="space-y-0">
@@ -95,41 +98,10 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
 
       <Divider />
 
-      {/* セッション履歴 */}
+      {/* セッション履歴（Phase 5 で API 接続予定） */}
       <section className="py-3">
         <span className="text-xs font-medium text-text-tertiary">セッション履歴</span>
-        {sessions.length === 0 ? (
-          <p className="mt-2 text-sm text-text-tertiary">セッション履歴はありません</p>
-        ) : (
-          <div className="mt-1">
-            {sessions.map((session) => {
-              const user = getUserById(session.userId);
-              const startDate = new Date(session.startedAt);
-              const durationText = formatDuration(session.durationSec);
-
-              return (
-                <div key={session.id} className="flex items-center justify-between py-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={user?.displayName ?? '不明'} size="sm" />
-                    <span className="text-text-primary">{user?.displayName ?? '不明'}</span>
-                    <span className="text-text-tertiary">
-                      {startDate.toLocaleDateString('ja-JP', {
-                        month: 'numeric',
-                        day: 'numeric',
-                      })}{' '}
-                      {startDate.toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                      〜
-                    </span>
-                  </div>
-                  <span className="text-text-secondary">{durationText}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <p className="mt-2 text-sm text-text-tertiary">セッション履歴はありません</p>
       </section>
     </div>
   );
