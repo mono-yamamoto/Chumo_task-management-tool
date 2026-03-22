@@ -5,29 +5,37 @@ import { MemberTaskToolbar } from './components/MemberTaskToolbar';
 import { TaskFilterPanel } from './components/TaskFilterPanel';
 import { MemberSection } from './components/MemberSection';
 import { MemberCardSection } from './components/MemberCardSection';
+import { Spinner } from '../../components/ui/Spinner';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
-import { getAllTasks, MOCK_USERS } from '../../lib/mockData';
-import { FLOW_STATUS_COMPLETED } from '../../lib/constants';
+import { useTasks } from '../../hooks/useTasks';
+import { useUsers } from '../../hooks/useUsers';
 import type { Task, User } from '../../types';
 
-const allTasks = getAllTasks();
-const activeTasks = allTasks.filter((t) => t.flowStatus !== FLOW_STATUS_COMPLETED);
-
 export function MemberTaskListPage() {
+  const {
+    data,
+    isLoading: tasksLoading,
+    error: tasksError,
+  } = useTasks({ excludeCompleted: true, limit: 500 });
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+
+  const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
+  const isLoading = tasksLoading || usersLoading;
+
   const { viewMode, setViewMode } = useViewMode('members');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
   const selectedTask = useMemo<Task | null>(
-    () => allTasks.find((t) => t.id === selectedTaskId) ?? null,
-    [allTasks, selectedTaskId]
+    () => tasks.find((t) => t.id === selectedTaskId) ?? null,
+    [tasks, selectedTaskId]
   );
 
   // メンバーごとにタスクをグループ化
   const memberGroups = useMemo(() => {
     const grouped = new Map<string, Task[]>();
 
-    for (const task of activeTasks) {
+    for (const task of tasks) {
       for (const assigneeId of task.assigneeIds) {
         const existing = grouped.get(assigneeId);
         if (existing) {
@@ -39,15 +47,15 @@ export function MemberTaskListPage() {
     }
 
     const result: { member: User; tasks: Task[] }[] = [];
-    for (const user of MOCK_USERS) {
-      const tasks = grouped.get(user.id);
-      if (tasks && tasks.length > 0) {
-        result.push({ member: user, tasks });
+    for (const user of users) {
+      const userTasks = grouped.get(user.id);
+      if (userTasks && userTasks.length > 0) {
+        result.push({ member: user, tasks: userTasks });
       }
     }
 
     return result;
-  }, []);
+  }, [tasks, users]);
 
   const handleTaskClick = (task: Task) => {
     openDrawer(task.id);
@@ -71,26 +79,35 @@ export function MemberTaskListPage() {
           </span>
         </div>
 
-        {/* メンバーセクション */}
-        <div className="space-y-5">
-          {memberGroups.map(({ member, tasks }) =>
-            viewMode === 'table' ? (
-              <MemberSection
-                key={member.id}
-                member={member}
-                tasks={tasks}
-                onTaskClick={handleTaskClick}
-              />
-            ) : (
-              <MemberCardSection
-                key={member.id}
-                member={member}
-                tasks={tasks}
-                onTaskClick={handleTaskClick}
-              />
-            )
-          )}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : tasksError ? (
+          <div className="rounded-lg border border-error-border bg-error-bg p-4 text-sm text-error-text">
+            タスクの取得に失敗しました: {tasksError.message}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {memberGroups.map(({ member, tasks: memberTasks }) =>
+              viewMode === 'table' ? (
+                <MemberSection
+                  key={member.id}
+                  member={member}
+                  tasks={memberTasks}
+                  onTaskClick={handleTaskClick}
+                />
+              ) : (
+                <MemberCardSection
+                  key={member.id}
+                  member={member}
+                  tasks={memberTasks}
+                  onTaskClick={handleTaskClick}
+                />
+              )
+            )}
+          </div>
+        )}
       </div>
 
       <TaskDrawer task={selectedTask} onClose={closeDrawer} />

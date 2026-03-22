@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Header } from '../../components/layout/Header';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { TaskTableView } from './components/TaskTableView';
@@ -6,27 +6,36 @@ import { TaskCardView } from './components/TaskCardView';
 import { TaskListToolbar } from './components/TaskListToolbar';
 import { TaskFilterPanel } from './components/TaskFilterPanel';
 import { Pagination } from '../../components/ui/Pagination';
+import { Spinner } from '../../components/ui/Spinner';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
-import { getAllTasks } from '../../lib/mockData';
-import { FLOW_STATUS_COMPLETED } from '../../lib/constants';
+import { useTasks } from '../../hooks/useTasks';
 import type { Task } from '../../types';
 
-const allTasks = getAllTasks();
-const activeTasks = allTasks.filter((t) => t.flowStatus !== FLOW_STATUS_COMPLETED);
-
-// 静的実装: ページネーション用の定数
-const TOTAL_ITEMS = 245;
 const PER_PAGE = 30;
-const CURRENT_PAGE = 1;
 
 export function TaskListPage() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const offset = (currentPage - 1) * PER_PAGE;
+
+  const { data, isLoading, error } = useTasks({
+    excludeCompleted: true,
+    limit: PER_PAGE,
+    offset,
+  });
+
+  const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
+  const hasMore = data?.hasMore ?? false;
+
+  // hasMore ベースで総件数を推定（正確な totalCount は API に追加が必要）
+  const estimatedTotal = hasMore ? offset + PER_PAGE + 1 : offset + tasks.length;
+
   const { viewMode, setViewMode } = useViewMode('tasks');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
   const selectedTask = useMemo<Task | null>(
-    () => allTasks.find((t) => t.id === selectedTaskId) ?? null,
-    [allTasks, selectedTaskId]
+    () => tasks.find((t) => t.id === selectedTaskId) ?? null,
+    [tasks, selectedTaskId]
   );
 
   const handleTaskClick = (task: Task) => {
@@ -39,7 +48,7 @@ export function TaskListPage() {
 
       <div className="flex-1 overflow-y-auto p-8 space-y-6">
         <TaskListToolbar
-          taskCount={activeTasks.length}
+          taskCount={tasks.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
@@ -56,14 +65,32 @@ export function TaskListPage() {
           </span>
         </div>
 
-        {viewMode === 'table' ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-error-border bg-error-bg p-4 text-sm text-error-text">
+            タスクの取得に失敗しました: {error.message}
+          </div>
+        ) : viewMode === 'table' ? (
           <div className="space-y-4">
-            <Pagination totalItems={TOTAL_ITEMS} currentPage={CURRENT_PAGE} perPage={PER_PAGE} />
-            <TaskTableView tasks={activeTasks} onTaskClick={handleTaskClick} enableInfoBg />
-            <Pagination totalItems={TOTAL_ITEMS} currentPage={CURRENT_PAGE} perPage={PER_PAGE} />
+            <Pagination
+              totalItems={estimatedTotal}
+              currentPage={currentPage}
+              perPage={PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
+            <TaskTableView tasks={tasks} onTaskClick={handleTaskClick} enableInfoBg />
+            <Pagination
+              totalItems={estimatedTotal}
+              currentPage={currentPage}
+              perPage={PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
           </div>
         ) : (
-          <TaskCardView tasks={activeTasks} onTaskClick={handleTaskClick} enableInfoBg />
+          <TaskCardView tasks={tasks} onTaskClick={handleTaskClick} enableInfoBg />
         )}
       </div>
 

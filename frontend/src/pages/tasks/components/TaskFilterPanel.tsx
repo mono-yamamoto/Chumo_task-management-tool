@@ -2,7 +2,8 @@ import { ListFilter, X } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { PROJECT_TYPES } from '../../../types';
-import { MOCK_USERS, MOCK_LABELS } from '../../../lib/mockData';
+import { useUsers } from '../../../hooks/useUsers';
+import { useLabels } from '../../../hooks/useLabels';
 
 const FLOW_STATUS_OPTIONS = [
   { value: '完了以外', label: '完了以外' },
@@ -16,16 +17,6 @@ const FLOW_STATUS_OPTIONS = [
 ];
 
 const PROJECT_OPTIONS = PROJECT_TYPES.map((p) => ({ value: p, label: p }));
-
-const ASSIGN_OPTIONS = MOCK_USERS.map((u) => ({
-  value: u.id,
-  label: u.displayName,
-}));
-
-const KUBUN_OPTIONS = MOCK_LABELS.map((l) => ({
-  value: l.id,
-  label: l.name,
-}));
 
 const TIMER_OPTIONS = [
   { value: 'active', label: '計測中' },
@@ -48,6 +39,19 @@ function generateMonthOptions(): { value: string; label: string }[] {
 const MONTH_OPTIONS = generateMonthOptions();
 
 export function TaskFilterPanel() {
+  const { data: users = [] } = useUsers();
+  const { data: labels = [] } = useLabels();
+
+  const assignOptions = users.map((u) => ({
+    value: u.id,
+    label: u.displayName,
+  }));
+
+  const kubunOptions = labels.map((l) => ({
+    value: l.id,
+    label: l.name,
+  }));
+
   return (
     <div className="rounded-lg border border-border-default bg-bg-tertiary px-6 py-4 space-y-3">
       {/* ヘッダー */}
@@ -84,12 +88,12 @@ export function TaskFilterPanel() {
           active
           className="flex-1"
         />
-        <Select label="アサイン" options={ASSIGN_OPTIONS} placeholder="すべて" className="flex-1" />
+        <Select label="アサイン" options={assignOptions} placeholder="すべて" className="flex-1" />
       </div>
 
       {/* フィルター Row 2 */}
       <div className="flex items-end gap-3">
-        <Select label="区分" options={KUBUN_OPTIONS} placeholder="すべて" className="flex-1" />
+        <Select label="区分" options={kubunOptions} placeholder="すべて" className="flex-1" />
         <Select label="タイマー" options={TIMER_OPTIONS} placeholder="すべて" className="flex-1" />
         <Select
           label="ITアップ月"

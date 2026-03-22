@@ -5,15 +5,16 @@ import { StatsRow } from './components/StatsRow';
 import { TaskToolbar } from './components/TaskToolbar';
 import { TaskTableView } from '../tasks/components/TaskTableView';
 import { TaskCardView } from '../tasks/components/TaskCardView';
+import { Spinner } from '../../components/ui/Spinner';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
-import { getMyTasks } from '../../lib/mockData';
+import { useAssignedTasks } from '../../hooks/useTasks';
 import { FLOW_STATUS_COMPLETED } from '../../lib/constants';
 import type { Task } from '../../types';
 
 export function DashboardPage() {
-  const myTasks = useMemo(() => getMyTasks(), []);
+  const { data: myTasks = [], isLoading, error } = useAssignedTasks();
   const activeTasks = useMemo(
     () => myTasks.filter((t) => t.flowStatus !== FLOW_STATUS_COMPLETED),
     [myTasks]
@@ -43,16 +44,28 @@ export function DashboardPage() {
           done={stats.done}
         />
 
-        <TaskToolbar
-          taskCount={activeTasks.length}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
-
-        {viewMode === 'table' ? (
-          <TaskTableView tasks={activeTasks} onTaskClick={handleTaskClick} />
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-error-border bg-error-bg p-4 text-sm text-error-text">
+            タスクの取得に失敗しました: {error.message}
+          </div>
         ) : (
-          <TaskCardView tasks={activeTasks} onTaskClick={handleTaskClick} />
+          <>
+            <TaskToolbar
+              taskCount={activeTasks.length}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+
+            {viewMode === 'table' ? (
+              <TaskTableView tasks={activeTasks} onTaskClick={handleTaskClick} />
+            ) : (
+              <TaskCardView tasks={activeTasks} onTaskClick={handleTaskClick} />
+            )}
+          </>
         )}
       </div>
 
