@@ -59,7 +59,6 @@ export function RiveBackground() {
   useEffect(() => {
     if (nightInput) {
       // Rive APIの標準的な使い方: StateMachineInputのvalueを直接設定
-      // eslint-disable-next-line react-hooks/immutability -- Rive APIのStateMachineInputは外部ライブラリのオブジェクトであり、valueの直接設定が必要
       nightInput.value = isNight;
     }
   }, [isNight, nightInput]);

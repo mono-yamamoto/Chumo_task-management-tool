@@ -12,8 +12,8 @@ export default [
       'node_modules/**',
       '.next/**',
       'out/**',
-      'build/**',
-      'dist/**',
+      '**/build/**',
+      '**/dist/**',
       '*.config.js',
       '*.config.mjs',
       'functions/**', // functionsは別のtsconfigを使用するため除外
