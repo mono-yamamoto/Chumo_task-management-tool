@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
+import type { UserRole } from '../types';
 import { useAuth } from './useAuth';
 
 interface UpdateUserData {
@@ -8,7 +9,7 @@ interface UpdateUserData {
   githubUsername?: string;
   chatId?: string | null;
   isAllowed?: boolean;
-  role?: 'admin' | 'member';
+  role?: UserRole;
 }
 
 /**

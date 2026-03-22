@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import { createClerkClient } from '@clerk/backend';
 import {
   users,
+  userRoleEnum,
   tasks,
   taskSessions,
   taskComments,
@@ -115,7 +116,7 @@ const updateUserSchema = z.object({
   githubUsername: z.string().optional(),
   chatId: z.string().nullable().optional(),
   isAllowed: z.boolean().optional(),
-  role: z.enum(['admin', 'member']).optional(),
+  role: z.enum(userRoleEnum.enumValues).optional(),
   googleRefreshToken: z.string().nullable().optional(),
   googleOAuthUpdatedAt: z.string().nullable().optional(),
 });
@@ -153,12 +154,12 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       return c.json({ error: 'No updatable fields' }, 400);
     }
 
-    await db
+    const [updated] = await db
       .update(users)
       .set({ ...adminAllowed, updatedAt: new Date() })
-      .where(eq(users.id, targetId));
+      .where(eq(users.id, targetId))
+      .returning();
 
-    const [updated] = await db.select().from(users).where(eq(users.id, targetId));
     return c.json({ user: updated });
   }
 
@@ -175,9 +176,12 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       : null;
   }
 
-  await db.update(users).set(updateData).where(eq(users.id, targetId));
+  const [updated] = await db
+    .update(users)
+    .set(updateData)
+    .where(eq(users.id, targetId))
+    .returning();
 
-  const [updated] = await db.select().from(users).where(eq(users.id, targetId));
   return c.json({ user: updated });
 });
 
