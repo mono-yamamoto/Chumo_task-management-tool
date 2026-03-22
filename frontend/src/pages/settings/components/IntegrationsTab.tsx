@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HardDrive, Github, MessageCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import { Spinner } from '../../../components/ui/Spinner';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
+import { useUpdateUser } from '../../../hooks/useUpdateUser';
 
 interface IntegrationCardProps {
   icon: React.ReactNode;
@@ -13,6 +16,7 @@ interface IntegrationCardProps {
     value: string;
     onChange: (value: string) => void;
     onSave: () => void;
+    isSaving?: boolean;
   };
 }
 
@@ -46,7 +50,7 @@ function IntegrationCard({
               {'✓ 連携済み'}
             </span>
           ) : (
-            <Button variant="primary" size="md" className="text-xs gap-1.5" onClick={onConnect}>
+            <Button variant="primary" size="md" className="text-xs gap-1.5" onPress={onConnect}>
               連携する
             </Button>
           ))}
@@ -60,8 +64,14 @@ function IntegrationCard({
             aria-label={`${name} の設定値`}
             className="h-10 flex-1 rounded-md border border-border-default bg-transparent px-3 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
           />
-          <Button variant="outline" size="lg" className="text-sm px-4" onClick={inputField.onSave}>
-            保存
+          <Button
+            variant="outline"
+            size="lg"
+            className="text-sm px-4"
+            onPress={inputField.onSave}
+            isDisabled={inputField.isSaving}
+          >
+            {inputField.isSaving ? '保存中...' : '保存'}
           </Button>
         </div>
       )}
@@ -70,29 +80,55 @@ function IntegrationCard({
 }
 
 export function IntegrationsTab() {
-  const [driveConnected, setDriveConnected] = useState(false);
-  const [githubUsername, setGithubUsername] = useState('tanaka-yui');
-  const [chatUserId, setChatUserId] = useState('spaces/xxx/members/123456');
+  const { data: currentUser, isLoading } = useCurrentUser();
+  const updateUser = useUpdateUser();
+
+  const [githubUsername, setGithubUsername] = useState('');
+  const [chatUserId, setChatUserId] = useState('');
+
+  useEffect(() => {
+    if (currentUser) {
+      setGithubUsername(currentUser.githubUsername ?? '');
+      setChatUserId(currentUser.chatId ?? '');
+    }
+  }, [currentUser]);
+
+  const driveConnected = currentUser?.googleOAuthUpdatedAt != null;
+
+  const handleSaveGithub = () => {
+    if (!currentUser) return;
+    updateUser.mutate({ userId: currentUser.id, data: { githubUsername } });
+  };
+
+  const handleSaveChat = () => {
+    if (!currentUser) return;
+    updateUser.mutate({ userId: currentUser.id, data: { chatId: chatUserId || null } });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 py-8 px-10">
-      {/* Title */}
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-bold text-text-primary">連携サービス</h2>
         <p className="text-sm text-text-secondary">外部サービスとの連携を管理します</p>
       </div>
 
-      {/* Google Drive */}
       <IntegrationCard
         icon={<HardDrive size={20} className="text-blue-600" />}
         iconBg="bg-blue-50"
         name="Google Drive"
         description="レポートの自動エクスポート先"
         connected={driveConnected}
-        onConnect={() => setDriveConnected(true)}
+        onConnect={() => {}}
       />
 
-      {/* GitHub */}
       <IntegrationCard
         icon={<Github size={20} className="text-neutral-800 dark:text-neutral-200" />}
         iconBg="bg-bg-tertiary"
@@ -101,11 +137,11 @@ export function IntegrationsTab() {
         inputField={{
           value: githubUsername,
           onChange: setGithubUsername,
-          onSave: () => {},
+          onSave: handleSaveGithub,
+          isSaving: updateUser.isPending,
         }}
       />
 
-      {/* Google Chat */}
       <IntegrationCard
         icon={<MessageCircle size={20} className="text-green-600" />}
         iconBg="bg-green-50"
@@ -114,7 +150,8 @@ export function IntegrationsTab() {
         inputField={{
           value: chatUserId,
           onChange: setChatUserId,
-          onSave: () => {},
+          onSave: handleSaveChat,
+          isSaving: updateUser.isPending,
         }}
       />
     </div>

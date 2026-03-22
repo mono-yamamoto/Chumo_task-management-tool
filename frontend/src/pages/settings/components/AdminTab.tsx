@@ -2,40 +2,12 @@ import { useState } from 'react';
 import { Plus, Trash2, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
+import { Spinner } from '../../../components/ui/Spinner';
 import { AddMemberModal } from './AddMemberModal';
 import { DeleteMemberModal } from './DeleteMemberModal';
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  googleChat: string;
-  role: 'Admin' | 'Member';
-}
-
-const MOCK_MEMBERS: Member[] = [
-  {
-    id: '1',
-    name: 'Tanaka Yui',
-    email: 'tanaka@example.com',
-    googleChat: 'tanaka.yui',
-    role: 'Admin',
-  },
-  {
-    id: '2',
-    name: 'Suzuki Kenji',
-    email: 'suzuki@example.com',
-    googleChat: 'suzuki.kenji',
-    role: 'Member',
-  },
-  {
-    id: '3',
-    name: 'Yamada Taro',
-    email: 'yamada@example.com',
-    googleChat: 'yamada.taro',
-    role: 'Member',
-  },
-];
+import { useUsers } from '../../../hooks/useUsers';
+import { useUpdateUser } from '../../../hooks/useUpdateUser';
+import type { User } from '../../../types';
 
 const TABLE_COLUMNS = [
   { label: 'メンバー', width: 'w-[230px]' },
@@ -46,12 +18,13 @@ const TABLE_COLUMNS = [
 ];
 
 interface RoleDropdownProps {
-  value: 'Admin' | 'Member';
-  onChange: (role: 'Admin' | 'Member') => void;
+  value: 'admin' | 'member';
+  onChange: (role: 'admin' | 'member') => void;
 }
 
 function RoleDropdown({ value, onChange }: RoleDropdownProps) {
   const [open, setOpen] = useState(false);
+  const displayValue = value === 'admin' ? 'Admin' : 'Member';
 
   return (
     <div className="relative">
@@ -60,32 +33,35 @@ function RoleDropdown({ value, onChange }: RoleDropdownProps) {
         onClick={() => setOpen(!open)}
         className="flex h-8 w-[100px] items-center justify-between rounded-md border border-border-default px-2 text-xs text-text-primary transition-colors hover:bg-bg-secondary"
       >
-        <span>{value}</span>
+        <span>{displayValue}</span>
         <ChevronDown size={14} className="text-text-tertiary" />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-20 mt-1 w-[120px] overflow-hidden rounded-md border border-border-default bg-bg-primary shadow-lg">
-            {(['Admin', 'Member'] as const).map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => {
-                  onChange(role);
-                  setOpen(false);
-                }}
-                className={cn(
-                  'flex h-9 w-full items-center justify-between px-3 text-xs transition-colors',
-                  value === role
-                    ? 'bg-bg-brand-subtle font-medium text-primary-default'
-                    : 'text-text-primary hover:bg-bg-secondary'
-                )}
-              >
-                <span>{role}</span>
-                {value === role && <Check size={14} className="text-primary-default" />}
-              </button>
-            ))}
+            {(['admin', 'member'] as const).map((role) => {
+              const label = role === 'admin' ? 'Admin' : 'Member';
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    onChange(role);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    'flex h-9 w-full items-center justify-between px-3 text-xs transition-colors',
+                    value === role
+                      ? 'bg-bg-brand-subtle font-medium text-primary-default'
+                      : 'text-text-primary hover:bg-bg-secondary'
+                  )}
+                >
+                  <span>{label}</span>
+                  {value === role && <Check size={14} className="text-primary-default" />}
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -94,35 +70,37 @@ function RoleDropdown({ value, onChange }: RoleDropdownProps) {
 }
 
 export function AdminTab() {
-  const [members, setMembers] = useState(MOCK_MEMBERS);
+  const { data: users = [], isLoading } = useUsers();
+  const updateUser = useUpdateUser();
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  const handleRoleChange = (memberId: string, role: 'Admin' | 'Member') => {
-    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role } : m)));
+  const handleRoleChange = (_userId: string, _role: 'admin' | 'member') => {
+    // TODO: ロール変更はバックエンド updateUser API で未サポート（isAllowed/chatId のみ admin 更新可能）
+    // バックエンドに role 更新エンドポイント追加後に実装
   };
 
-  const handleAddMember = (email: string, role: 'Admin' | 'Member') => {
-    const newMember: Member = {
-      id: String(Date.now()),
-      name: email.split('@')[0] ?? email,
-      email,
-      googleChat: '',
-      role,
-    };
-    setMembers((prev) => [...prev, newMember]);
+  const handleAddMember = (_email: string, _role: 'Admin' | 'Member') => {
+    // TODO: メンバー追加 API（Clerk ユーザー招待）
     setAddModalOpen(false);
   };
 
   const handleDeleteMember = () => {
     if (!deleteTarget) return;
-    setMembers((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+    updateUser.mutate({ userId: deleteTarget.id, data: { isAllowed: false } });
     setDeleteTarget(null);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 py-8 px-10">
-      {/* Header Row */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-bold text-text-primary">ユーザー管理</h2>
@@ -141,9 +119,7 @@ export function AdminTab() {
         </Button>
       </div>
 
-      {/* User Table */}
       <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
-        {/* Table Header */}
         <div className="flex h-11 items-center gap-4 px-5">
           {TABLE_COLUMNS.map((col) => (
             <span
@@ -155,29 +131,28 @@ export function AdminTab() {
           ))}
         </div>
 
-        {/* Table Rows */}
-        {members.map((member) => (
+        {users.map((user) => (
           <div
-            key={member.id}
+            key={user.id}
             className="flex h-[52px] items-center gap-4 border-t border-border-default px-5"
           >
             <span className="w-[230px] truncate text-sm font-medium text-text-primary">
-              {member.name}
+              {user.displayName}
             </span>
-            <span className="w-[240px] truncate text-sm text-text-secondary">{member.email}</span>
+            <span className="w-[240px] truncate text-sm text-text-secondary">{user.email}</span>
             <span className="w-[170px] truncate text-sm text-text-secondary">
-              {member.googleChat}
+              {user.chatId ?? '-'}
             </span>
             <div className="w-[100px]">
               <RoleDropdown
-                value={member.role}
-                onChange={(role) => handleRoleChange(member.id, role)}
+                value={user.role}
+                onChange={(role) => handleRoleChange(user.id, role)}
               />
             </div>
             <div className="w-[76px]">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(member)}
+                onClick={() => setDeleteTarget(user)}
                 className="flex h-7 w-full items-center justify-center gap-2 rounded-md bg-red-600 text-xs font-medium text-white transition-colors hover:bg-red-700"
               >
                 <Trash2 size={14} />
@@ -188,7 +163,6 @@ export function AdminTab() {
         ))}
       </div>
 
-      {/* Modals */}
       <AddMemberModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
@@ -196,7 +170,7 @@ export function AdminTab() {
       />
       <DeleteMemberModal
         isOpen={deleteTarget !== null}
-        memberName={deleteTarget?.name ?? ''}
+        memberName={deleteTarget?.displayName ?? ''}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteMember}
       />
