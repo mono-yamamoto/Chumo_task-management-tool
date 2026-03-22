@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import { createClerkClient } from '@clerk/backend';
 import {
   users,
+  userRoleEnum,
   tasks,
   taskSessions,
   taskComments,
@@ -111,9 +112,11 @@ app.get('/:id', async (c) => {
 });
 
 const updateUserSchema = z.object({
+  displayName: z.string().min(1).optional(),
   githubUsername: z.string().optional(),
   chatId: z.string().nullable().optional(),
   isAllowed: z.boolean().optional(),
+  role: z.enum(userRoleEnum.enumValues).optional(),
   googleRefreshToken: z.string().nullable().optional(),
   googleOAuthUpdatedAt: z.string().nullable().optional(),
 });
@@ -121,7 +124,8 @@ const updateUserSchema = z.object({
 /**
  * PUT /:id
  * ユーザー情報を更新
- * 自分自身のみ更新可能（adminは他ユーザーのisAllowed/chatIdを更新可能）
+ * 自分自身: displayName, githubUsername, chatId, Google OAuth 情報を更新可能
+ * admin → 他ユーザー: isAllowed, chatId, role を更新可能
  */
 app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
   const db = c.get('db');
@@ -140,26 +144,32 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       return c.json({ error: 'Forbidden' }, 403);
     }
 
-    // adminでも更新可能なフィールドはisAllowed, chatIdのみ
+    // adminでも更新可能なフィールドはisAllowed, chatId, role
     const adminAllowed: Record<string, unknown> = {};
     if (body.isAllowed !== undefined) adminAllowed.isAllowed = body.isAllowed;
     if (body.chatId !== undefined) adminAllowed.chatId = body.chatId || null;
+    if (body.role !== undefined) adminAllowed.role = body.role;
 
     if (Object.keys(adminAllowed).length === 0) {
       return c.json({ error: 'No updatable fields' }, 400);
     }
 
-    await db
+    const [updated] = await db
       .update(users)
       .set({ ...adminAllowed, updatedAt: new Date() })
-      .where(eq(users.id, targetId));
+      .where(eq(users.id, targetId))
+      .returning(safeUserColumns);
 
-    const [updated] = await db.select().from(users).where(eq(users.id, targetId));
+    if (!updated) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
     return c.json({ user: updated });
   }
 
-  // 自分自身の更新（isAllowedは自己変更不可 — admin専用）
+  // 自分自身の更新（isAllowed, role は自己変更不可 — admin専用）
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (body.displayName !== undefined) updateData.displayName = body.displayName;
   if (body.githubUsername !== undefined) updateData.githubUsername = body.githubUsername;
   if (body.chatId !== undefined) updateData.chatId = body.chatId || null;
   if (body.googleRefreshToken !== undefined)
@@ -170,9 +180,16 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       : null;
   }
 
-  await db.update(users).set(updateData).where(eq(users.id, targetId));
+  const [updated] = await db
+    .update(users)
+    .set(updateData)
+    .where(eq(users.id, targetId))
+    .returning(safeUserColumns);
 
-  const [updated] = await db.select().from(users).where(eq(users.id, targetId));
+  if (!updated) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
   return c.json({ user: updated });
 });
 

@@ -20,7 +20,6 @@ export function useLoginErrorMessage({ searchParams }: UseLoginErrorMessageOptio
     const errorParam = searchParams.get('error');
     if (errorParam === 'not_allowed') {
       // URLパラメータに基づく初期状態設定のためsetStateを使用
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(ERROR_MESSAGES.NOT_ALLOWED);
     } else {
       // エラーパラメータが存在しない場合は状態をクリア

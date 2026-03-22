@@ -12,12 +12,13 @@ export default [
       'node_modules/**',
       '.next/**',
       'out/**',
-      'build/**',
-      'dist/**',
+      '**/build/**',
+      '**/dist/**',
       '*.config.js',
       '*.config.mjs',
       'functions/**', // functionsは別のtsconfigを使用するため除外
       'backend/**', // backendは別のtsconfigを使用するため除外
+      'frontend/**', // frontendは独自のeslint.config.mjsを使用するため除外
       'coverage/**',
       '*.min.js',
       'next-env.d.ts',
@@ -183,26 +184,6 @@ export default [
       'no-undef': 'off',
     },
   },
-  {
-    files: ['frontend/src/**/*.ts', 'frontend/src/**/*.tsx'],
-    languageOptions: {
-      parser: typescriptParser,
-      parserOptions: {
-        project: ['./frontend/tsconfig.app.json'],
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
-      'no-unused-vars': 'off',
-      'no-undef': 'off',
-    },
-  },
   // functionsはignoresで除外しているため、この設定は不要
+  // frontendはfrontend/eslint.config.mjsで独自管理
 ];
