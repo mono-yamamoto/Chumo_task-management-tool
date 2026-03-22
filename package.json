@@ -5,6 +5,10 @@
   "scripts": {
     "prepare": "lefthook install",
     "dev": "bun run frontend:dev & bun run backend:dev & wait",
+    "build": "bun run frontend:build",
+    "lint": "bun run frontend:lint",
+    "type-check": "bun run frontend:type-check",
+    "test": "bun run backend:test",
     "frontend:dev": "cd frontend && bun run dev",
     "frontend:build": "cd frontend && bun run build",
     "frontend:lint": "cd frontend && bun run lint",
