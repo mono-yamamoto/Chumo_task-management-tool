@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Search, Bell } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { IconButton } from '../ui/IconButton';
+import { TimerWidget } from '../shared/TimerWidget';
 
 interface HeaderProps {
   title: string;
@@ -12,6 +13,7 @@ interface HeaderProps {
 function DefaultHeaderActions() {
   return (
     <>
+      <TimerWidget />
       <Input placeholder="タスクを検索..." icon={<Search size={16} />} className="w-[220px]" />
       <div className="relative">
         <IconButton aria-label="通知" className="h-9 w-9 rounded-md border border-border-default">
