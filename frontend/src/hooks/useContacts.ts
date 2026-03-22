@@ -59,7 +59,8 @@ export function useCreateContact() {
         getToken,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts() });
+      // 新規作成は常に pending なので pending キャッシュのみ無効化
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts('pending') });
     },
   });
 }
