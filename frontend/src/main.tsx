@@ -6,9 +6,16 @@ import { App } from './App';
 import './index.css';
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('Root element "#root" が見つかりません。');
+}
+
+const root = createRoot(rootElement);
 
 if (!CLERK_PUBLISHABLE_KEY) {
-  createRoot(document.getElementById('root')!).render(
+  root.render(
     <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
       <h1>⚠️ VITE_CLERK_PUBLISHABLE_KEY が未設定です</h1>
       <p>
@@ -17,7 +24,7 @@ if (!CLERK_PUBLISHABLE_KEY) {
     </div>
   );
 } else {
-  createRoot(document.getElementById('root')!).render(
+  root.render(
     <StrictMode>
       <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} localization={jaJP}>
         <App />

@@ -27,7 +27,7 @@ export const queryKeys = {
   activeSession: () => ['sessions', 'active'] as const,
 
   // Reports
-  reports: (from: string, to: string, type: string) => ['reports', from, to, type] as const,
+  reports: (type: string, from: string, to: string) => ['reports', type, from, to] as const,
 
   // Contacts
   contacts: (status?: string) =>

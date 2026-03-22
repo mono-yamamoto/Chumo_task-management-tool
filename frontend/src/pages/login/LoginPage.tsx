@@ -1,5 +1,6 @@
-import { SignIn, useAuth } from '@clerk/clerk-react';
+import { SignIn } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export function LoginPage() {
   const { isSignedIn, isLoaded } = useAuth();
