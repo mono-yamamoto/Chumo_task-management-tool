@@ -158,7 +158,11 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       .update(users)
       .set({ ...adminAllowed, updatedAt: new Date() })
       .where(eq(users.id, targetId))
-      .returning();
+      .returning(safeUserColumns);
+
+    if (!updated) {
+      return c.json({ error: 'User not found' }, 404);
+    }
 
     return c.json({ user: updated });
   }
@@ -180,7 +184,7 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     .update(users)
     .set(updateData)
     .where(eq(users.id, targetId))
-    .returning();
+    .returning(safeUserColumns);
 
   return c.json({ user: updated });
 });

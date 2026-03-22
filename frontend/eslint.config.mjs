@@ -103,7 +103,7 @@ export default [
       'no-unused-vars': 'off',
       'no-undef': 'off',
       'react-hooks/exhaustive-deps': 'warn',
-      'react-hooks/rules-of-hooks': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
     },
   },
 ];

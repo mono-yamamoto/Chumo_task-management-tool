@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { Spinner } from '../../../components/ui/Spinner';
 import { AddMemberModal } from './AddMemberModal';
 import { DeleteMemberModal } from './DeleteMemberModal';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUsers } from '../../../hooks/useUsers';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
 import type { User } from '../../../types';
@@ -20,9 +21,10 @@ const TABLE_COLUMNS = [
 interface RoleDropdownProps {
   value: 'admin' | 'member';
   onChange: (role: 'admin' | 'member') => void;
+  disabled?: boolean;
 }
 
-function RoleDropdown({ value, onChange }: RoleDropdownProps) {
+function RoleDropdown({ value, onChange, disabled }: RoleDropdownProps) {
   const [open, setOpen] = useState(false);
   const displayValue = value === 'admin' ? 'Admin' : 'Member';
 
@@ -30,8 +32,13 @@ function RoleDropdown({ value, onChange }: RoleDropdownProps) {
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        className="flex h-8 w-[100px] items-center justify-between rounded-md border border-border-default px-2 text-xs text-text-primary transition-colors hover:bg-bg-secondary"
+        onClick={() => !disabled && setOpen(!open)}
+        className={cn(
+          'flex h-8 w-[100px] items-center justify-between rounded-md border border-border-default px-2 text-xs transition-colors',
+          disabled
+            ? 'cursor-not-allowed text-text-tertiary'
+            : 'text-text-primary hover:bg-bg-secondary'
+        )}
       >
         <span>{displayValue}</span>
         <ChevronDown size={14} className="text-text-tertiary" />
@@ -70,12 +77,14 @@ function RoleDropdown({ value, onChange }: RoleDropdownProps) {
 }
 
 export function AdminTab() {
+  const { data: currentUser } = useCurrentUser();
   const { data: users = [], isLoading } = useUsers();
   const updateUser = useUpdateUser();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const handleRoleChange = (userId: string, role: 'admin' | 'member') => {
+    if (userId === currentUser?.id) return;
     updateUser.mutate({ userId, data: { role } });
   };
 
@@ -146,6 +155,7 @@ export function AdminTab() {
               <RoleDropdown
                 value={user.role}
                 onChange={(role) => handleRoleChange(user.id, role)}
+                disabled={user.id === currentUser?.id}
               />
             </div>
             <div className="w-[76px]">
