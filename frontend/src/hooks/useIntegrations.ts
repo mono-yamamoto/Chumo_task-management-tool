@@ -3,7 +3,7 @@ import { apiClient } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
 import { useAuth } from './useAuth';
 
-interface IntegrationResult {
+export interface IntegrationResult {
   success: boolean;
   url: string;
   alreadyExists?: boolean;

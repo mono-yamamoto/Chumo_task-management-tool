@@ -1,18 +1,23 @@
 // Service Worker for Web Push Notifications
 
 self.addEventListener('push', (event) => {
-  let data = {};
+  let payload = {};
   try {
-    data = event.data?.json() ?? {};
+    payload = event.data?.json() ?? {};
   } catch {
     // 不正なJSONペイロードは無視
   }
-  const title = data.title || '通知';
+
+  // FCM notification + data 形式と、フラットな data 形式の両方に対応
+  const notification = payload.notification || {};
+  const data = payload.data || payload;
+
+  const title = notification.title || data.title || '通知';
   const options = {
-    body: data.body || '',
+    body: notification.body || data.body || '',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
-    data: data.data || {},
+    data: data,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
@@ -22,13 +27,11 @@ self.addEventListener('notificationclick', (event) => {
   const url = event.notification.data?.clickAction || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // 既存のウィンドウがあればフォーカス
       for (const client of windowClients) {
         if (client.url.includes(url) && 'focus' in client) {
           return client.focus();
         }
       }
-      // なければ新しいウィンドウを開く
       return clients.openWindow(url);
     })
   );

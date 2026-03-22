@@ -12,11 +12,18 @@ import {
 } from 'lucide-react';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useActiveSession, useTimer, useElapsedTime } from '../../../hooks/useTimer';
-import { useIntegrations } from '../../../hooks/useIntegrations';
+import { useIntegrations, type IntegrationResult } from '../../../hooks/useIntegrations';
+import { HttpError } from '../../../lib/api';
 import type { Task } from '../../../types';
+
+type IntegrationMutation = UseMutationResult<IntegrationResult, Error, string, unknown>;
 
 interface DrawerActionBarProps {
   task: Task;
+}
+
+function openExternal(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export function DrawerActionBar({ task }: DrawerActionBarProps) {
@@ -47,25 +54,27 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
   const makeIntegrationHandler = useCallback(
     (
       existingUrl: string | null | undefined,
-      mutation: UseMutationResult<any, any, string, any>,
+      mutation: IntegrationMutation,
       opts?: { onAuthError?: () => void }
     ) =>
       () => {
         if (existingUrl) {
-          window.open(existingUrl, '_blank');
+          openExternal(existingUrl);
           return;
         }
+        // ポップアップブロッカー対策: クリック時に同期的に空ウィンドウを開く
+        const newWindow = window.open('', '_blank', 'noopener,noreferrer');
         mutation.mutate(task.id, {
-          onSuccess: (data: { url?: string; alreadyExists?: boolean }) => {
-            if (data.url) {
-              window.open(data.url, '_blank');
+          onSuccess: (data) => {
+            if (data.url && newWindow && !newWindow.closed) {
+              newWindow.location.href = data.url;
+            } else if (data.url) {
+              openExternal(data.url);
             }
           },
-          onError: (error: Error & { details?: Record<string, unknown> }) => {
-            if (
-              opts?.onAuthError &&
-              (error as { details?: { requiresAuth?: boolean } }).details?.requiresAuth
-            ) {
+          onError: (error) => {
+            newWindow?.close();
+            if (opts?.onAuthError && error instanceof HttpError && error.details?.requiresAuth) {
               opts.onAuthError();
             }
           },
@@ -150,7 +159,7 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
       {/* BACKLOGボタン */}
       <button
         type="button"
-        onClick={() => task.backlogUrl && window.open(task.backlogUrl, '_blank')}
+        onClick={() => task.backlogUrl && openExternal(task.backlogUrl)}
         disabled={!task.backlogUrl}
         className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary-default text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
       >
