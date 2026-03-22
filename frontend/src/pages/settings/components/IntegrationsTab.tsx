@@ -57,6 +57,7 @@ function IntegrationCard({
             type="text"
             value={inputField.value}
             onChange={(e) => inputField.onChange(e.target.value)}
+            aria-label={`${name} の設定値`}
             className="h-10 flex-1 rounded-md border border-border-default bg-transparent px-3 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
           />
           <Button variant="outline" size="lg" className="text-sm px-4" onClick={inputField.onSave}>

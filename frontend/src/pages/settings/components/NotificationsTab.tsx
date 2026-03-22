@@ -6,14 +6,21 @@ interface ToggleSwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  'aria-labelledby'?: string;
 }
 
-function ToggleSwitch({ checked, onChange, disabled }: ToggleSwitchProps) {
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled,
+  'aria-labelledby': ariaLabelledBy,
+}: ToggleSwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-labelledby={ariaLabelledBy}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
@@ -56,7 +63,9 @@ export function NotificationsTab() {
             <BellRing size={20} className="text-amber-600" />
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-text-primary">プッシュ通知</span>
+            <span id="push-notifications-label" className="text-sm font-medium text-text-primary">
+              プッシュ通知
+            </span>
             <span className={cn('text-xs', isDisabled ? 'text-amber-600' : 'text-text-secondary')}>
               {descText}
             </span>
@@ -66,6 +75,7 @@ export function NotificationsTab() {
           checked={!isDisabled && pushEnabled}
           onChange={setPushEnabled}
           disabled={isDisabled}
+          aria-labelledby="push-notifications-label"
         />
       </div>
     </div>

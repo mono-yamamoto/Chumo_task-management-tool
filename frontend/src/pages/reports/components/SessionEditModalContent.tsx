@@ -46,6 +46,7 @@ export function SessionEditModalContent({ session }: SessionEditModalContentProp
           type="date"
           value={dateValue}
           onChange={(e) => setDateValue(e.target.value)}
+          aria-label="セッション日付"
           className="flex-1 bg-transparent text-base text-text-primary outline-none"
         />
       </FieldRow>
@@ -57,6 +58,7 @@ export function SessionEditModalContent({ session }: SessionEditModalContentProp
           step="1"
           value={startTime}
           onChange={(e) => setStartTime(e.target.value)}
+          aria-label="開始時間"
           className="flex-1 bg-transparent text-base text-text-primary outline-none"
         />
       </FieldRow>
@@ -68,6 +70,7 @@ export function SessionEditModalContent({ session }: SessionEditModalContentProp
           step="1"
           value={endTime}
           onChange={(e) => setEndTime(e.target.value)}
+          aria-label="終了時間"
           className="flex-1 bg-transparent text-base text-text-primary outline-none"
         />
       </FieldRow>

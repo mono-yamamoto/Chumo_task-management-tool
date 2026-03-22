@@ -149,6 +149,7 @@ function SessionRow({ session, colorClass, onEdit }: SessionRowProps) {
         <button
           type="button"
           onClick={onEdit}
+          aria-label="セッションを編集"
           className="text-text-tertiary transition-colors hover:text-text-primary"
         >
           <Pencil size={16} />
