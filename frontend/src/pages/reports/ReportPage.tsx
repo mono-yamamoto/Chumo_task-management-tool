@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Header } from '../../components/layout/Header';
 import { Tabs, TabList, Tab, TabPanel } from '../../components/ui/Tabs';
 import { Modal } from '../../components/ui/Modal';
+import { Spinner } from '../../components/ui/Spinner';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { ReportDetailTab } from '../../components/shared/ReportDrawer/ReportDetailTab';
 import { ReportToolbar } from './components/ReportToolbar';
@@ -10,7 +11,9 @@ import { SummaryRow } from './components/SummaryRow';
 import { ReportTable } from './components/ReportTable';
 import { ExportModalContent } from './components/ExportModalContent';
 import { SessionEditModalContent } from './components/SessionEditModalContent';
-import { getReportEntries } from '../../lib/mockData';
+import { useReportData, downloadReportCsv } from '../../hooks/useReportData';
+import type { ReportItem } from '../../hooks/useReportData';
+import { useAuth } from '../../hooks/useAuth';
 import type { ReportEntry, ReportType, TaskSession } from '../../types';
 
 function getLastDayOfMonth(year: number, month: number): number {
@@ -21,10 +24,17 @@ function formatDateSlash(year: number, month: number, day: number): string {
   return `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
 }
 
+function formatDateISO(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export function ReportPage() {
+  const { getToken } = useAuth();
+
   // 月ナビ状態
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(1);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<ReportType | 'all'>('all');
@@ -39,18 +49,29 @@ export function ReportPage() {
   // ドロワー状態
   const [selectedEntry, setSelectedEntry] = useState<ReportEntry | null>(null);
 
-  // レポートデータ
-  const entries = useMemo(() => {
-    const type = activeTab === 'all' ? undefined : activeTab;
-    return getReportEntries(type);
-  }, [activeTab]);
+  // API用の日付
+  const fromDate = formatDateISO(year, month, 1);
+  const toDate = formatDateISO(year, month, getLastDayOfMonth(year, month));
 
-  const totalDurationSec = useMemo(
-    () => entries.reduce((sum, e) => sum + e.totalDurationSec, 0),
-    [entries]
-  );
+  // レポートデータ取得
+  const reportType = activeTab === 'all' ? 'normal' : activeTab;
+  const { data, isLoading, error } = useReportData(reportType, fromDate, toDate);
 
-  // 日付範囲
+  const totalDurationSec = data?.totalDurationSec ?? 0;
+
+  // API ReportItem → フロント ReportEntry にマッピング
+  const entries: ReportEntry[] = (data?.items ?? []).map((item: ReportItem) => ({
+    id: item.taskId,
+    taskId: item.taskId,
+    title: item.title,
+    type: reportType,
+    totalDurationSec: item.durationSec,
+    over3Reason: item.over3hours,
+    sessions: [],
+    date: new Date(fromDate),
+  }));
+
+  // 表示用日付
   const startDate = formatDateSlash(year, month, 1);
   const endDate = formatDateSlash(year, month, getLastDayOfMonth(year, month));
 
@@ -87,6 +108,14 @@ export function ReportPage() {
     setActiveTab(key as ReportType | 'all');
   };
 
+  const handleExport = useCallback(
+    async (exportType: 'normal' | 'brg') => {
+      await downloadReportCsv(exportType, fromDate, toDate, getToken);
+      setIsExportModalOpen(false);
+    },
+    [fromDate, toDate, getToken]
+  );
+
   return (
     <>
       <Header title="レポート" />
@@ -111,12 +140,24 @@ export function ReportPage() {
           <div className="mt-6 space-y-6">
             <SummaryRow totalDurationSec={totalDurationSec} entryCount={entries.length} />
 
-            <TabPanel id="all">
-              <ReportTable entries={entries} onRowClick={handleRowClick} />
-            </TabPanel>
-            <TabPanel id="brg">
-              <ReportTable entries={entries} onRowClick={handleRowClick} />
-            </TabPanel>
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Spinner size="lg" />
+              </div>
+            ) : error ? (
+              <div className="rounded-lg border border-error-border bg-error-bg p-4 text-sm text-error-text">
+                レポートの取得に失敗しました: {error.message}
+              </div>
+            ) : (
+              <>
+                <TabPanel id="all">
+                  <ReportTable entries={entries} onRowClick={handleRowClick} />
+                </TabPanel>
+                <TabPanel id="brg">
+                  <ReportTable entries={entries} onRowClick={handleRowClick} />
+                </TabPanel>
+              </>
+            )}
           </div>
         </Tabs>
       </div>
@@ -139,7 +180,12 @@ export function ReportPage() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         title="スプレッドシートに出力"
-        footer={<ExportModalContent.Footer onCancel={() => setIsExportModalOpen(false)} />}
+        footer={
+          <ExportModalContent.Footer
+            onCancel={() => setIsExportModalOpen(false)}
+            onExport={handleExport}
+          />
+        }
       >
         <ExportModalContent />
       </Modal>

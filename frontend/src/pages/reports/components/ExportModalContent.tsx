@@ -65,15 +65,16 @@ export function ExportModalContent() {
 
 interface FooterProps {
   onCancel: () => void;
+  onExport?: (type: 'normal' | 'brg') => void;
 }
 
-ExportModalContent.Footer = function ExportModalFooter({ onCancel }: FooterProps) {
+ExportModalContent.Footer = function ExportModalFooter({ onCancel, onExport }: FooterProps) {
   return (
     <>
       <Button variant="outline" size="sm" onPress={onCancel}>
         キャンセル
       </Button>
-      <Button variant="primary" size="sm">
+      <Button variant="primary" size="sm" onPress={() => onExport?.('normal')}>
         <Upload size={16} />
         出力
       </Button>
