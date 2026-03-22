@@ -376,7 +376,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 9258,
       },
     ],
-    date: new Date('2026-01-15'),
+    date: new Date(2026, 0, 15),
   },
   {
     id: 'report-2',
@@ -394,7 +394,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 5437,
       },
     ],
-    date: new Date('2026-01-16'),
+    date: new Date(2026, 0, 16),
   },
   {
     id: 'report-3',
@@ -412,7 +412,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 387,
       },
     ],
-    date: new Date('2026-01-17'),
+    date: new Date(2026, 0, 17),
   },
   {
     id: 'report-4',
@@ -438,7 +438,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 5669,
       },
     ],
-    date: new Date('2026-01-20'),
+    date: new Date(2026, 0, 20),
   },
   {
     id: 'report-5',
@@ -456,7 +456,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 32679,
       },
     ],
-    date: new Date('2026-01-21'),
+    date: new Date(2026, 0, 21),
   },
   {
     id: 'report-6',
@@ -475,7 +475,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 21792,
       },
     ],
-    date: new Date('2026-01-22'),
+    date: new Date(2026, 0, 22),
   },
   {
     id: 'report-7',
@@ -493,7 +493,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 4525,
       },
     ],
-    date: new Date('2026-01-23'),
+    date: new Date(2026, 0, 23),
   },
   {
     id: 'report-8',
@@ -511,7 +511,7 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
         durationSec: 6112,
       },
     ],
-    date: new Date('2026-01-24'),
+    date: new Date(2026, 0, 24),
   },
 ];
 
