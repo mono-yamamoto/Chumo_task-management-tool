@@ -105,6 +105,7 @@ export interface Task {
   fireIssueUrl?: string | null;
   googleChatThreadUrl?: string | null;
   backlogUrl?: string | null;
+  petIssueUrl?: string | null;
   dueDate?: Date | null;
   priority?: Priority | null;
   order: number;

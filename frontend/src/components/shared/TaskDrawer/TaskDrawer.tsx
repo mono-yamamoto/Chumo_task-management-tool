@@ -115,7 +115,7 @@ export function TaskDrawer({
                     onDelete={handleDeleteRequest}
                     isDeleting={deleteTask.isPending}
                   />
-                  <DrawerActionBar taskId={task.id} projectType={task.projectType} />
+                  <DrawerActionBar task={task} />
                   <DrawerTabBar
                     detailTabLabel={detailTabLabel}
                     detailContent={detailContent ?? <TaskDetailTab task={task} />}
