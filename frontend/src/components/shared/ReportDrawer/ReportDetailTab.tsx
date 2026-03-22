@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pencil, Bell, Check } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import type { ReportEntry, TaskSession } from '../../../types';
@@ -20,6 +20,10 @@ interface ReportDetailTabProps {
 
 export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) {
   const [reason, setReason] = useState(entry.over3Reason ?? '');
+  useEffect(() => {
+    setReason(entry.over3Reason ?? '');
+  }, [entry]);
+
   const totalSec = entry.sessions.reduce((sum, s) => sum + s.durationSec, 0);
 
   return (
