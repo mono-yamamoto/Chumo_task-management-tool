@@ -236,7 +236,17 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
     return c.json({ error: 'このメールアドレスは既に登録されています' }, 409);
   }
 
-  // Clerk 招待送信
+  // DBにプレースホルダーユーザーを先に作成（整合性確保）
+  const invitedId = `invited_${crypto.randomUUID()}`;
+  await db.insert(users).values({
+    id: invitedId,
+    email,
+    displayName: email.split('@')[0],
+    role,
+    isAllowed: true,
+  });
+
+  // Clerk 招待送信（DB insert 成功後）
   const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
   const appOrigin = c.env.APP_ORIGIN;
 
@@ -246,20 +256,14 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       redirectUrl: `${appOrigin}/login`,
     });
   } catch (e) {
+    // Clerk失敗時はDBレコードを削除して補償
+    await db
+      .delete(users)
+      .where(eq(users.id, invitedId))
+      .catch(() => {});
     const message = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
     return c.json({ error: message }, 500);
   }
-
-  // DBにプレースホルダーユーザー作成
-  // 招待ユーザーが初回ログインすると /me のID移行ロジックでClerk IDに更新される
-  const invitedId = `invited_${crypto.randomUUID()}`;
-  await db.insert(users).values({
-    id: invitedId,
-    email,
-    displayName: email.split('@')[0],
-    role,
-    isAllowed: true,
-  });
 
   return c.json({ success: true });
 });

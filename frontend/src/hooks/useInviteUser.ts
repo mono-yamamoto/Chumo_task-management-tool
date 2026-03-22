@@ -13,7 +13,7 @@ export function useInviteUser() {
 
   return useMutation({
     mutationFn: ({ email, role }: { email: string; role: 'admin' | 'member' }) =>
-      apiClient<{ success: boolean }>('/api/users/invite', {
+      apiClient<{ success: boolean; restored?: boolean }>('/api/users/invite', {
         method: 'POST',
         body: { email, role },
         getToken,

@@ -133,15 +133,33 @@ async function createGithubIssueForTask(
     const issueData = (await res.json()) as { html_url: string };
     const issueUrl = issueData.html_url;
 
-    // タスクにURLを保存
-    await db
-      .update(tasks)
-      .set({ [urlColumn]: issueUrl, updatedAt: new Date() })
-      .where(eq(tasks.id, taskId));
+    // GitHub Issue 作成済み — DB保存失敗時はマーカーにURLを残して重複防止
+    try {
+      await db
+        .update(tasks)
+        .set({ [urlColumn]: issueUrl, updatedAt: new Date() })
+        .where(eq(tasks.id, taskId));
+    } catch (dbError) {
+      // URL をマーカーとして残す（次回リクエストで alreadyExists として返る）
+      await db
+        .update(tasks)
+        .set({ [urlColumn]: issueUrl, updatedAt: new Date() })
+        .where(eq(tasks.id, taskId))
+        .catch(() => {}); // 二重失敗は無視
+      throw dbError;
+    }
 
     return { success: true, url: issueUrl };
   } catch (error) {
-    await clearMarker();
+    // GitHub API 呼び出し前のエラーのみマーカークリア
+    // （Issue作成後のDB保存失敗はURLがマーカーとして残る）
+    const [current] = await db
+      .select({ url: tasks[urlColumn] })
+      .from(tasks)
+      .where(eq(tasks.id, taskId));
+    if (current?.url === CREATING_MARKER) {
+      await clearMarker();
+    }
     throw error;
   }
 }

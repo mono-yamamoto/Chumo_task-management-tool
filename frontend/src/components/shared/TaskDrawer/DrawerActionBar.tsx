@@ -57,14 +57,14 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
         }
         mutation.mutate(task.id, {
           onSuccess: (data: { url?: string; alreadyExists?: boolean }) => {
-            if (data.url && !data.alreadyExists) {
+            if (data.url) {
               window.open(data.url, '_blank');
             }
           },
-          onError: (error: Error) => {
+          onError: (error: Error & { details?: Record<string, unknown> }) => {
             if (
               opts?.onAuthError &&
-              (error.message?.includes('requiresAuth') || error.message?.includes('認証が必要'))
+              (error as { details?: { requiresAuth?: boolean } }).details?.requiresAuth
             ) {
               opts.onAuthError();
             }

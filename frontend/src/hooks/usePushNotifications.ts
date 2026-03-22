@@ -8,8 +8,6 @@ import { useAuth } from './useAuth';
  * - ブラウザの通知権限状態を監視
  * - Service Worker 登録 + Push 購読の開始/停止
  * - バックエンドへの subscription 登録/削除
- *
- * VAPID キー未設定時: ブラウザ通知許可 + バックエンドに「有効」フラグとして保存
  */
 export function usePushNotifications() {
   const { getToken } = useAuth();
@@ -26,10 +24,11 @@ export function usePushNotifications() {
     }
     setPermission(Notification.permission);
 
-    // Service Worker がある場合は既存 subscription を確認
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then((reg) => reg.pushManager.getSubscription())
+      // getRegistration で登録有無を安全に確認（ready と違いハングしない）
+      navigator.serviceWorker
+        .getRegistration()
+        .then((reg) => reg?.pushManager.getSubscription())
         .then((sub) => {
           if (sub) setIsSubscribed(true);
         })
@@ -41,7 +40,6 @@ export function usePushNotifications() {
     mutationFn: async () => {
       setError(null);
 
-      // ブラウザ通知許可をリクエスト
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== 'granted') {
@@ -50,8 +48,8 @@ export function usePushNotifications() {
 
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-      // VAPID キーがある場合: フル Web Push 購読
       if (vapidKey && 'serviceWorker' in navigator) {
+        // フル Web Push 購読
         const reg = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
 
@@ -65,14 +63,8 @@ export function usePushNotifications() {
           body: { token: sub.endpoint },
           getToken,
         });
-      } else {
-        // VAPID キー未設定: 通知許可状態だけバックエンドに保存
-        await apiClient('/api/users/me/fcm-tokens', {
-          method: 'POST',
-          body: { token: `notification-granted-${Date.now()}` },
-          getToken,
-        });
       }
+      // VAPID未設定: 通知許可のみ（バックエンドにはトークン保存しない）
 
       setIsSubscribed(true);
     },
@@ -86,8 +78,9 @@ export function usePushNotifications() {
       setError(null);
 
       if ('serviceWorker' in navigator) {
-        try {
-          const reg = await navigator.serviceWorker.ready;
+        // getRegistration で安全にチェック（未登録ならnull、ハングしない）
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
           const sub = await reg.pushManager.getSubscription();
           if (sub) {
             await apiClient('/api/users/me/fcm-tokens', {
@@ -97,8 +90,6 @@ export function usePushNotifications() {
             });
             await sub.unsubscribe();
           }
-        } catch {
-          // Service Worker 未登録の場合は無視
         }
       }
 
@@ -109,7 +100,6 @@ export function usePushNotifications() {
     },
   });
 
-  // subscribe/unsubscribe は useMutation の戻り値で毎回新オブジェクトになるため deps に入れない
   const subscribeMutate = subscribe.mutate;
   const unsubscribeMutate = unsubscribe.mutate;
   const toggle = useCallback(

@@ -49,9 +49,14 @@ function IntegrationCard({
         {onConnect &&
           !inputField &&
           (connected ? (
-            <span className="flex h-9 items-center rounded-md border border-green-200 bg-green-50 px-4 text-xs font-medium text-green-700">
-              {'✓ 連携済み'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 items-center rounded-md border border-green-200 bg-green-50 px-4 text-xs font-medium text-green-700">
+                {'✓ 連携済み'}
+              </span>
+              <Button variant="outline" size="md" className="text-xs" onPress={onConnect}>
+                再連携
+              </Button>
+            </div>
           ) : (
             <Button variant="primary" size="md" className="text-xs gap-1.5" onPress={onConnect}>
               連携する
@@ -175,7 +180,11 @@ export function IntegrationsTab() {
         icon={<HardDrive size={20} className="text-blue-600" />}
         iconBg="bg-blue-50"
         name="Google Drive"
-        description="レポートの自動エクスポート先"
+        description={
+          driveConnected
+            ? 'レポートの自動エクスポート先（連携済み）'
+            : 'レポートの自動エクスポート先'
+        }
         connected={driveConnected}
         onConnect={driveConnecting ? undefined : handleDriveConnect}
       />

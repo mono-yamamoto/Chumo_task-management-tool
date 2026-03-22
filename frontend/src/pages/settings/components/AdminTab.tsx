@@ -100,7 +100,7 @@ export function AdminTab() {
       {
         onSuccess: (data) => {
           setAddModalOpen(false);
-          const msg = (data as { restored?: boolean }).restored
+          const msg = data.restored
             ? `${email} のアカウントを再有効化しました`
             : `${email} に招待メールを送信しました`;
           setInviteMessage({ type: 'success', text: msg });

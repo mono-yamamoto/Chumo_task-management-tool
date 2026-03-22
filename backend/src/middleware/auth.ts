@@ -2,8 +2,10 @@ import { createMiddleware } from 'hono/factory';
 import { verifyToken } from '@clerk/backend';
 import type { Env } from '../index';
 
-// ミドルウェアをスキップするパス
-const SKIP_PATHS = ['/api/files/', '/api/drive/callback'];
+// prefix一致でスキップするパス
+const SKIP_PREFIX_PATHS = ['/api/files/'];
+// 完全一致でスキップするパス（クエリパラメータは無視）
+const SKIP_EXACT_PATHS = ['/api/drive/callback'];
 
 /**
  * Clerk JWT検証ミドルウェア
@@ -12,7 +14,8 @@ const SKIP_PATHS = ['/api/files/', '/api/drive/callback'];
  */
 export const authMiddleware = createMiddleware<Env & { Variables: { userId: string } }>(
   async (c, next) => {
-    if (SKIP_PATHS.some((p) => c.req.path.startsWith(p))) {
+    const path = c.req.path;
+    if (SKIP_PREFIX_PATHS.some((p) => path.startsWith(p)) || SKIP_EXACT_PATHS.includes(path)) {
       return next();
     }
 

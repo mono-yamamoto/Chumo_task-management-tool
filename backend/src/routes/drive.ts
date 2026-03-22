@@ -32,17 +32,22 @@ async function hmacSign(secret: string, data: string): Promise<string> {
 }
 
 async function verifyHmac(secret: string, data: string, signatureB64: string): Promise<boolean> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-  const sigBytes = Uint8Array.from(atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')), (c) =>
-    c.charCodeAt(0)
-  );
-  return crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = Uint8Array.from(
+      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')),
+      (c) => c.charCodeAt(0)
+    );
+    return await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
+  } catch {
+    return false;
+  }
 }
 
 function buildOAuthState(userId: string, ts: number, sig: string): string {

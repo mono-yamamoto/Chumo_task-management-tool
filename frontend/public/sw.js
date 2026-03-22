@@ -1,7 +1,12 @@
 // Service Worker for Web Push Notifications
 
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    // 不正なJSONペイロードは無視
+  }
   const title = data.title || '通知';
   const options = {
     body: data.body || '',
