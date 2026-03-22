@@ -13,10 +13,26 @@ const SKIP_EXACT_PATHS = ['/api/drive/callback'];
 const SKIP_ALLOWED_CHECK_PATHS = ['/api/users/me'];
 
 /**
+ * isAllowed チェック共通処理
+ * usersテーブルに行が存在し、isAllowed=true であることを確認
+ */
+async function checkUserAllowed(db: Database, userId: string): Promise<'allowed' | 'forbidden'> {
+  const [user] = await db
+    .select({ isAllowed: users.isAllowed })
+    .from(users)
+    .where(eq(users.id, userId));
+
+  if (!user || !user.isAllowed) {
+    return 'forbidden';
+  }
+  return 'allowed';
+}
+
+/**
  * Clerk JWT検証ミドルウェア
  * Authorization: Bearer <token> からユーザーIDを抽出して c.set('userId', ...) にセット
  * サーバー間通信用に X-Internal-Key + X-Internal-User-Id ヘッダーも受け付ける
- * isAllowed=false のユーザーは拒否する
+ * isAllowed=false または行が存在しないユーザーは拒否する
  */
 export const authMiddleware = createMiddleware<
   Env & { Variables: { userId: string; db: Database } }
@@ -25,6 +41,8 @@ export const authMiddleware = createMiddleware<
   if (SKIP_PREFIX_PATHS.some((p) => path.startsWith(p)) || SKIP_EXACT_PATHS.includes(path)) {
     return next();
   }
+
+  const skipAllowedCheck = SKIP_ALLOWED_CHECK_PATHS.includes(path);
 
   // サーバー間通信（内部APIキー認証）
   const internalKey = c.req.header('X-Internal-Key');
@@ -35,6 +53,12 @@ export const authMiddleware = createMiddleware<
     c.env.INTERNAL_API_KEY &&
     internalKey === c.env.INTERNAL_API_KEY
   ) {
+    if (!skipAllowedCheck) {
+      const db = c.get('db');
+      if ((await checkUserAllowed(db, internalUserId)) === 'forbidden') {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+    }
     c.set('userId', internalUserId);
     return await next();
   }
@@ -48,29 +72,25 @@ export const authMiddleware = createMiddleware<
 
   const token = authHeader.slice(7);
 
+  // verifyToken のみ catch（DB参照/下流ハンドラの例外はグローバルエラーハンドラに委譲）
+  let userId: string;
   try {
     const payload = await verifyToken(token, {
       secretKey: c.env.CLERK_SECRET_KEY,
     });
-
-    const userId = payload.sub;
-
-    // isAllowed チェック（/me はID移行フローがあるためスキップ）
-    if (!SKIP_ALLOWED_CHECK_PATHS.includes(path)) {
-      const db = c.get('db');
-      const [user] = await db
-        .select({ isAllowed: users.isAllowed })
-        .from(users)
-        .where(eq(users.id, userId));
-
-      if (user && !user.isAllowed) {
-        return c.json({ error: 'Forbidden' }, 403);
-      }
-    }
-
-    c.set('userId', userId);
-    await next();
+    userId = payload.sub;
   } catch {
     return c.json({ error: 'Invalid token' }, 401);
   }
+
+  // isAllowed チェック（/me はID移行フローがあるためスキップ）
+  if (!skipAllowedCheck) {
+    const db = c.get('db');
+    if ((await checkUserAllowed(db, userId)) === 'forbidden') {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+  }
+
+  c.set('userId', userId);
+  await next();
 });
