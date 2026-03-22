@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { TaskListPage } from './pages/tasks/TaskListPage';
+import { TaskDetailPage } from './pages/tasks/TaskDetailPage';
 import { MemberTaskListPage } from './pages/tasks/MemberTaskListPage';
 import { ReportPage } from './pages/reports/ReportPage';
 import { ContactPage } from './pages/contacts/ContactPage';
@@ -26,6 +27,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/tasks" element={<TaskListPage />} />
+            <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
             <Route path="/tasks/members" element={<MemberTaskListPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/contact" element={<ContactPage />} />

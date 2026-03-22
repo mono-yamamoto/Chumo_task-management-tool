@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Timer } from 'lucide-react';
 import type { Task } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
@@ -36,7 +37,13 @@ export function TaskCard({ task, onClick, enableInfoBg }: TaskCardProps) {
       }}
     >
       {/* タイトル（2行clamp） */}
-      <p className="text-sm font-medium text-text-primary line-clamp-2 mb-2">{task.title}</p>
+      <Link
+        to={`/tasks/${task.id}`}
+        className="block text-sm font-medium text-text-primary line-clamp-2 mb-2 hover:text-primary-default hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {task.title}
+      </Link>
 
       {/* アサイン */}
       {assignees.length > 0 && (

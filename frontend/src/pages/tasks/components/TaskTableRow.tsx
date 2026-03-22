@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Pin, PlayCircle } from 'lucide-react';
 import type { Task } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
@@ -46,7 +47,13 @@ export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps)
 
       {/* タイトル */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        <p className="truncate text-sm font-bold text-text-primary">{task.title}</p>
+        <Link
+          to={`/tasks/${task.id}`}
+          className="truncate text-sm font-bold text-text-primary hover:text-primary-default hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {task.title}
+        </Link>
       </div>
 
       {/* アサイン */}
