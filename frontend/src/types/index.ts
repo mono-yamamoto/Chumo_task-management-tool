@@ -118,6 +118,7 @@ export interface Task {
 export interface TaskSession {
   id: string;
   taskId: string;
+  projectType?: ProjectType;
   userId: string;
   startedAt: Date;
   endedAt: Date | null;

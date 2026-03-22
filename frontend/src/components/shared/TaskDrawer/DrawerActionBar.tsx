@@ -1,7 +1,36 @@
 import type { ReactNode } from 'react';
-import { Play, ExternalLink, Folder, MessageCircle, Flame, PawPrint } from 'lucide-react';
+import { Play, Square, ExternalLink, Folder, MessageCircle, Flame, PawPrint } from 'lucide-react';
+import { useActiveSession, useTimer, useElapsedTime } from '../../../hooks/useTimer';
 
-export function DrawerActionBar() {
+interface DrawerActionBarProps {
+  taskId?: string;
+  projectType?: string;
+}
+
+export function DrawerActionBar({ taskId, projectType }: DrawerActionBarProps) {
+  const { data: activeSession } = useActiveSession();
+  const { start, stop } = useTimer();
+
+  const isThisTaskActive =
+    activeSession != null && activeSession.taskId === taskId && taskId != null;
+  const isOtherTaskActive = activeSession != null && !isThisTaskActive;
+  const { formatted } = useElapsedTime(
+    isThisTaskActive && activeSession ? activeSession.startedAt : null
+  );
+
+  const handleTimerToggle = () => {
+    if (!taskId || !projectType) return;
+
+    if (isThisTaskActive && activeSession) {
+      stop.mutate({
+        sessionId: activeSession.id,
+        projectType: activeSession.projectType ?? projectType,
+      });
+    } else {
+      start.mutate({ taskId, projectType });
+    }
+  };
+
   return (
     <div className="border-b border-border-default px-6 py-4 space-y-3">
       {/* 詳細ページボタン */}
@@ -12,14 +41,29 @@ export function DrawerActionBar() {
         詳細ページ
       </button>
 
-      {/* タイマー開始ボタン */}
-      <button
-        type="button"
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-primary-default text-sm font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle"
-      >
-        <Play size={18} />
-        タイマー開始
-      </button>
+      {/* タイマーボタン */}
+      {isThisTaskActive ? (
+        <button
+          type="button"
+          onClick={handleTimerToggle}
+          disabled={stop.isPending}
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-error-bg text-sm font-medium text-error-text transition-colors hover:bg-red-200 disabled:opacity-40"
+        >
+          <Square size={16} fill="currentColor" />
+          停止 {formatted}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleTimerToggle}
+          disabled={start.isPending || isOtherTaskActive}
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-primary-default text-sm font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle disabled:opacity-40"
+          title={isOtherTaskActive ? '他のタイマーが稼働中です' : undefined}
+        >
+          <Play size={18} />
+          {isOtherTaskActive ? '他タイマー稼働中' : 'タイマー開始'}
+        </button>
+      )}
 
       {/* 外部リンクボタングリッド */}
       <div className="space-y-2">
