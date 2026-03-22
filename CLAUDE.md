@@ -2,6 +2,99 @@
 
 このファイルは、このプロジェクトでClaude Codeが作業を行う際のガイドラインを含んでいます。
 
+## 🔄 スタック移行状況（重要 - 必ず最初に読むこと）
+
+**現在このリポジトリには旧環境と新環境が共存しています。**
+
+### 旧環境（Next.js） — 参照用として残存
+
+既存実装の参考としてまだ残しているが、**新規開発は行わない**。
+
+| 項目            | 内容                                                                                |
+| --------------- | ----------------------------------------------------------------------------------- |
+| 配置            | ルート直下 (`app/`, `components/`, `hooks/`, `lib/`, `stores/`, `types/`, `utils/`) |
+| フレームワーク  | Next.js 16 (App Router)                                                             |
+| UI              | MUI v7 + Emotion                                                                    |
+| 認証            | Clerk (`@clerk/nextjs`)                                                             |
+| DB/バックエンド | Firebase (Firestore + Cloud Functions)                                              |
+| 状態管理        | Zustand + TanStack Query                                                            |
+| ビルド          | `npm run build` (next build)                                                        |
+| 開発サーバー    | `npm run dev` (next dev)                                                            |
+
+### 新環境 — アクティブな開発対象
+
+| 項目           | フロントエンド (`frontend/`)                            | バックエンド (`backend/`)                |
+| -------------- | ------------------------------------------------------- | ---------------------------------------- |
+| フレームワーク | Vite + React 19                                         | Hono on Cloudflare Workers               |
+| UI/スタイル    | Tailwind CSS v4 + React Aria Components + Framer Motion | —                                        |
+| 認証           | Clerk (`@clerk/clerk-react`)                            | Clerk (`@clerk/backend`)                 |
+| DB             | —                                                       | Neon Postgres + Drizzle ORM              |
+| ストレージ     | —                                                       | Cloudflare R2                            |
+| ルーティング   | react-router-dom v7                                     | Hono Router                              |
+| ビルド         | `cd frontend && bun run build`                          | `cd backend && wrangler deploy`          |
+| 開発サーバー   | `cd frontend && bun run dev` (port 3000)                | `cd backend && wrangler dev` (port 8787) |
+| テスト         | —                                                       | `cd backend && bun run test` (Vitest)    |
+
+### 開発時の注意事項
+
+- **新規の機能開発・バグ修正は `frontend/` と `backend/` に対して行う**
+- 旧環境のコード（ルート直下）は既存実装のロジックやUIパターンを参考にする目的で残している
+- 旧環境のファイルを修正・削除する場合は、ユーザーに確認を取ること
+- `frontend/` からバックエンドAPIへのプロキシは Vite の設定で `/api` → `localhost:8787` に転送される
+
+## ディレクトリ構造
+
+```
+/
+├── frontend/                 # 🆕 新フロントエンド（Vite + React 19）
+│   └── src/
+│       ├── components/
+│       │   ├── layout/       #   AppLayout, Header, Sidebar
+│       │   ├── shared/       #   TaskDrawer, ReportDrawer, ThemeToggle
+│       │   └── ui/           #   Avatar, Badge, Button, Input, Modal, Select, Tabs 等
+│       ├── hooks/            #   useDashboardStats, useTaskDrawer, useTheme, useViewMode
+│       ├── lib/              #   api, constants, mockData
+│       ├── pages/            #   login, dashboard, tasks, reports, contacts, settings
+│       │   └── <page>/
+│       │       ├── <Page>.tsx       # ページ本体コンポーネント
+│       │       └── components/      # そのページ固有のコンポーネント
+│       └── types/
+│
+├── backend/                  # 🆕 新バックエンド（Hono + Cloudflare Workers）
+│   └── src/
+│       ├── db/               #   Drizzle schema, migrations
+│       ├── lib/              #   ビジネスロジック（backlog 等）
+│       ├── middleware/       #   auth, db
+│       └── routes/           #   tasks, reports, comments, timer, sessions, users 等
+│
+├── app/                      # 🔒 旧 Next.js App Router（参照用）
+│   ├── (auth)/login/
+│   └── (dashboard)/          #   dashboard, tasks, reports, settings, contact
+├── components/               # 🔒 旧 MUI コンポーネント（参照用）
+│   ├── ui/                   #   共通UIパーツ
+│   ├── tasks/                #   タスク関連
+│   ├── reports/              #   レポート関連
+│   ├── settings/             #   設定関連
+│   ├── Drawer/               #   ドロワー
+│   └── ...
+├── hooks/                    # 🔒 旧カスタムフック群（参照用）
+├── lib/                      # 🔒 旧ライブラリ（Firebase, API, presentation 等）
+├── stores/                   # 🔒 旧 Zustand ストア（参照用）
+├── types/                    # 🔒 旧型定義（参照用）
+├── utils/                    # 🔒 旧ユーティリティ（参照用）
+├── constants/                # 🔒 旧定数定義（参照用）
+├── functions/                # 🔒 旧 Cloud Functions（参照用）
+│
+├── designs/                  # Pencil デザインファイル（.pen）
+├── docs/                     # 設計ドキュメント、仕様書、運用手順
+├── scripts/                  # データ投入・マイグレーションスクリプト
+├── public/                   # 静的アセット（旧環境用）
+└── .claude/                  # Claude Code 設定・スキル・ルール
+```
+
+- 🆕 = 新環境（アクティブに開発）
+- 🔒 = 旧環境（参照用として残存、新規開発禁止）
+
 ## ⚠️ 重要: プロジェクトルールとガイドライン
 
 **ユーザーリクエストを実行する前に、常に以下のプロジェクトガイドラインに従ってください:**
@@ -108,28 +201,30 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
 ## コードスタイル
 
 - **TypeScript**: strict mode enabled
-- **Formatter**: Use `oxfmt`
-- **Linter**: Use `next lint`
 - **Naming conventions**:
   - Components: PascalCase
   - Functions and variables: camelCase
   - Constants: UPPER_SNAKE_CASE
 
-### Code Formatting
+### 新環境 (`frontend/` / `backend/`)
+
+- **Linter**: oxlint (`cd frontend && bun run format`)
+- **CSS**: Tailwind CSS v4 のユーティリティクラスを使用
+- **コンポーネント**: React Aria Components ベース（`frontend/src/components/ui/`）
 
 ```bash
-# Format code
-npm run format
+# フロントエンド
+cd frontend && bun run lint
+cd frontend && bun run type-check
 
-# Check formatting
-npm run format:check
+# バックエンド
+cd backend && bun run test
 ```
 
-### Lint
+### 旧環境（ルート直下）— 参照のみ
 
-```bash
-npm run lint
-```
+- **Formatter**: `oxfmt` (`npm run format`)
+- **Linter**: `next lint` (`npm run lint`)
 
 ## Claude Codeでの開発ワークフロー
 
@@ -155,16 +250,16 @@ npm run lint
 
 **4. テストと検証フェーズ**
 
-- 型チェックを実行: `bun run type-check`
-- リントを実行: `bun run lint`
-- テストを実行: `bun run test`
+- フロントエンド型チェック: `cd frontend && bun run type-check`
+- フロントエンドリント: `cd frontend && bun run lint`
+- バックエンドテスト: `cd backend && bun run test`
 - 必要に応じてブラウザ検証にChrome DevTools MCPを使用
 
 **5. コミットとデプロイフェーズ**
 
 - `git status`と`git diff`で変更を確認
 - コミットメッセージ規約に従って論理的なコミットを作成
-- ビルドをテスト: `bun run build`
+- フロントエンドビルドテスト: `cd frontend && bun run build`
 - PR/Issue関連の操作にはGitHub CLIを使用: `gh pr list`, `gh issue view`
 
 ### タスク管理のベストプラクティス
@@ -177,31 +272,61 @@ npm run lint
 
 ## テスト手順
 
-現在、テストスイートは実装されていません。機能を追加する際は、適切なテストを追加してください。
+### 新環境
+
+```bash
+# バックエンドテスト（Vitest）
+cd backend && bun run test
+cd backend && bun run test:coverage
+```
+
+フロントエンドのテストスイートは未整備。機能追加時に適切なテストを追加すること。
+
+### 旧環境（参照のみ）
+
+```bash
+bun run test          # ルートのVitest
+```
 
 ## ビルドコマンド
 
+### 新環境
+
 ```bash
 # フロントエンドビルド
-npm run build
+cd frontend && bun run build
 
-# Cloud Functionsビルド
-npm run functions:build
+# バックエンド（Cloudflare Workers）
+cd backend && wrangler deploy
+```
+
+### 旧環境（参照のみ）
+
+```bash
+npm run build              # Next.js ビルド
+npm run functions:build    # Cloud Functions ビルド
 ```
 
 ## デプロイコマンド
 
+### 新環境
+
 ```bash
-# Firestoreルールとインデックスをデプロイ
+# バックエンドAPI（Cloudflare Workers）
+cd backend && wrangler deploy                    # development
+cd backend && wrangler deploy --env staging      # staging
+cd backend && wrangler deploy --env production   # production
+
+# DBマイグレーション
+cd backend && bun run db:generate
+cd backend && bun run db:migrate
+```
+
+### 旧環境（参照のみ）
+
+```bash
 firebase deploy --only firestore:rules,firestore:indexes
-
-# Cloud Functionsをデプロイ
 npm run functions:deploy
-
-# 個別デプロイ
-npm run functions:deploy:timer
-npm run functions:deploy:drive
-npm run functions:deploy:github
 ```
 
 ## 重要事項
@@ -234,11 +359,24 @@ npm run functions:deploy:github
 
 **初回セットアップについては [SETUP.md](./SETUP.md) を参照してください。**
 
-セットアップには以下が含まれます：
+### 新環境のセットアップ
+
+```bash
+# フロントエンド
+cd frontend && bun install
+
+# バックエンド
+cd backend && bun install
+
+# 開発サーバー起動（2つのターミナルで）
+cd frontend && bun run dev   # → http://localhost:3000
+cd backend && wrangler dev   # → http://localhost:8787
+```
+
+### 旧環境のセットアップ（参照用）
 
 - 依存関係のインストール
 - 環境変数の設定
 - Firebase CLIの設定
 - Git Hooksの設定
-- 開発サーバーの起動
 - Serena MCPオンボーディング（AIエージェント用）

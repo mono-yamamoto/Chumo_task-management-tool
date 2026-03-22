@@ -10,7 +10,10 @@ interface TaskTableViewProps {
 
 export function TaskTableView({ tasks, onTaskClick, enableInfoBg }: TaskTableViewProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border-default" role="table">
+    <div
+      className="overflow-hidden rounded-lg border border-border-default bg-bg-primary"
+      role="table"
+    >
       <TaskTableHeader />
       <div role="rowgroup">
         {tasks.map((task) => (

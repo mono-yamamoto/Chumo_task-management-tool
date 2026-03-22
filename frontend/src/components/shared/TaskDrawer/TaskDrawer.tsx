@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Task } from '../../../types';
 import { DrawerHeader } from './DrawerHeader';
@@ -8,12 +8,32 @@ import { TaskDetailTab } from './TaskDetailTab';
 import { CommentTab } from './CommentTab';
 
 interface TaskDrawerProps {
-  task: Task | null;
+  /** Task を渡すと isOpen / title / デフォルト detailContent が自動設定される */
+  task?: Task | null;
+  /** task を使わず直接制御する場合 */
+  isOpen?: boolean;
+  /** task を使わず直接制御する場合のタイトル */
+  title?: string;
   onClose: () => void;
+  /** タブのラベル（デフォルト: "タスク詳細"） */
+  detailTabLabel?: string;
+  /** 詳細タブの中身を差し替える場合に指定 */
+  detailContent?: ReactNode;
+  /** 詳細タブのパディングを無効にする（コンテンツ側でpaddingを管理する場合） */
+  detailPadding?: boolean;
 }
 
-export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
-  const isOpen = task != null;
+export function TaskDrawer({
+  task,
+  isOpen: isOpenProp,
+  title: titleProp,
+  onClose,
+  detailTabLabel = 'タスク詳細',
+  detailContent,
+  detailPadding = true,
+}: TaskDrawerProps) {
+  const isOpen = isOpenProp ?? task != null;
+  const title = titleProp ?? task?.title ?? '';
 
   // ESCキーで閉じる
   useEffect(() => {
@@ -27,7 +47,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
 
   return (
     <AnimatePresence>
-      {task && (
+      {isOpen && (
         <>
           {/* オーバーレイ */}
           <motion.div
@@ -47,13 +67,15 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             role="dialog"
             aria-modal="true"
-            aria-label="タスク詳細"
+            aria-label={detailTabLabel}
           >
-            <DrawerHeader title={task.title} onClose={onClose} />
+            <DrawerHeader title={title} onClose={onClose} />
             <DrawerActionBar />
             <DrawerTabBar
-              detailContent={<TaskDetailTab task={task} />}
+              detailTabLabel={detailTabLabel}
+              detailContent={detailContent ?? (task ? <TaskDetailTab task={task} /> : null)}
               commentContent={<CommentTab />}
+              detailPadding={detailPadding}
             />
           </motion.div>
         </>

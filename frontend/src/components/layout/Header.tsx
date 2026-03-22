@@ -25,7 +25,7 @@ function DefaultHeaderActions() {
 
 export function Header({ title, children }: HeaderProps) {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border-default px-8">
+    <header className="flex h-16 items-center justify-between border-b border-border-default bg-bg-primary px-8">
       <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
       <div className="flex items-center gap-3">{children ?? <DefaultHeaderActions />}</div>
     </header>
