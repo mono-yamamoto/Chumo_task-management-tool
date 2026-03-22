@@ -15,8 +15,10 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
   const [roleOpen, setRoleOpen] = useState(false);
 
   const handleAdd = () => {
-    if (!email.trim()) return;
-    onAdd(email.trim(), role);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) return;
+    onAdd(trimmedEmail, role);
     setEmail('');
     setRole('Member');
   };
