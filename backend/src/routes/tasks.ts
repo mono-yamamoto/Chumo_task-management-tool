@@ -96,25 +96,37 @@ const updateOrderSchema = z.object({
 
 /**
  * GET /
- * プロジェクトタイプ別タスク一覧（ページネーション）
+ * タスク一覧（ページネーション）
+ * projectType 指定時はフィルタ、未指定時は全タスク
+ * excludeCompleted=true で完了タスクを除外
  */
 app.get('/', async (c) => {
   const db = c.get('db');
   const projectType = c.req.query('projectType');
+  const excludeCompleted = c.req.query('excludeCompleted') === 'true';
   const limitValue = parseInt(c.req.query('limit') ?? '50', 10);
   const offset = parseInt(c.req.query('offset') ?? '0', 10);
 
-  if (!projectType) {
-    return c.json({ error: 'projectType is required' }, 400);
+  const conditions = [];
+
+  if (projectType) {
+    conditions.push(
+      eq(tasks.projectType, projectType as (typeof tasks.projectType.enumValues)[number])
+    );
   }
 
-  const result = await db
+  if (excludeCompleted) {
+    conditions.push(ne(tasks.flowStatus, '完了'));
+  }
+
+  const query = db
     .select()
     .from(tasks)
-    .where(eq(tasks.projectType, projectType as (typeof tasks.projectType.enumValues)[number]))
     .orderBy(desc(tasks.createdAt))
     .limit(limitValue)
     .offset(offset);
+
+  const result = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
 
   return c.json({ tasks: result, hasMore: result.length === limitValue });
 });

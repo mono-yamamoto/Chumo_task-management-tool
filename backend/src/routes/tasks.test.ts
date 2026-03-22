@@ -84,9 +84,11 @@ describe('Tasks API', () => {
       expect(body.tasks.every((t: { projectType: string }) => t.projectType === 'MONO')).toBe(true);
     });
 
-    it('projectType未指定だと400', async () => {
+    it('projectType未指定でも全タスクを返す', async () => {
       const res = await app.request('/api/tasks');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+      expect(body.tasks).toBeDefined();
     });
   });
 
