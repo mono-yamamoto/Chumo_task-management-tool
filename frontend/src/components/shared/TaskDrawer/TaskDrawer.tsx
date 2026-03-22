@@ -119,7 +119,7 @@ export function TaskDrawer({
                   <DrawerTabBar
                     detailTabLabel={detailTabLabel}
                     detailContent={detailContent ?? <TaskDetailTab task={task} />}
-                    commentContent={<CommentTab />}
+                    commentContent={<CommentTab taskId={task.id} projectType={task.projectType} />}
                     detailPadding={detailPadding}
                   />
                 </>
