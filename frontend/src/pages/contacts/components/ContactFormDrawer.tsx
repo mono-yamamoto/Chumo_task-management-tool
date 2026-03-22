@@ -133,13 +133,15 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
     };
 
     if (type === 'error') {
+      if (!device || !os || !browser) return;
       data.errorDetails = {
         issue,
         reproductionSteps,
-        device: device as DeviceType,
-        os: os as PCOSType | SPOSType | SmartphoneType,
-        browser: browser as BrowserType,
+        device,
+        os,
+        browser,
         browserVersion,
+        screenshotUrl: screenshotPreview ?? undefined,
       };
     }
 
@@ -460,7 +462,7 @@ function RadioGroup({
             value={opt.value}
             checked={value === opt.value}
             onChange={() => onChange(opt.value)}
-            className="hidden"
+            className="sr-only"
           />
           {opt.label}
         </label>
