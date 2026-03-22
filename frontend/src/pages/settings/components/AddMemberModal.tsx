@@ -65,11 +65,16 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
 
         {/* Role */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-primary">ロール</span>
+          <span id="member-role-label" className="text-sm font-medium text-text-primary">
+            ロール
+          </span>
           <div className="relative">
             <button
               type="button"
               onClick={() => setRoleOpen(!roleOpen)}
+              aria-haspopup="listbox"
+              aria-expanded={roleOpen}
+              aria-labelledby="member-role-label"
               className="flex h-10 w-full items-center justify-between rounded-md border border-border-default px-3 text-sm text-text-primary transition-colors hover:bg-bg-secondary"
             >
               <span>{role}</span>
@@ -78,11 +83,17 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
             {roleOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setRoleOpen(false)} />
-                <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-md border border-border-default bg-bg-primary shadow-lg">
+                <div
+                  role="listbox"
+                  aria-labelledby="member-role-label"
+                  className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-md border border-border-default bg-bg-primary shadow-lg"
+                >
                   {(['Admin', 'Member'] as const).map((r) => (
                     <button
                       key={r}
                       type="button"
+                      role="option"
+                      aria-selected={role === r}
                       onClick={() => {
                         setRole(r);
                         setRoleOpen(false);

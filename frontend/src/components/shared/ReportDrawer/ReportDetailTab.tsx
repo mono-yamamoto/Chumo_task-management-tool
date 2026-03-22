@@ -20,21 +20,26 @@ interface ReportDetailTabProps {
 
 export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) {
   const [reason, setReason] = useState(entry.over3Reason ?? '');
-
   const totalSec = entry.sessions.reduce((sum, s) => sum + s.durationSec, 0);
 
   return (
     <div className="space-y-0">
       {/* 3時間超過理由 */}
       <div className="space-y-2 px-6 py-5 border-b border-border-default">
-        <label className="text-xs font-medium text-text-tertiary">3時間超過理由</label>
+        <label htmlFor="over3Reason" className="text-xs font-medium text-text-tertiary">
+          3時間超過理由
+        </label>
         <textarea
+          id="over3Reason"
+          aria-describedby="over3ReasonHelp"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="3時間を超過した場合は理由を記入してください"
           className="h-[100px] w-full resize-none rounded-lg border border-border-default bg-bg-secondary px-3 py-3 text-sm leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
         />
-        <p className="text-xs text-text-tertiary">3時間を超過した場合は理由を記入してください</p>
+        <p id="over3ReasonHelp" className="text-xs text-text-tertiary">
+          3時間を超過した場合は理由を記入してください
+        </p>
       </div>
 
       {/* セッション履歴 */}

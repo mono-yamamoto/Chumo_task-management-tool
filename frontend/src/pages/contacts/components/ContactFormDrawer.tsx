@@ -199,6 +199,7 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
                 <select
                   value={type}
                   onChange={(e) => handleTypeChange(e.target.value as ContactType)}
+                  aria-label="お問い合わせカテゴリ"
                   className="h-10 w-full appearance-none rounded-md border border-border-default bg-bg-primary px-3 pr-10 text-sm text-text-primary transition-colors focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
                 >
                   {CONTACT_TYPE_OPTIONS.map((opt) => (
@@ -214,8 +215,9 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
               </div>
 
               {/* タイトル */}
-              <FormField label="タイトル">
+              <FormField label="タイトル" htmlFor="contact-title">
                 <input
+                  id="contact-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -245,8 +247,9 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
                   onScreenshotSelect={handleScreenshotSelect}
                 />
               ) : (
-                <FormField label="内容">
+                <FormField label="内容" htmlFor="contact-content">
                   <textarea
+                    id="contact-content"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="要望の内容を詳しく記入してください"
@@ -276,10 +279,20 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
 /* ========== Sub Components ========== */
 
 /** ラベル: fontSize 14, fontWeight 500, fill #6B7280 (text-secondary), gap 6 */
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-text-secondary">{label}</label>
+      <label htmlFor={htmlFor} className="text-sm font-medium text-text-secondary">
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -403,7 +416,7 @@ function ErrorFormFields({
           <span className="text-xs leading-normal text-text-tertiary">
             クリックまたはドラッグで画像をアップロード
           </span>
-          <input type="file" accept="image/*" onChange={onScreenshotSelect} className="hidden" />
+          <input type="file" accept="image/*" onChange={onScreenshotSelect} className="sr-only" />
         </label>
         {screenshotPreview && (
           <img
