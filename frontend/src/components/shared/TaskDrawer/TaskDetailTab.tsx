@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import type { Task } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Avatar } from '../../ui/Avatar';
@@ -96,6 +96,27 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
         </div>
       </section>
 
+      {/* 外部連携 */}
+      {hasIntegrationUrls(task) && (
+        <>
+          <Divider />
+          <section className="py-3">
+            <SectionLabel>外部連携</SectionLabel>
+            <div className="mt-2 space-y-1.5">
+              {task.googleDriveUrl && (
+                <IntegrationLink label="Google Drive" url={task.googleDriveUrl} />
+              )}
+              {task.googleChatThreadUrl && (
+                <IntegrationLink label="Google Chat" url={task.googleChatThreadUrl} />
+              )}
+              {task.fireIssueUrl && <IntegrationLink label="Fire Issue" url={task.fireIssueUrl} />}
+              {task.petIssueUrl && <IntegrationLink label="PET Issue" url={task.petIssueUrl} />}
+              {task.backlogUrl && <IntegrationLink label="Backlog" url={task.backlogUrl} />}
+            </div>
+          </section>
+        </>
+      )}
+
       <Divider />
 
       {/* セッション履歴（Phase 5 で API 接続予定） */}
@@ -125,6 +146,30 @@ function PropertyValue({ children }: { children: ReactNode }) {
     <div className="flex h-8 flex-1 items-center justify-between rounded-sm bg-bg-secondary px-2.5">
       {children}
     </div>
+  );
+}
+
+function IntegrationLink({ label, url }: { label: string; url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-primary-default transition-colors hover:bg-bg-brand-subtle"
+    >
+      <ExternalLink size={14} />
+      {label}
+    </a>
+  );
+}
+
+function hasIntegrationUrls(task: Task): boolean {
+  return !!(
+    task.googleDriveUrl ||
+    task.googleChatThreadUrl ||
+    task.fireIssueUrl ||
+    task.petIssueUrl ||
+    task.backlogUrl
   );
 }
 

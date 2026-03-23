@@ -52,6 +52,16 @@ app.use(
   })
 );
 
+// エラーハンドリング
+app.onError((err, c) => {
+  console.error('API Error:', err.message, err.stack);
+  const isDev = c.env.ENVIRONMENT === 'development';
+  return c.json(
+    { error: isDev ? err.message : 'Internal Server Error', ...(isDev && { stack: err.stack }) },
+    500
+  );
+});
+
 // Health check (認証不要)
 app.get('/health', (c) => c.json({ status: 'ok' }));
 

@@ -131,6 +131,7 @@ export const tasks = pgTable(
     fireIssueUrl: text('fire_issue_url'),
     googleChatThreadUrl: text('google_chat_thread_url'),
     backlogUrl: text('backlog_url'),
+    petIssueUrl: text('pet_issue_url'),
     dueDate: timestamp('due_date', { withTimezone: true }),
     priority: priorityEnum('priority'),
     order: real('order').notNull().default(0),

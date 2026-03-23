@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { BellRing } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { usePushNotifications } from '../../../hooks/usePushNotifications';
 
 interface ToggleSwitchProps {
   checked: boolean;
@@ -40,13 +40,17 @@ function ToggleSwitch({
 }
 
 export function NotificationsTab() {
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [permissionDenied] = useState(false);
+  const { isSupported, permission, isSubscribed, isPending, error, toggle } =
+    usePushNotifications();
 
-  const isDisabled = permissionDenied;
-  const descText = isDisabled
-    ? 'ブラウザの設定から通知を許可してください'
-    : 'タスクの更新やメンションを受け取ります';
+  const isDenied = permission === 'denied';
+  const isDisabled = !isSupported || isDenied || isPending;
+
+  const descText = !isSupported
+    ? 'このブラウザはプッシュ通知に対応していません'
+    : isDenied
+      ? 'ブラウザの設定から通知を許可してください'
+      : 'タスクの更新やメンションを受け取ります';
 
   return (
     <div className="flex flex-col gap-6 py-8 px-10">
@@ -55,6 +59,12 @@ export function NotificationsTab() {
         <h2 className="text-xl font-bold text-text-primary">通知設定</h2>
         <p className="text-sm text-text-secondary">プッシュ通知の受信設定を管理します</p>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Push Notification Card */}
       <div className="flex items-center justify-between rounded-lg border border-border-default bg-bg-primary p-5">
@@ -66,14 +76,19 @@ export function NotificationsTab() {
             <span id="push-notifications-label" className="text-sm font-medium text-text-primary">
               プッシュ通知
             </span>
-            <span className={cn('text-xs', isDisabled ? 'text-amber-600' : 'text-text-secondary')}>
+            <span
+              className={cn(
+                'text-xs',
+                !isSupported || isDenied ? 'text-amber-600' : 'text-text-secondary'
+              )}
+            >
               {descText}
             </span>
           </div>
         </div>
         <ToggleSwitch
-          checked={!isDisabled && pushEnabled}
-          onChange={setPushEnabled}
+          checked={isSubscribed}
+          onChange={toggle}
           disabled={isDisabled}
           aria-labelledby="push-notifications-label"
         />

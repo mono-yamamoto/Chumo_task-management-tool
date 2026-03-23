@@ -12,6 +12,198 @@ type DriveEnv = Env & {
 
 const app = new Hono<DriveEnv>();
 
+// --- OAuth HMAC署名ヘルパー（Web Crypto API） ---
+
+const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10分
+
+async function hmacSign(secret: string, data: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function verifyHmac(secret: string, data: string, signatureB64: string): Promise<boolean> {
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = Uint8Array.from(
+      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')),
+      (c) => c.charCodeAt(0)
+    );
+    return await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
+  } catch {
+    return false;
+  }
+}
+
+function buildOAuthState(userId: string, ts: number, sig: string): string {
+  return btoa(JSON.stringify({ userId, ts, sig }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function parseOAuthState(state: string): { userId: string; ts: number; sig: string } | null {
+  try {
+    const padded = state.replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(padded);
+    const parsed = JSON.parse(json);
+    if (
+      typeof parsed.userId === 'string' &&
+      typeof parsed.ts === 'number' &&
+      typeof parsed.sig === 'string'
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// --- OAuth エンドポイント ---
+
+const OAUTH_SCOPES = [
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/spreadsheets',
+].join(' ');
+
+/**
+ * GET /auth-url
+ * Google OAuth認証URLを生成して返却
+ */
+app.get('/auth-url', async (c) => {
+  const userId = c.get('userId');
+  const clientId = c.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = c.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return c.json({ error: 'OAuth configuration is incomplete' }, 500);
+  }
+
+  // redirect_uri をリクエストURLから動的構築
+  const url = new URL(c.req.url);
+  const redirectUri = `${url.protocol}//${url.host}/api/drive/callback`;
+
+  // HMAC署名付き state パラメータ生成
+  const ts = Date.now();
+  const sig = await hmacSign(clientSecret, `${userId}:${ts}`);
+  const state = buildOAuthState(userId, ts, sig);
+
+  const params = new globalThis.URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: OAUTH_SCOPES,
+    access_type: 'offline',
+    prompt: 'consent',
+    state,
+  });
+
+  return c.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+});
+
+/**
+ * GET /callback
+ * Google OAuthコールバック処理（認証不要 — SKIP_PATHSで除外）
+ * code → refresh_token交換 → DB保存 → フロントにリダイレクト
+ */
+app.get('/callback', async (c) => {
+  const db = c.get('db');
+  const code = c.req.query('code');
+  const stateParam = c.req.query('state');
+  const error = c.req.query('error');
+  const appOrigin = c.env.APP_ORIGIN;
+  const clientId = c.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = c.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+  const errorRedirect = (msg: string) =>
+    c.redirect(
+      `${appOrigin}/settings?tab=integrations&drive=error&message=${encodeURIComponent(msg)}`
+    );
+
+  if (error) {
+    return errorRedirect(
+      error === 'access_denied' ? 'Google認証が拒否されました' : `OAuth error: ${error}`
+    );
+  }
+
+  if (!code || !stateParam || !clientId || !clientSecret) {
+    return errorRedirect('不正なリクエストです');
+  }
+
+  // state パラメータ検証
+  const state = parseOAuthState(stateParam);
+  if (!state) {
+    return errorRedirect('不正なstateパラメータです');
+  }
+
+  // タイムスタンプ検証
+  if (Date.now() - state.ts > STATE_MAX_AGE_MS) {
+    return errorRedirect('認証リクエストが期限切れです。再度お試しください');
+  }
+
+  // HMAC署名検証
+  const valid = await verifyHmac(clientSecret, `${state.userId}:${state.ts}`, state.sig);
+  if (!valid) {
+    return errorRedirect('署名検証に失敗しました');
+  }
+
+  // redirect_uri をリクエストURLから動的構築
+  const url = new URL(c.req.url);
+  const redirectUri = `${url.protocol}//${url.host}/api/drive/callback`;
+
+  // code → token 交換
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new globalThis.URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    return errorRedirect('トークン交換に失敗しました');
+  }
+
+  const tokenData = (await tokenRes.json()) as { refresh_token?: string; access_token?: string };
+  if (!tokenData.refresh_token) {
+    return errorRedirect('リフレッシュトークンが取得できませんでした');
+  }
+
+  // DB に refresh_token 保存
+  await db
+    .update(users)
+    .set({
+      googleRefreshToken: tokenData.refresh_token,
+      googleOAuthUpdatedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, state.userId));
+
+  return c.redirect(`${appOrigin}/settings?tab=integrations&drive=connected`);
+});
+
+// --- Drive / Sheets ヘルパー ---
+
 const createFolderSchema = z.object({
   taskId: z.string(),
 });
