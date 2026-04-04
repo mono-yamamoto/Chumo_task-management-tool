@@ -1,5 +1,6 @@
 import { ChevronDown, Calendar, Plus } from 'lucide-react';
 import { Avatar } from '../../../components/ui/Avatar';
+import { IconButton } from '../../../components/ui/IconButton';
 
 // モックデータ（タスク詳細画面用）
 const MOCK_DETAIL = {
@@ -33,13 +34,13 @@ export function TaskBasicInfo() {
           {MOCK_DETAIL.assignees.map((a) => (
             <Avatar key={a.id} name={a.name} size="md" />
           ))}
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border-default text-text-tertiary transition-colors hover:bg-bg-secondary"
+          <IconButton
             aria-label="担当を追加"
+            size="sm"
+            className="rounded-full border border-border-default text-text-tertiary"
           >
             <Plus size={16} />
-          </button>
+          </IconButton>
         </div>
       </div>
 

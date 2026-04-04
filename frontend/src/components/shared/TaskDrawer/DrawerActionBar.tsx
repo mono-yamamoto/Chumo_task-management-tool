@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { UseMutationResult } from '@tanstack/react-query';
+import { Button } from '../../ui/Button';
 import { useActiveSession, useTimer, useElapsedTime } from '../../../hooks/useTimer';
 import { useIntegrations, type IntegrationResult } from '../../../hooks/useIntegrations';
 import { HttpError } from '../../../lib/api';
@@ -93,35 +94,38 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
   return (
     <div className="border-b border-border-default px-6 py-4 space-y-3">
       {/* 詳細ページボタン */}
-      <button
-        type="button"
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-primary-default text-sm font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle"
+      <Button
+        variant="outline"
+        size="lg"
+        className="w-full border-primary-default text-primary-default hover:bg-bg-brand-subtle"
       >
         詳細ページ
-      </button>
+      </Button>
 
       {/* タイマーボタン */}
       {isThisTaskActive ? (
-        <button
-          type="button"
-          onClick={handleTimerToggle}
-          disabled={stop.isPending}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-error-bg text-sm font-medium text-error-text transition-colors hover:bg-red-200 disabled:opacity-40"
+        <Button
+          variant="ghost"
+          size="lg"
+          onPress={handleTimerToggle}
+          isDisabled={stop.isPending}
+          className="w-full bg-error-bg text-error-text hover:bg-red-200 hover:text-error-text"
         >
           <Square size={16} fill="currentColor" />
           停止 {formatted}
-        </button>
+        </Button>
       ) : (
-        <button
-          type="button"
-          onClick={handleTimerToggle}
-          disabled={start.isPending || isOtherTaskActive}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-primary-default text-sm font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle disabled:opacity-40"
-          title={isOtherTaskActive ? '他のタイマーが稼働中です' : undefined}
+        <Button
+          variant="outline"
+          size="lg"
+          onPress={handleTimerToggle}
+          isDisabled={start.isPending || isOtherTaskActive}
+          className="w-full border-primary-default text-primary-default hover:bg-bg-brand-subtle"
+          aria-label={isOtherTaskActive ? '他のタイマーが稼働中です' : 'タイマー開始'}
         >
           <Play size={18} />
           {isOtherTaskActive ? '他タイマー稼働中' : 'タイマー開始'}
-        </button>
+        </Button>
       )}
 
       {/* 外部リンクボタングリッド */}
@@ -157,15 +161,16 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
       </div>
 
       {/* BACKLOGボタン */}
-      <button
-        type="button"
-        onClick={() => task.backlogUrl && openExternal(task.backlogUrl)}
-        disabled={!task.backlogUrl}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary-default text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
+      <Button
+        variant="primary"
+        size="lg"
+        onPress={() => task.backlogUrl && openExternal(task.backlogUrl)}
+        isDisabled={!task.backlogUrl}
+        className="w-full"
       >
         <ExternalLink size={16} />
         BACKLOGを開く
-      </button>
+      </Button>
     </div>
   );
 }
@@ -182,14 +187,15 @@ function LinkButton({
   loading?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      className="flex h-10 items-center justify-center gap-1.5 rounded-md border border-border-default text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-40"
+    <Button
+      variant="outline"
+      size="lg"
+      onPress={onClick}
+      isDisabled={loading}
+      className="text-xs text-text-secondary"
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : icon}
       {label}
-    </button>
+    </Button>
   );
 }

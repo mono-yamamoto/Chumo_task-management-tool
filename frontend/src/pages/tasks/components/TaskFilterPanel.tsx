@@ -1,4 +1,5 @@
 import { ListFilter, X } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { PROJECT_TYPES } from '../../../types';
@@ -60,13 +61,10 @@ export function TaskFilterPanel() {
           <ListFilter size={18} className="text-text-primary" />
           <span className="text-sm font-bold text-text-primary">フィルター</span>
         </div>
-        <button
-          type="button"
-          className="flex items-center gap-0.5 rounded-md px-2 py-1 text-xs text-text-tertiary hover:bg-bg-secondary transition-colors"
-        >
+        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-text-tertiary">
           <X size={14} />
           クリア
-        </button>
+        </Button>
       </div>
 
       {/* フィルター Row 1 */}

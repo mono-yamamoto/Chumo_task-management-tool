@@ -198,14 +198,15 @@ export function AdminTab() {
               />
             </div>
             <div className="w-[76px]">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(user)}
-                className="flex h-7 w-full items-center justify-center gap-2 rounded-md bg-red-600 text-xs font-medium text-white transition-colors hover:bg-red-700"
+              <Button
+                variant="destructive"
+                size="sm"
+                onPress={() => setDeleteTarget(user)}
+                className="h-7 w-full text-xs"
               >
                 <Trash2 size={14} />
                 削除
-              </button>
+              </Button>
             </div>
           </div>
         ))}
@@ -229,14 +230,15 @@ export function AdminTab() {
                 </span>
                 <span className="w-[100px] text-xs text-text-tertiary">無効</span>
                 <div className="w-[76px]">
-                  <button
-                    type="button"
-                    onClick={() => handleRestoreMember(user.id)}
-                    className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-border-default text-xs font-medium text-text-secondary transition-colors hover:bg-bg-primary"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onPress={() => handleRestoreMember(user.id)}
+                    className="h-7 w-full text-xs text-text-secondary"
                   >
                     <RotateCcw size={12} />
                     復元
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

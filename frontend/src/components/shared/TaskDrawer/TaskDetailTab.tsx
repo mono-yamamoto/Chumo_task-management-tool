@@ -3,6 +3,7 @@ import { ChevronDown, ExternalLink } from 'lucide-react';
 import type { Task } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Avatar } from '../../ui/Avatar';
+import { IconButton } from '../../ui/IconButton';
 import { FLOW_STATUS_LABELS } from '../../../lib/constants';
 import { formatDate } from '../../../lib/taskUtils';
 import { useUsers } from '../../../hooks/useUsers';
@@ -92,13 +93,13 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
               size="md"
             />
           ))}
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border-default text-text-tertiary transition-colors hover:bg-bg-secondary"
+          <IconButton
             aria-label="アサインを追加"
+            size="sm"
+            className="rounded-full border border-border-default text-text-tertiary"
           >
             +
-          </button>
+          </IconButton>
         </div>
       </section>
 

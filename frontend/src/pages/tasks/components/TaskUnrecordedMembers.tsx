@@ -1,5 +1,6 @@
 import { Bell, Check } from 'lucide-react';
 import { Avatar } from '../../../components/ui/Avatar';
+import { Button } from '../../../components/ui/Button';
 
 const MOCK_UNRECORDED = [
   { id: 'u1', name: '菊池', notified: false },
@@ -12,14 +13,15 @@ export function TaskUnrecordedMembers() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-text-secondary">セッション未記録メンバー</span>
-        <button
-          type="button"
-          className="inline-flex h-7 items-center gap-1 rounded-md border border-primary-default px-2.5 py-1 text-xs font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle"
-          onClick={() => {}} // TODO: 全員通知処理
+        <Button
+          variant="outline"
+          size="sm"
+          onPress={() => {}} // TODO: 全員通知処理
+          className="h-7 border-primary-default px-2.5 text-xs text-primary-default hover:bg-bg-brand-subtle"
         >
           <Bell size={14} />
-          <span>全員に通知</span>
-        </button>
+          全員に通知
+        </Button>
       </div>
 
       {/* メンバーリスト */}
@@ -34,14 +36,15 @@ export function TaskUnrecordedMembers() {
                 <span>通知済み</span>
               </span>
             ) : (
-              <button
-                type="button"
-                className="inline-flex h-7 items-center gap-1 rounded-md border border-primary-default px-2.5 py-1 text-xs font-medium text-primary-default transition-colors hover:bg-bg-brand-subtle"
-                onClick={() => {}} // TODO: 個別通知処理
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {}} // TODO: 個別通知処理
+                className="h-7 border-primary-default px-2.5 text-xs text-primary-default hover:bg-bg-brand-subtle"
               >
                 <Bell size={14} />
-                <span>通知</span>
-              </button>
+                通知
+              </Button>
             )}
           </div>
         ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pencil, Bell, Check } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { IconButton } from '../../ui/IconButton';
 import type { ReportEntry, TaskSession } from '../../../types';
 import { formatDuration } from '../../../lib/taskUtils';
 
@@ -155,14 +156,14 @@ function SessionRow({ session, colorClass, onEdit }: SessionRowProps) {
 
       <div className="flex items-center gap-2">
         <span className="text-sm text-text-secondary">{duration}</span>
-        <button
-          type="button"
-          onClick={onEdit}
+        <IconButton
+          onPress={onEdit}
           aria-label="セッションを編集"
-          className="text-text-tertiary transition-colors hover:text-text-primary"
+          size="sm"
+          className="text-text-tertiary hover:text-text-primary"
         >
           <Pencil size={16} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

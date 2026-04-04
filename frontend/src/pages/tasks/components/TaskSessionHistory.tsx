@@ -1,5 +1,7 @@
 import { Plus, Pencil } from 'lucide-react';
 import { Avatar } from '../../../components/ui/Avatar';
+import { Button } from '../../../components/ui/Button';
+import { IconButton } from '../../../components/ui/IconButton';
 
 // モックセッションデータ
 const MOCK_SESSIONS = [
@@ -32,14 +34,15 @@ export function TaskSessionHistory() {
       <div className="flex flex-col gap-2">
         <div className="flex h-8 items-center justify-between">
           <h2 className="text-md font-bold text-text-primary">セッション履歴</h2>
-          <button
-            type="button"
-            className="inline-flex h-7 items-center gap-1 rounded-sm border border-primary-default px-2 py-1 text-xs text-primary-default transition-colors hover:bg-bg-brand-subtle"
-            onClick={() => {}} // TODO: セッション追加処理
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={() => {}} // TODO: セッション追加処理
+            className="h-7 border-primary-default px-2 text-xs text-primary-default hover:bg-bg-brand-subtle"
           >
             <Plus size={14} />
-            <span>追加</span>
-          </button>
+            追加
+          </Button>
         </div>
         <span className="text-sm text-text-secondary">合計: 6時間44分</span>
       </div>
@@ -56,13 +59,13 @@ export function TaskSessionHistory() {
             <span className="shrink-0 text-sm font-medium text-text-primary">
               {session.duration}
             </span>
-            <button
-              type="button"
-              className="shrink-0 text-text-tertiary transition-colors hover:text-text-secondary"
+            <IconButton
               aria-label="セッションを編集"
+              size="sm"
+              className="shrink-0 text-text-tertiary hover:text-text-secondary"
             >
               <Pencil size={16} />
-            </button>
+            </IconButton>
           </div>
         ))}
       </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Upload, ChevronDown, Send } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { IconButton } from '../../../components/ui/IconButton';
 import type {
   ContactType,
   DeviceType,
@@ -182,14 +184,14 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
               <h2 className="text-lg font-bold leading-normal text-text-primary">
                 お問い合わせ作成
               </h2>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="text-text-tertiary transition-colors hover:text-text-primary"
+              <IconButton
+                onPress={handleClose}
                 aria-label="閉じる"
+                size="sm"
+                className="text-text-tertiary hover:text-text-primary"
               >
                 <X size={20} />
-              </button>
+              </IconButton>
             </div>
 
             {/* Content: padding 24, gap 20 */}
@@ -261,13 +263,10 @@ export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDraw
               )}
 
               {/* 送信ボタン: h-10, icon "send" */}
-              <button
-                type="submit"
-                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-primary-default text-sm font-medium text-text-inverse transition-colors hover:bg-primary-hover active:bg-primary-active"
-              >
+              <Button type="submit" variant="primary" size="lg" className="w-full">
                 <Send size={16} />
                 送信
-              </button>
+              </Button>
             </form>
           </motion.div>
         </>

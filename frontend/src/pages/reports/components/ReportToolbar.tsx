@@ -42,13 +42,10 @@ export function ReportToolbar({
         </div>
 
         {/* 日付指定トグル */}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary"
-        >
+        <Button variant="outline" size="sm" className="rounded-lg text-text-secondary">
           <Calendar size={16} />
-          <span>日付指定</span>
-        </button>
+          日付指定
+        </Button>
       </div>
 
       {/* スプレッドシート出力 */}

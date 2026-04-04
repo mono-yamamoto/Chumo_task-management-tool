@@ -1,5 +1,6 @@
 import { Send } from 'lucide-react';
 import { Avatar } from '../../../components/ui/Avatar';
+import { Button } from '../../../components/ui/Button';
 
 const MOCK_COMMENTS = [
   {
@@ -40,14 +41,15 @@ export function TaskDetailComments() {
       {/* 入力欄 */}
       <div className="flex h-10 items-center justify-between rounded-md border border-border-default bg-bg-secondary px-3 py-2">
         <span className="text-sm text-text-tertiary">コメントを入力...</span>
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-primary-default px-3 py-1 text-xs font-medium text-text-inverse transition-colors hover:bg-primary-hover"
-          onClick={() => {}} // TODO: コメント送信処理
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={() => {}} // TODO: コメント送信処理
+          className="text-xs"
         >
           <Send size={14} />
-          <span>送信</span>
-        </button>
+          送信
+        </Button>
       </div>
     </div>
   );
