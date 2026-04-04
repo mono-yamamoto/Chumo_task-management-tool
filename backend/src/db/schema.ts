@@ -84,6 +84,8 @@ export const users = pgTable('users', {
   displayName: text('display_name').notNull(),
   role: userRoleEnum('role').notNull().default('member'),
   isAllowed: boolean('is_allowed').notNull().default(false),
+  avatarUrl: text('avatar_url'),
+  avatarColor: text('avatar_color'),
   githubUsername: text('github_username'),
   googleRefreshToken: text('google_refresh_token'),
   googleOAuthUpdatedAt: timestamp('google_oauth_updated_at', { withTimezone: true }),

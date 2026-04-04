@@ -28,6 +28,8 @@ const safeUserColumns = {
   displayName: users.displayName,
   role: users.role,
   isAllowed: users.isAllowed,
+  avatarUrl: users.avatarUrl,
+  avatarColor: users.avatarColor,
   githubUsername: users.githubUsername,
   chatId: users.chatId,
   googleOAuthUpdatedAt: users.googleOAuthUpdatedAt,
@@ -113,6 +115,8 @@ app.get('/:id', async (c) => {
 
 const updateUserSchema = z.object({
   displayName: z.string().min(1).optional(),
+  avatarUrl: z.string().nullable().optional(),
+  avatarColor: z.string().nullable().optional(),
   githubUsername: z.string().optional(),
   chatId: z.string().nullable().optional(),
   isAllowed: z.boolean().optional(),
@@ -170,6 +174,8 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
   // 自分自身の更新（isAllowed, role は自己変更不可 — admin専用）
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (body.displayName !== undefined) updateData.displayName = body.displayName;
+  if (body.avatarUrl !== undefined) updateData.avatarUrl = body.avatarUrl;
+  if (body.avatarColor !== undefined) updateData.avatarColor = body.avatarColor;
   if (body.githubUsername !== undefined) updateData.githubUsername = body.githubUsername;
   if (body.chatId !== undefined) updateData.chatId = body.chatId || null;
   if (body.googleRefreshToken !== undefined)
