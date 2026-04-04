@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
+import { useAuth } from '../../../hooks/useAuth';
 
 const ICON_COLORS = [
   { name: 'teal', bg: 'bg-teal-500', text: 'text-white', border: 'border-teal-600' },
@@ -15,12 +16,18 @@ const ICON_COLORS = [
   { name: 'neutral', bg: 'bg-neutral-500', text: 'text-white', border: 'border-neutral-600' },
 ] as const;
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
 export function ProfileTab() {
   const { data: currentUser, isLoading } = useCurrentUser();
   const updateUser = useUpdateUser();
+  const { getToken } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('teal');
+  const [uploading, setUploading] = useState(false);
 
   // API データで初期化
   useEffect(() => {
@@ -45,6 +52,55 @@ export function ProfileTab() {
     updateUser.mutate({
       userId: currentUser.id,
       data: { displayName, avatarColor: selectedColor },
+    });
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('JPG, PNG, GIF, WebP のみアップロード可能です');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      alert('ファイルサイズは2MB以下にしてください');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const token = await getToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', `avatars/${currentUser.id}`);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('アップロードに失敗しました');
+      const { url } = (await res.json()) as { url: string };
+
+      updateUser.mutate({
+        userId: currentUser.id,
+        data: { avatarUrl: url },
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'アップロードに失敗しました');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleAvatarDelete = () => {
+    if (!currentUser) return;
+    updateUser.mutate({
+      userId: currentUser.id,
+      data: { avatarUrl: null },
     });
   };
 
@@ -87,19 +143,27 @@ export function ProfileTab() {
           <span className="text-sm font-medium text-text-primary">アイコン画像</span>
           <span className="text-xs text-text-tertiary">JPG, PNG, GIF（最大 2MB）</span>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="flex h-8 items-center gap-1.5 rounded-md border border-border-default px-3 text-xs font-medium text-text-primary transition-colors hover:bg-bg-secondary"
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleAvatarUpload}
+              className="sr-only"
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => fileInputRef.current?.click()}
+              isDisabled={uploading}
             >
-              <Upload size={14} className="text-text-secondary" />
-              アップロード
-            </button>
-            <button
-              type="button"
-              className="flex h-8 items-center rounded-md px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary"
-            >
-              削除
-            </button>
+              <Upload size={14} />
+              {uploading ? 'アップロード中...' : 'アップロード'}
+            </Button>
+            {currentUser?.avatarUrl && (
+              <Button variant="destructive" size="sm" onPress={handleAvatarDelete}>
+                画像を削除
+              </Button>
+            )}
           </div>
         </div>
       </div>
