@@ -19,7 +19,7 @@ import driveRoute from './drive';
 import notificationsRoute from './notifications';
 
 const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_dev';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
 
 const client = postgres(DATABASE_URL);
 const db = drizzle(client, { schema });

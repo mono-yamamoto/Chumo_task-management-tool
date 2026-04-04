@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 
 const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_dev';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
 
 /**
  * テスト用DB接続を作成する
