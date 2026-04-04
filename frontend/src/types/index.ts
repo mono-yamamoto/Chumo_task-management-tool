@@ -52,6 +52,8 @@ export interface User {
   displayName: string;
   role: UserRole;
   isAllowed: boolean;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
   githubUsername?: string;
   googleOAuthUpdatedAt?: Date;
   chatId?: string;

@@ -84,7 +84,13 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
         <SectionLabel>アサイン</SectionLabel>
         <div className="mt-2.5 flex items-center gap-2">
           {assignees.map((user) => (
-            <Avatar key={user.id} name={user.displayName} size="md" />
+            <Avatar
+              key={user.id}
+              name={user.displayName}
+              imageUrl={user.avatarUrl ?? undefined}
+              colorName={user.avatarColor}
+              size="md"
+            />
           ))}
           <button
             type="button"

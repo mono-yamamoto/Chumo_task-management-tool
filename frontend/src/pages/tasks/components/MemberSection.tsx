@@ -16,7 +16,11 @@ export function MemberSection({ member, tasks, onTaskClick }: MemberSectionProps
     <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
       {/* メンバーヘッダー */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <Avatar name={member.displayName} />
+        <Avatar
+          name={member.displayName}
+          imageUrl={member.avatarUrl ?? undefined}
+          colorName={member.avatarColor}
+        />
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-text-primary">{member.displayName}</span>
           <span className="text-xs text-text-tertiary">{roleLabel}</span>

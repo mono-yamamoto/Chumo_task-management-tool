@@ -7,12 +7,12 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
 
 const ICON_COLORS = [
-  { name: 'teal', bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-600' },
-  { name: 'blue', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-600' },
-  { name: 'green', bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-600' },
-  { name: 'amber', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-600' },
-  { name: 'red', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-600' },
-  { name: 'neutral', bg: 'bg-neutral-200', text: 'text-neutral-700', border: 'border-neutral-600' },
+  { name: 'teal', bg: 'bg-teal-500', text: 'text-white', border: 'border-teal-600' },
+  { name: 'blue', bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600' },
+  { name: 'green', bg: 'bg-green-500', text: 'text-white', border: 'border-green-600' },
+  { name: 'amber', bg: 'bg-amber-500', text: 'text-white', border: 'border-amber-600' },
+  { name: 'red', bg: 'bg-red-500', text: 'text-white', border: 'border-red-600' },
+  { name: 'neutral', bg: 'bg-neutral-500', text: 'text-white', border: 'border-neutral-600' },
 ] as const;
 
 export function ProfileTab() {
@@ -26,6 +26,9 @@ export function ProfileTab() {
   useEffect(() => {
     if (currentUser) {
       setDisplayName(currentUser.displayName ?? '');
+      if (currentUser.avatarColor) {
+        setSelectedColor(currentUser.avatarColor);
+      }
     }
   }, [currentUser]);
 
@@ -41,7 +44,7 @@ export function ProfileTab() {
     if (!currentUser) return;
     updateUser.mutate({
       userId: currentUser.id,
-      data: { displayName },
+      data: { displayName, avatarColor: selectedColor },
     });
   };
 
@@ -62,16 +65,24 @@ export function ProfileTab() {
 
       {/* Avatar Section */}
       <div className="flex items-center gap-6">
-        <div
-          className={cn(
-            'flex h-20 w-20 shrink-0 items-center justify-center rounded-full',
-            selectedColorConfig.bg
-          )}
-        >
-          <span className={cn('text-2xl font-medium', selectedColorConfig.text)}>
-            {initials || '?'}
-          </span>
-        </div>
+        {currentUser?.avatarUrl ? (
+          <img
+            src={currentUser.avatarUrl}
+            alt=""
+            className="h-20 w-20 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className={cn(
+              'flex h-20 w-20 shrink-0 items-center justify-center rounded-full',
+              selectedColorConfig.bg
+            )}
+          >
+            <span className={cn('text-2xl font-medium', selectedColorConfig.text)}>
+              {initials || '?'}
+            </span>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text-primary">アイコン画像</span>
           <span className="text-xs text-text-tertiary">JPG, PNG, GIF（最大 2MB）</span>

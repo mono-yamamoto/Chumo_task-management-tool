@@ -18,7 +18,7 @@ interface CommentTabProps {
 
 export function CommentTab({ taskId, projectType }: CommentTabProps) {
   const { data: comments, isLoading } = useTaskComments(taskId, projectType);
-  const { getUserName } = useUsers();
+  const { getUserName, getUserById } = useUsers();
   const { userId } = useAuth();
 
   if (!taskId || !projectType) {
@@ -47,6 +47,8 @@ export function CommentTab({ taskId, projectType }: CommentTabProps) {
               key={comment.id}
               comment={comment}
               authorName={getUserName(comment.authorId)}
+              authorAvatarUrl={getUserById(comment.authorId)?.avatarUrl ?? undefined}
+              authorAvatarColor={getUserById(comment.authorId)?.avatarColor}
               isOwn={comment.authorId === userId}
               taskId={taskId}
             />
@@ -65,11 +67,15 @@ export function CommentTab({ taskId, projectType }: CommentTabProps) {
 function CommentItem({
   comment,
   authorName,
+  authorAvatarUrl,
+  authorAvatarColor,
   isOwn,
   taskId,
 }: {
   comment: TaskComment;
   authorName: string;
+  authorAvatarUrl?: string;
+  authorAvatarColor?: string | null;
   isOwn: boolean;
   taskId: string;
 }) {
@@ -78,7 +84,13 @@ function CommentItem({
 
   return (
     <div className="group flex gap-3">
-      <Avatar name={authorName} size="sm" className="mt-0.5 shrink-0" />
+      <Avatar
+        name={authorName}
+        imageUrl={authorAvatarUrl}
+        colorName={authorAvatarColor}
+        size="sm"
+        className="mt-0.5 shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary">{authorName}</span>
