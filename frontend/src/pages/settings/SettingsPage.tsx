@@ -3,7 +3,8 @@ import { Header } from '../../components/layout/Header';
 import { SettingsNav } from './components/SettingsNav';
 import { ProfileTab } from './components/ProfileTab';
 import { IntegrationsTab } from './components/IntegrationsTab';
-import { NotificationsTab } from './components/NotificationsTab';
+// TODO: Web Push 実装後に復活
+// import { NotificationsTab } from './components/NotificationsTab';
 import { AdminTab } from './components/AdminTab';
 
 export type SettingsTab = 'profile' | 'integrations' | 'notifications' | 'admin';
@@ -21,7 +22,8 @@ export function SettingsPage() {
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'integrations' && <IntegrationsTab />}
-          {activeTab === 'notifications' && <NotificationsTab />}
+          {/* TODO: Web Push 実装後に復活 */}
+          {/* {activeTab === 'notifications' && <NotificationsTab />} */}
           {activeTab === 'admin' && <AdminTab />}
         </div>
       </div>

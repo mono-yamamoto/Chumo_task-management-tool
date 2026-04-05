@@ -21,6 +21,10 @@ export const queryKeys = {
   // Task Pins
   taskPins: () => ['taskPins'] as const,
 
+  // Notifications
+  notifications: () => ['notifications'] as const,
+  unreadNotificationCount: () => ['notifications', 'unread-count'] as const,
+
   // Comments
   comments: (taskId: string) => ['comments', taskId] as const,
   unreadComments: () => ['comments', 'unread'] as const,

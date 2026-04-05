@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import { eq, and, sql } from 'drizzle-orm';
 import { taskComments } from '../db/schema';
 import { generateId } from '../lib/id';
+import { createMentionNotifications } from '../lib/notifications';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -92,6 +93,21 @@ app.post('/', zValidator('json', createCommentSchema), async (c) => {
     createdAt: now,
     updatedAt: now,
   });
+
+  // メンション通知を作成（失敗してもコメント自体は保存済み）
+  if (data.mentionedUserIds && data.mentionedUserIds.length > 0) {
+    try {
+      await createMentionNotifications(db, {
+        taskId: data.taskId,
+        commentId: id,
+        authorId: userId,
+        content: data.content,
+        mentionedUserIds: data.mentionedUserIds,
+      });
+    } catch (e) {
+      console.error('Failed to create mention notifications:', e);
+    }
+  }
 
   return c.json({ id }, 201);
 });

@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '../ui/Input';
-import { IconButton } from '../ui/IconButton';
 import { TimerWidget } from '../shared/TimerWidget';
+import { NotificationPopover } from './NotificationPopover';
 
 interface HeaderProps {
   title: string;
@@ -33,12 +33,7 @@ function DefaultHeaderActions() {
           onChange={setSearchValue}
         />
       </div>
-      <div className="relative">
-        <IconButton aria-label="通知" className="h-9 w-9 rounded-md border border-border-default">
-          <Bell size={18} />
-        </IconButton>
-        <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
-      </div>
+      <NotificationPopover />
     </>
   );
 }
