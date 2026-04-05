@@ -108,7 +108,7 @@ export function useTimer() {
     onSuccess: () => {
       localStorage.removeItem(ACTIVE_SESSION_KEY);
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions('') });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 
