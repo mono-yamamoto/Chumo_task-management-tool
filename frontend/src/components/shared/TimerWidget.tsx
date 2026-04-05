@@ -6,6 +6,7 @@ import { useActiveSession, useTimer, useElapsedTime } from '../../hooks/useTimer
 /**
  * ヘッダーに表示するコンパクトなタイマーウィジェット
  * memo 化して毎秒の再レンダーが親に伝播しないようにする
+ * ※ブラウザタブのタイトル更新はAppLayoutで一元管理
  */
 export const TimerWidget = memo(function TimerWidget() {
   const { data: activeSession, cached } = useActiveSession();

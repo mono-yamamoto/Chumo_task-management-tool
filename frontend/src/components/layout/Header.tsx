@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { IconButton } from '../ui/IconButton';
@@ -11,10 +12,27 @@ interface HeaderProps {
 
 /** 検索 + 通知ベルのデフォルトアクション */
 function DefaultHeaderActions() {
+  const [searchValue, setSearchValue] = useState('');
+  const navigate = useNavigate();
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      navigate(`/tasks?title=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
   return (
     <>
       <TimerWidget />
-      <Input placeholder="タスクを検索..." icon={<Search size={16} />} className="w-[220px]" />
+      <div onKeyDown={handleKeyDown}>
+        <Input
+          placeholder="タスクを検索..."
+          icon={<Search size={16} />}
+          className="w-[220px]"
+          value={searchValue}
+          onChange={setSearchValue}
+        />
+      </div>
       <div className="relative">
         <IconButton aria-label="通知" className="h-9 w-9 rounded-md border border-border-default">
           <Bell size={18} />
