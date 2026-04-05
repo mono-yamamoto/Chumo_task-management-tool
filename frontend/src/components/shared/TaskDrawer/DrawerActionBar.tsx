@@ -97,6 +97,7 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
       <Button
         variant="outline"
         size="lg"
+        onPress={() => navigate(`/tasks/${task.id}`)}
         className="w-full border-primary-default text-primary-default hover:bg-bg-brand-subtle"
       >
         詳細ページ

@@ -117,9 +117,19 @@ export function TaskDrawer({
                   />
                   <DrawerActionBar task={task} />
                   <DrawerTabBar
+                    taskId={task.id}
                     detailTabLabel={detailTabLabel}
                     detailContent={detailContent ?? <TaskDetailTab task={task} />}
                     commentContent={<CommentTab taskId={task.id} projectType={task.projectType} />}
+                    detailPadding={detailPadding}
+                  />
+                </>
+              ) : detailContent ? (
+                <>
+                  <DrawerHeader title={title} onClose={onClose} />
+                  <DrawerTabBar
+                    detailTabLabel={detailTabLabel}
+                    detailContent={detailContent}
                     detailPadding={detailPadding}
                   />
                 </>
