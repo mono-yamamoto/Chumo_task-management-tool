@@ -2,32 +2,37 @@ import { useState, useMemo } from 'react';
 import { Calendar, Timer, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { formatDuration } from '../../../lib/taskUtils';
+import { useUpdateSession } from '../../../hooks/useSessionMutations';
 import type { TaskSession } from '../../../types';
 
-function formatDateInput(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function formatDateInput(date: Date | string): string {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function formatTimeInput(date: Date): string {
-  const h = String(date.getHours()).padStart(2, '0');
-  const m = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
+function formatTimeInput(date: Date | string): string {
+  const d = new Date(date);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
 }
 
 interface SessionEditModalContentProps {
   session: TaskSession;
+  onCancel: () => void;
+  onSaved?: () => void;
 }
 
-export function SessionEditModalContent({ session }: SessionEditModalContentProps) {
+export function SessionEditModalContent({
+  session,
+  onCancel,
+  onSaved,
+}: SessionEditModalContentProps) {
   const [dateValue, setDateValue] = useState(() => formatDateInput(session.startedAt));
   const [startTime, setStartTime] = useState(() => formatTimeInput(session.startedAt));
   const [endTime, setEndTime] = useState(() =>
     session.endedAt ? formatTimeInput(session.endedAt) : ''
   );
+
+  const updateSession = useUpdateSession();
 
   const durationSec = useMemo(() => {
     if (!startTime || !endTime) return 0;
@@ -37,6 +42,16 @@ export function SessionEditModalContent({ session }: SessionEditModalContentProp
     const endSec = (eh ?? 0) * 3600 + (em ?? 0) * 60 + (es ?? 0);
     return Math.max(0, endSec - startSec);
   }, [startTime, endTime]);
+
+  const handleSave = () => {
+    const startedAt = new Date(`${dateValue}T${startTime}`).toISOString();
+    const endedAt = endTime ? new Date(`${dateValue}T${endTime}`).toISOString() : undefined;
+
+    updateSession.mutate(
+      { sessionId: session.id, data: { startedAt, endedAt } },
+      { onSuccess: onSaved }
+    );
+  };
 
   return (
     <div className="space-y-5">
@@ -80,27 +95,25 @@ export function SessionEditModalContent({ session }: SessionEditModalContentProp
         <span className="text-sm font-medium text-text-secondary">作業時間</span>
         <p className="text-xl font-bold text-text-primary">{formatDuration(durationSec)}</p>
       </div>
+
+      {/* フッターボタン */}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" size="sm" onPress={onCancel}>
+          キャンセル
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={handleSave}
+          isDisabled={updateSession.isPending}
+        >
+          <Check size={16} />
+          保存
+        </Button>
+      </div>
     </div>
   );
 }
-
-interface FooterProps {
-  onCancel: () => void;
-}
-
-SessionEditModalContent.Footer = function SessionEditFooter({ onCancel }: FooterProps) {
-  return (
-    <>
-      <Button variant="outline" size="sm" onPress={onCancel}>
-        キャンセル
-      </Button>
-      <Button variant="primary" size="sm">
-        <Check size={16} />
-        保存
-      </Button>
-    </>
-  );
-};
 
 interface FieldRowProps {
   label: string;

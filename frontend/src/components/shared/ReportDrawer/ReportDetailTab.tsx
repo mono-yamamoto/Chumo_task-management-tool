@@ -4,6 +4,8 @@ import { Button } from '../../ui/Button';
 import { IconButton } from '../../ui/IconButton';
 import type { ReportEntry, TaskSession } from '../../../types';
 import { formatDuration } from '../../../lib/taskUtils';
+import { formatDateTime as fmtDateTime, formatTime as fmtTime } from '../../../lib/constants';
+import { useUpdateTask } from '../../../hooks/useTaskMutations';
 
 // セッション未記録メンバーのモックデータ
 const MOCK_UNRECORDED_MEMBERS = [
@@ -21,6 +23,7 @@ interface ReportDetailTabProps {
 
 export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) {
   const [reason, setReason] = useState(entry.over3Reason ?? '');
+  const updateTask = useUpdateTask();
   useEffect(() => {
     setReason(entry.over3Reason ?? '');
   }, [entry]);
@@ -45,6 +48,18 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
         <p id="over3ReasonHelp" className="text-xs text-text-tertiary">
           3時間を超過した場合は理由を記入してください
         </p>
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            size="sm"
+            isDisabled={reason === (entry.over3Reason ?? '') || updateTask.isPending}
+            onPress={() =>
+              updateTask.mutate({ taskId: entry.taskId, data: { over3Reason: reason } })
+            }
+          >
+            {updateTask.isPending ? '保存中...' : '保存'}
+          </Button>
+        </div>
       </div>
 
       {/* セッション履歴 */}
@@ -134,8 +149,8 @@ interface SessionRowProps {
 function SessionRow({ session, colorClass, onEdit }: SessionRowProps) {
   const userName = getSessionUserName(session.userId);
   const initial = userName.charAt(0);
-  const startStr = formatDateTime(session.startedAt);
-  const endStr = session.endedAt ? formatTime(session.endedAt) : '-';
+  const startStr = fmtDateTime(session.startedAt);
+  const endStr = session.endedAt ? fmtTime(session.endedAt) : '-';
   const duration = formatDuration(session.durationSec);
 
   return (
@@ -180,23 +195,4 @@ function getSessionUserName(userId: string): string {
     'user-6': '渡辺',
   };
   return names[userId] ?? 'Unknown';
-}
-
-function formatDateTime(date: Date): string {
-  const d = new Date(date);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const da = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${y}-${mo}-${da} ${h}:${m}:${s}`;
-}
-
-function formatTime(date: Date): string {
-  const d = new Date(date);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
 }

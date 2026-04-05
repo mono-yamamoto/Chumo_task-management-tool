@@ -102,6 +102,22 @@ export function ReportPage() {
     });
   }, []);
 
+  const handleStartDateChange = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      setYear(d.getFullYear());
+      setMonth(d.getMonth() + 1);
+    }
+  }, []);
+
+  const handleEndDateChange = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      setYear(d.getFullYear());
+      setMonth(d.getMonth() + 1);
+    }
+  }, []);
+
   const handleRowClick = (entry: ReportEntry) => {
     setSelectedEntry(entry);
   };
@@ -133,7 +149,12 @@ export function ReportPage() {
           onExport={() => setIsExportModalOpen(true)}
         />
 
-        <DateRangeRow startDate={startDate} endDate={endDate} />
+        <DateRangeRow
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+        />
 
         <Tabs selectedKey={activeTab} onSelectionChange={handleTabChange}>
           <TabList>
@@ -167,8 +188,7 @@ export function ReportPage() {
       </div>
 
       <TaskDrawer
-        isOpen={selectedEntry != null}
-        title={selectedEntry?.title ?? ''}
+        taskId={selectedEntry?.taskId ?? null}
         onClose={() => setSelectedEntry(null)}
         detailTabLabel="レポート詳細"
         detailPadding={false}
@@ -197,9 +217,14 @@ export function ReportPage() {
         isOpen={editingSession != null}
         onClose={() => setEditingSession(null)}
         title="セッション時間の編集"
-        footer={<SessionEditModalContent.Footer onCancel={() => setEditingSession(null)} />}
       >
-        {editingSession && <SessionEditModalContent session={editingSession.session} />}
+        {editingSession && (
+          <SessionEditModalContent
+            session={editingSession.session}
+            onCancel={() => setEditingSession(null)}
+            onSaved={() => setEditingSession(null)}
+          />
+        )}
       </Modal>
     </>
   );
