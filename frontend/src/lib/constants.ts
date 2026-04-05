@@ -1,4 +1,5 @@
-import type { FlowStatus, ProgressStatus } from '../types';
+import type { FlowStatus, ProgressStatus, Task } from '../types';
+import type { TaskFilters } from '../hooks/useTaskFilters';
 
 /**
  * 期限間近の閾値（日数）
@@ -77,3 +78,94 @@ export const COMPLETED_PROGRESS_STATUSES: ProgressStatus[] = [
   'ST連絡済み',
   'SENJU登録',
 ];
+
+/**
+ * FlowStatus Select用オプション
+ */
+export const FLOW_STATUS_OPTIONS: { value: string; label: string }[] = Object.entries(
+  FLOW_STATUS_LABELS
+).map(([value, label]) => ({ value, label }));
+
+/**
+ * ProgressStatus Select用オプション
+ */
+export const PROGRESS_STATUS_OPTIONS: { value: string; label: string }[] = Object.keys(
+  PROGRESS_STATUS_COLOR_MAP
+).map((key) => ({ value: key, label: key }));
+
+/**
+ * Date を input[type="date"] の value 形式に変換
+ */
+export function toDateInputValue(dateValue: Date | string | null | undefined): string {
+  if (!dateValue) return '';
+  const d = new Date(dateValue);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Date を HH:MM:SS 形式に変換
+ */
+export function formatTime(date: Date | string): string {
+  const d = new Date(date);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+}
+
+/**
+ * Date を YYYY-MM-DD HH:MM:SS 形式に変換
+ */
+export function formatDateTime(date: Date | string): string {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${da} ${formatTime(d)}`;
+}
+
+/**
+ * 月文字列 "YYYY-MM" に Date が含まれるか
+ */
+export function matchesMonth(date: Date | null, month: string): boolean {
+  if (!date || !month) return true;
+  const d = new Date(date);
+  const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return ym === month;
+}
+
+/**
+ * TaskFilters をタスク配列に適用するクライアントサイドフィルタ
+ */
+export function applyTaskFilters(tasks: Task[], filters: TaskFilters): Task[] {
+  let result = tasks;
+
+  if (filters.title) {
+    const q = filters.title.toLowerCase();
+    result = result.filter((t) => t.title.toLowerCase().includes(q));
+  }
+
+  if (filters.projectType) {
+    result = result.filter((t) => t.projectType === filters.projectType);
+  }
+
+  if (filters.status && filters.status !== '完了以外') {
+    result = result.filter((t) => t.flowStatus === filters.status);
+  }
+
+  if (filters.assigneeId) {
+    result = result.filter((t) => t.assigneeIds.includes(filters.assigneeId));
+  }
+
+  if (filters.kubunLabelId) {
+    result = result.filter((t) => t.kubunLabelId === filters.kubunLabelId);
+  }
+
+  if (filters.itUpMonth) {
+    result = result.filter((t) => matchesMonth(t.itUpDate, filters.itUpMonth));
+  }
+
+  if (filters.releaseMonth) {
+    result = result.filter((t) => matchesMonth(t.releaseDate, filters.releaseMonth));
+  }
+
+  return result;
+}
