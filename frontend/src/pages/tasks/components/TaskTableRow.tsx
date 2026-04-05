@@ -1,13 +1,14 @@
-import { Link } from 'react-router-dom';
-import { Pin, PlayCircle } from 'lucide-react';
+import { Pin, Play, Square } from 'lucide-react';
 import type { Task } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { AvatarGroup } from '../../../components/ui/AvatarGroup';
+import { IconButton } from '../../../components/ui/IconButton';
 import { cn } from '../../../lib/utils';
 import { getTaskBgVariant, getTaskBgClass, formatDate } from '../../../lib/taskUtils';
 import { FLOW_STATUS_LABELS } from '../../../lib/constants';
 import { useUsers } from '../../../hooks/useUsers';
 import { useLabels } from '../../../hooks/useLabels';
+import { useActiveSession, useTimer } from '../../../hooks/useTimer';
 
 interface TaskTableRowProps {
   task: Task;
@@ -21,10 +22,26 @@ export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps)
   const { getUserById } = useUsers();
   const { getLabelById } = useLabels();
   const label = getLabelById(task.kubunLabelId);
+  const { data: activeSession } = useActiveSession();
+  const { start, stop } = useTimer();
+
+  const isThisActive = activeSession?.taskId === task.id;
+  const isOtherActive = activeSession != null && !isThisActive;
 
   const assignees = task.assigneeIds
     .map((id) => getUserById(id))
     .filter((u): u is NonNullable<typeof u> => u != null);
+
+  const handleTimerClick = () => {
+    if (isThisActive && activeSession) {
+      stop.mutate({
+        sessionId: activeSession.id,
+        projectType: activeSession.projectType ?? task.projectType,
+      });
+    } else if (!isOtherActive) {
+      start.mutate({ taskId: task.id, projectType: task.projectType });
+    }
+  };
 
   return (
     <div
@@ -52,13 +69,7 @@ export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps)
 
       {/* タイトル */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        <Link
-          to={`/tasks/${task.id}`}
-          className="truncate text-sm font-bold text-text-primary hover:text-primary-default hover:underline"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {task.title}
-        </Link>
+        <span className="truncate text-sm font-bold text-text-primary">{task.title}</span>
       </div>
 
       {/* アサイン */}
@@ -88,8 +99,28 @@ export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps)
       </div>
 
       {/* タイマー */}
-      <div className="w-[48px] shrink-0 flex items-center justify-center">
-        <PlayCircle size={20} className="text-neutral-400" />
+      <div
+        className="w-[48px] shrink-0 flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <IconButton
+          aria-label={isThisActive ? 'タイマー停止' : 'タイマー開始'}
+          size="sm"
+          isDisabled={isOtherActive || start.isPending || stop.isPending}
+          onPress={handleTimerClick}
+          className={cn(
+            'h-8 w-8 rounded-full',
+            isThisActive
+              ? 'bg-error-bg text-error-text hover:bg-red-200'
+              : 'text-primary-default hover:bg-bg-brand-subtle'
+          )}
+        >
+          {isThisActive ? (
+            <Square size={14} fill="currentColor" />
+          ) : (
+            <Play size={16} fill="currentColor" />
+          )}
+        </IconButton>
       </div>
     </div>
   );
