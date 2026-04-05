@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Header } from '../../components/layout/Header';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { TaskTableView } from './components/TaskTableView';
@@ -11,14 +11,17 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
 import { useTasks } from '../../hooks/useTasks';
 import { useTaskFilters } from '../../hooks/useTaskFilters';
+import { useReorderTasks } from '../../hooks/useReorderTasks';
+import { calculateNewOrder } from '../../lib/orderUtils';
 import { applyTaskFilters } from '../../lib/constants';
-import type { Task } from '../../types';
+import type { Task, FlowStatus } from '../../types';
 
 const PER_PAGE = 30;
 
 export function TaskListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const { filters } = useTaskFilters();
+  const reorderTasks = useReorderTasks();
 
   // クライアントサイドフィルタが有効な場合は全件取得
   const hasClientFilters = !!(
@@ -82,6 +85,38 @@ export function TaskListPage() {
     openDrawer(task.id);
   };
 
+  // テーブル用: フラットリストで order 計算
+  const handleTableReorder = useCallback(
+    (taskId: string, targetId: string, dropPosition: 'before' | 'after') => {
+      const items = tasks.map((t) => ({ id: t.id, order: t.order }));
+      const newOrder = calculateNewOrder(items, taskId, targetId, dropPosition);
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      reorderTasks.mutate([{ taskId, projectType: task.projectType, newOrder }]);
+    },
+    [tasks, reorderTasks]
+  );
+
+  // カード用: flowStatus カラム内で order 計算
+  const handleCardReorder = useCallback(
+    (
+      taskId: string,
+      targetId: string,
+      dropPosition: 'before' | 'after',
+      flowStatus: FlowStatus
+    ) => {
+      const columnTasks = tasks
+        .filter((t) => t.flowStatus === flowStatus)
+        .sort((a, b) => a.order - b.order);
+      const items = columnTasks.map((t) => ({ id: t.id, order: t.order }));
+      const newOrder = calculateNewOrder(items, taskId, targetId, dropPosition);
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      reorderTasks.mutate([{ taskId, projectType: task.projectType, newOrder }]);
+    },
+    [tasks, reorderTasks]
+  );
+
   return (
     <>
       <Header title="タスク" />
@@ -121,7 +156,13 @@ export function TaskListPage() {
               perPage={PER_PAGE}
               onPageChange={setCurrentPage}
             />
-            <TaskTableView tasks={tasks} onTaskClick={handleTaskClick} enableInfoBg />
+            <TaskTableView
+              tasks={tasks}
+              onTaskClick={handleTaskClick}
+              enableInfoBg
+              enableDnd
+              onReorder={handleTableReorder}
+            />
             <Pagination
               totalItems={totalItems}
               currentPage={currentPage}
@@ -130,7 +171,13 @@ export function TaskListPage() {
             />
           </div>
         ) : (
-          <TaskCardView tasks={tasks} onTaskClick={handleTaskClick} enableInfoBg />
+          <TaskCardView
+            tasks={tasks}
+            onTaskClick={handleTaskClick}
+            enableInfoBg
+            enableDnd
+            onReorder={handleCardReorder}
+          />
         )}
       </div>
 

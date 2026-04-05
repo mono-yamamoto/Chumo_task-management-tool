@@ -56,7 +56,20 @@ export function MemberCardSection({ member, tasks, onTaskClick }: MemberCardSect
           >
             <CardSectionHeader label={FLOW_STATUS_LABELS[status]} count={statusTasks.length} />
             {statusTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onClick={onTaskClick} enableInfoBg />
+              <div
+                key={task.id}
+                onClick={() => onTaskClick(task)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onTaskClick(task);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <TaskCard task={task} enableInfoBg />
+              </div>
             ))}
           </div>
         ))}

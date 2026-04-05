@@ -12,19 +12,12 @@ import { useActiveSession, useTimer } from '../../../hooks/useTimer';
 
 interface TaskTableRowProps {
   task: Task;
-  onClick: (task: Task) => void;
   enableInfoBg?: boolean;
   isPinned?: boolean;
   onTogglePin?: (taskId: string, isPinned: boolean) => void;
 }
 
-export function TaskTableRow({
-  task,
-  onClick,
-  enableInfoBg,
-  isPinned,
-  onTogglePin,
-}: TaskTableRowProps) {
+export function TaskTableRow({ task, enableInfoBg, isPinned, onTogglePin }: TaskTableRowProps) {
   const bgVariant = getTaskBgVariant(task, { enableInfoVariant: enableInfoBg });
   const bgClass = getTaskBgClass(bgVariant);
   const { getUserById } = useUsers();
@@ -60,15 +53,6 @@ export function TaskTableRow({
         bgVariant === 'warning' && 'border-l-[3px] border-l-warning-text',
         bgVariant === 'info' && 'border-l-[3px] border-l-info-text'
       )}
-      onClick={() => onClick(task)}
-      role="row"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick(task);
-        }
-      }}
     >
       {/* ピン */}
       <div

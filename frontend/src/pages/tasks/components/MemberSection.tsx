@@ -35,7 +35,20 @@ export function MemberSection({ member, tasks, onTaskClick }: MemberSectionProps
       <TaskTableHeader />
       <div role="rowgroup">
         {tasks.map((task) => (
-          <TaskTableRow key={task.id} task={task} onClick={onTaskClick} enableInfoBg />
+          <div
+            key={task.id}
+            onClick={() => onTaskClick(task)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onTaskClick(task);
+              }
+            }}
+            role="row"
+            tabIndex={0}
+          >
+            <TaskTableRow task={task} enableInfoBg />
+          </div>
         ))}
       </div>
     </div>

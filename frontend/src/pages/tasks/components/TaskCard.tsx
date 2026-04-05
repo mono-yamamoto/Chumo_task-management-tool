@@ -10,11 +10,10 @@ import { useLabels } from '../../../hooks/useLabels';
 
 interface TaskCardProps {
   task: Task;
-  onClick: (task: Task) => void;
   enableInfoBg?: boolean;
 }
 
-export function TaskCard({ task, onClick, enableInfoBg }: TaskCardProps) {
+export function TaskCard({ task, enableInfoBg }: TaskCardProps) {
   const bgVariant = getTaskBgVariant(task, { enableInfoVariant: enableInfoBg });
   const bgClass = getTaskBgClass(bgVariant);
   const { getUserById } = useUsers();
@@ -31,15 +30,6 @@ export function TaskCard({ task, onClick, enableInfoBg }: TaskCardProps) {
         'rounded-md border border-border-default p-3 cursor-pointer transition-colors hover:border-border-strong',
         bgClass || 'bg-bg-primary'
       )}
-      onClick={() => onClick(task)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick(task);
-        }
-      }}
     >
       {/* タイトル（2行clamp） */}
       <Link
