@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Header } from '../../components/layout/Header';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
+import { TaskCreateDrawer } from '../../components/shared/TaskCreateDrawer';
 import { TaskTableView } from './components/TaskTableView';
 import { TaskCardView } from './components/TaskCardView';
 import { TaskListToolbar } from './components/TaskListToolbar';
@@ -78,6 +79,7 @@ export function TaskListPage() {
       ? (currentPage - 1) * PER_PAGE + PER_PAGE + 1
       : (currentPage - 1) * PER_PAGE + filteredTasks.length;
 
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const { viewMode, setViewMode } = useViewMode('tasks');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
@@ -126,6 +128,7 @@ export function TaskListPage() {
           taskCount={hasClientFilters ? filteredTasks.length : tasks.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          onNewTask={() => setIsCreateDrawerOpen(true)}
         />
 
         <TaskFilterPanel />
@@ -181,6 +184,11 @@ export function TaskListPage() {
         )}
       </div>
 
+      <TaskCreateDrawer
+        isOpen={isCreateDrawerOpen}
+        onClose={() => setIsCreateDrawerOpen(false)}
+        defaultProjectType={filters.projectType || undefined}
+      />
       <TaskDrawer taskId={selectedTaskId} onClose={closeDrawer} />
     </>
   );

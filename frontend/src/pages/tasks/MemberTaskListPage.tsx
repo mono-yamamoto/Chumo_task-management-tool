@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Header } from '../../components/layout/Header';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
+import { TaskCreateDrawer } from '../../components/shared/TaskCreateDrawer';
 import { MemberTaskToolbar } from './components/MemberTaskToolbar';
 import { TaskFilterPanel } from './components/TaskFilterPanel';
 import { MemberSection } from './components/MemberSection';
@@ -23,6 +24,7 @@ export function MemberTaskListPage() {
   const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
   const isLoading = tasksLoading || usersLoading;
 
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const { viewMode, setViewMode } = useViewMode('members');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
 
@@ -61,7 +63,11 @@ export function MemberTaskListPage() {
       <Header title="タスク" />
 
       <div className="flex-1 overflow-y-auto p-8 space-y-6">
-        <MemberTaskToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
+        <MemberTaskToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onNewTask={() => setIsCreateDrawerOpen(true)}
+        />
         <TaskFilterPanel />
 
         {/* 凡例行 */}
@@ -105,6 +111,7 @@ export function MemberTaskListPage() {
         )}
       </div>
 
+      <TaskCreateDrawer isOpen={isCreateDrawerOpen} onClose={() => setIsCreateDrawerOpen(false)} />
       <TaskDrawer taskId={selectedTaskId} onClose={closeDrawer} />
     </>
   );

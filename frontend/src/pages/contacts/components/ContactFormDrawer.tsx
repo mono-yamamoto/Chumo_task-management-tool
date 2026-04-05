@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Upload, ChevronDown, Send } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import { INPUT_CLASS, TEXTAREA_CLASS } from '../../../lib/formStyles';
 import { IconButton } from '../../../components/ui/IconButton';
 import type {
   ContactType,
@@ -59,13 +60,6 @@ const BROWSER_OPTIONS: { value: BrowserType; label: string }[] = [
   { value: 'Arc', label: 'Arc' },
   { value: 'other', label: 'その他' },
 ];
-
-/* 共通のインプットクラス（デザイン仕様: h-10, cornerRadius 8, fill #FFF, border #E5E7EB, padding [0,12]） */
-const INPUT_CLASS =
-  'h-10 w-full rounded-md border border-border-default bg-bg-primary px-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus';
-
-const TEXTAREA_CLASS =
-  'w-full rounded-md border border-border-default bg-bg-primary p-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus resize-none';
 
 export function ContactFormDrawer({ isOpen, onClose, onSubmit }: ContactFormDrawerProps) {
   const [type, setType] = useState<ContactType>('error');
