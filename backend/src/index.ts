@@ -16,6 +16,7 @@ import chatRoute from './routes/chat';
 import driveRoute from './routes/drive';
 import notificationsRoute from './routes/notifications';
 import uploadRoute from './routes/upload';
+import taskPinsRoute from './routes/task-pins';
 
 export type Env = {
   Bindings: {
@@ -116,5 +117,6 @@ app.route('/api/chat', chatRoute);
 app.route('/api/drive', driveRoute);
 app.route('/api/notifications', notificationsRoute);
 app.route('/api/upload', uploadRoute);
+app.route('/api/task-pins', taskPinsRoute);
 
 export default app;

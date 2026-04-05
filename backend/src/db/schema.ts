@@ -227,6 +227,23 @@ export const taskActivities = pgTable(
   (table) => [index('task_activities_task_id_idx').on(table.taskId)]
 );
 
+export const taskPins = pgTable(
+  'task_pins',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    order: real('order').notNull().default(0),
+    pinnedAt: timestamp('pinned_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('task_pins_user_task_idx').on(table.userId, table.taskId),
+    index('task_pins_user_id_idx').on(table.userId),
+  ]
+);
+
 export const contacts = pgTable('contacts', {
   id: text('id').primaryKey(),
   type: contactTypeEnum('type').notNull(),
