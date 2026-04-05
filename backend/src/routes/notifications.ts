@@ -21,8 +21,10 @@ const app = new Hono<NotificationEnv>();
 app.get('/', async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
-  const limit = Math.min(Number(c.req.query('limit') || '20'), 50);
-  const offset = Number(c.req.query('offset') || '0');
+  const rawLimit = Number(c.req.query('limit') || '20');
+  const rawOffset = Number(c.req.query('offset') || '0');
+  const limit = Number.isInteger(rawLimit) && rawLimit >= 1 ? Math.min(rawLimit, 50) : 20;
+  const offset = Number.isInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
 
   const result = await db
     .select()
@@ -98,28 +100,32 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
   const db = c.get('db');
   const userId = c.get('userId');
   const data = c.req.valid('json');
+  const uniqueTargetUserIds = [...new Set(data.targetUserIds)];
 
-  // 通知レコード作成
-  const sentCount = await createSessionReminderNotifications(db, {
-    taskId: data.taskId,
-    targetUserIds: data.targetUserIds,
-    senderId: userId,
+  // 通知作成 + sessionReminders更新をトランザクションで実行
+  const sentCount = await db.transaction(async (tx) => {
+    const count = await createSessionReminderNotifications(tx, {
+      taskId: data.taskId,
+      targetUserIds: uniqueTargetUserIds,
+      senderId: userId,
+    });
+
+    const now = new Date().toISOString();
+    const newReminders: Record<string, { sentAt: string; sentBy: string }> = {};
+    for (const uid of uniqueTargetUserIds) {
+      newReminders[uid] = { sentAt: now, sentBy: userId };
+    }
+
+    await tx
+      .update(tasks)
+      .set({
+        sessionReminders: sql`COALESCE(${tasks.sessionReminders}, '{}'::jsonb) || ${JSON.stringify(newReminders)}::jsonb`,
+        updatedAt: new Date(),
+      })
+      .where(eq(tasks.id, data.taskId));
+
+    return count;
   });
-
-  // tasks.sessionReminders をアトミックにマージ（||演算子で競合回避）
-  const now = new Date().toISOString();
-  const newReminders: Record<string, { sentAt: string; sentBy: string }> = {};
-  for (const uid of data.targetUserIds) {
-    newReminders[uid] = { sentAt: now, sentBy: userId };
-  }
-
-  await db
-    .update(tasks)
-    .set({
-      sessionReminders: sql`COALESCE(${tasks.sessionReminders}, '{}'::jsonb) || ${JSON.stringify(newReminders)}::jsonb`,
-      updatedAt: new Date(),
-    })
-    .where(eq(tasks.id, data.taskId));
 
   return c.json({ success: true, sentCount });
 });
@@ -146,7 +152,7 @@ app.post('/mention', zValidator('json', mentionNotificationSchema), async (c) =>
     commentId: data.commentId,
     authorId: userId,
     content: data.content,
-    mentionedUserIds: data.mentionedUserIds,
+    mentionedUserIds: [...new Set(data.mentionedUserIds)],
   });
 
   return c.json({ success: true, sent: sentCount });
