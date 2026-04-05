@@ -79,7 +79,16 @@ const createTaskSchema = z.object({
   over3Reason: z.string().optional(),
 });
 
-const updateTaskSchema = createTaskSchema.partial().omit({ projectType: true });
+// createTaskSchema の .default() はCREATE時のみ有効にし、
+// UPDATE時はデフォルト値で既存データが上書きされないよう除去する
+const updateTaskSchema = createTaskSchema
+  .omit({ projectType: true })
+  .extend({
+    flowStatus: flowStatusEnum,
+    assigneeIds: z.array(z.string()),
+    order: z.number(),
+  })
+  .partial();
 
 const updateOrderSchema = z.object({
   updates: z.array(
