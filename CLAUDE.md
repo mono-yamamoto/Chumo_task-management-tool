@@ -23,17 +23,17 @@
 
 ### 新環境 — アクティブな開発対象
 
-| 項目           | フロントエンド (`frontend/`)                            | バックエンド (`backend/`)                |
-| -------------- | ------------------------------------------------------- | ---------------------------------------- |
-| フレームワーク | Vite + React 19                                         | Hono on Cloudflare Workers               |
-| UI/スタイル    | Tailwind CSS v4 + React Aria Components + Framer Motion | —                                        |
-| 認証           | Clerk (`@clerk/clerk-react`)                            | Clerk (`@clerk/backend`)                 |
-| DB             | —                                                       | Neon Postgres + Drizzle ORM              |
-| ストレージ     | —                                                       | Cloudflare R2                            |
-| ルーティング   | react-router-dom v7                                     | Hono Router                              |
-| ビルド         | `cd frontend && bun run build`                          | `cd backend && wrangler deploy`          |
-| 開発サーバー   | `cd frontend && bun run dev` (port 3000)                | `cd backend && wrangler dev` (port 8787) |
-| テスト         | —                                                       | `cd backend && bun run test` (Vitest)    |
+| 項目           | フロントエンド (`frontend/`)                            | バックエンド (`backend/`)   |
+| -------------- | ------------------------------------------------------- | --------------------------- |
+| フレームワーク | Vite + React 19                                         | Hono on Cloudflare Workers  |
+| UI/スタイル    | Tailwind CSS v4 + React Aria Components + Framer Motion | —                           |
+| 認証           | Clerk (`@clerk/clerk-react`)                            | Clerk (`@clerk/backend`)    |
+| DB             | —                                                       | Neon Postgres + Drizzle ORM |
+| ストレージ     | —                                                       | Cloudflare R2               |
+| ルーティング   | react-router-dom v7                                     | Hono Router                 |
+| ビルド         | `bun run build`                                         | `bun run backend:deploy`    |
+| 開発サーバー   | `bun run dev`（フロント+バック同時起動）                | —                           |
+| テスト         | —                                                       | `bun run test` (Vitest)     |
 
 ### 開発時の注意事項
 
@@ -97,9 +97,22 @@
 
 ## ⚠️ Bash コマンド実行ルール
 
-- **`cd` と `git` を `&&` で繋がない**。Claude Code のセキュリティチェックで毎回承認が必要になる
-- 作業ディレクトリは常にプロジェクトルートが前提。`git` コマンドは `cd` なしで直接実行する
-- `frontend/` や `backend/` 配下のコマンド（`bun run test` 等）は `cd frontend && bun run test` ではなく、可能な限り絶対パスや `-C` オプション等を使う
+- **`cd` を使わない**。ルート `package.json` にフロント・バック両方のコマンドが定義済みなので、プロジェクトルートから直接実行する
+- `git` コマンドも `cd` なしで直接実行する（cwd は常にプロジェクトルート）
+
+```bash
+# ✅ ルートの package.json 経由で実行
+bun run test              # → backend テスト
+bun run lint              # → frontend lint
+bun run type-check        # → frontend 型チェック
+bun run build             # → frontend ビルド
+bun run backend:db:generate  # → Drizzle マイグレーション生成
+bun run backend:db:migrate   # → Drizzle マイグレーション適用
+
+# ❌ cd を使わない
+cd frontend && bun run test
+cd /absolute/path && git status
+```
 
 ## ⚠️ 重要: プロジェクトルールとガイドライン
 
@@ -215,17 +228,15 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
 
 ### 新環境 (`frontend/` / `backend/`)
 
-- **Linter**: oxlint (`cd frontend && bun run format`)
+- **Linter**: oxlint (`bun run frontend:format`)
 - **CSS**: Tailwind CSS v4 のユーティリティクラスを使用
 - **コンポーネント**: React Aria Components ベース（`frontend/src/components/ui/`）
 
 ```bash
-# フロントエンド
-cd frontend && bun run lint
-cd frontend && bun run type-check
-
-# バックエンド
-cd backend && bun run test
+# すべてプロジェクトルートから実行
+bun run lint          # フロントエンド lint
+bun run type-check    # フロントエンド型チェック
+bun run test          # バックエンドテスト
 ```
 
 ### 旧環境（ルート直下）— 参照のみ
@@ -257,16 +268,16 @@ cd backend && bun run test
 
 **4. テストと検証フェーズ**
 
-- フロントエンド型チェック: `cd frontend && bun run type-check`
-- フロントエンドリント: `cd frontend && bun run lint`
-- バックエンドテスト: `cd backend && bun run test`
+- フロントエンド型チェック: `bun run type-check`
+- フロントエンドリント: `bun run lint`
+- バックエンドテスト: `bun run test`
 - 必要に応じてブラウザ検証にChrome DevTools MCPを使用
 
 **5. コミットとデプロイフェーズ**
 
 - `git status`と`git diff`で変更を確認
 - コミットメッセージ規約に従って論理的なコミットを作成
-- フロントエンドビルドテスト: `cd frontend && bun run build`
+- フロントエンドビルドテスト: `bun run build`
 - PR/Issue関連の操作にはGitHub CLIを使用: `gh pr list`, `gh issue view`
 
 ### タスク管理のベストプラクティス
@@ -283,8 +294,8 @@ cd backend && bun run test
 
 ```bash
 # バックエンドテスト（Vitest）
-cd backend && bun run test
-cd backend && bun run test:coverage
+bun run test
+bun run backend:test:coverage
 ```
 
 フロントエンドのテストスイートは未整備。機能追加時に適切なテストを追加すること。
@@ -301,10 +312,10 @@ bun run test          # ルートのVitest
 
 ```bash
 # フロントエンドビルド
-cd frontend && bun run build
+bun run build
 
-# バックエンド（Cloudflare Workers）
-cd backend && wrangler deploy
+# バックエンドデプロイ（Cloudflare Workers）
+bun run backend:deploy
 ```
 
 ### 旧環境（参照のみ）
@@ -320,13 +331,13 @@ npm run functions:build    # Cloud Functions ビルド
 
 ```bash
 # バックエンドAPI（Cloudflare Workers）
-cd backend && wrangler deploy                    # development
-cd backend && wrangler deploy --env staging      # staging
-cd backend && wrangler deploy --env production   # production
+bun run backend:deploy                           # development（デフォルト）
+cd backend && wrangler deploy --env staging      # staging（ルートスクリプト未定義）
+cd backend && wrangler deploy --env production   # production（ルートスクリプト未定義）
 
 # DBマイグレーション
-cd backend && bun run db:generate
-cd backend && bun run db:migrate
+bun run backend:db:generate
+bun run backend:db:migrate
 ```
 
 ### 旧環境（参照のみ）
@@ -369,15 +380,12 @@ npm run functions:deploy
 ### 新環境のセットアップ
 
 ```bash
-# フロントエンド
+# 依存関係インストール（frontend/ と backend/ それぞれ）
 cd frontend && bun install
-
-# バックエンド
 cd backend && bun install
 
-# 開発サーバー起動（2つのターミナルで）
-cd frontend && bun run dev   # → http://localhost:3000
-cd backend && wrangler dev   # → http://localhost:8787
+# 開発サーバー起動（フロント+バック同時起動）
+bun run dev   # → frontend: http://localhost:3000, backend: http://localhost:8787
 ```
 
 ### 旧環境のセットアップ（参照用）
