@@ -10,7 +10,11 @@ interface InputProps extends Omit<TextFieldProps, 'children'> {
 
 export function Input({ icon, className, placeholder, inputClassName, ...props }: InputProps) {
   return (
-    <TextField className={cn('relative', className)} {...props}>
+    <TextField
+      aria-label={props['aria-label'] ?? placeholder}
+      className={cn('relative', className)}
+      {...props}
+    >
       {icon && (
         <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary">
           {icon}
