@@ -31,6 +31,8 @@ export type Env = {
     DRIVE_PARENT_ID: string;
     CHECKSHEET_TEMPLATE_ID: string;
     APP_ORIGIN: string;
+    REPORT_DRIVE_PARENT_ID: string;
+    REPORT_TEMPLATE_ID: string;
     INTERNAL_API_KEY: string;
     UPLOAD_BUCKET: R2Bucket;
   };

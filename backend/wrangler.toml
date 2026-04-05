@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "development"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
 
 [[r2_buckets]]
 binding = "UPLOAD_BUCKET"
@@ -15,6 +17,8 @@ bucket_name = "chumo-uploads"
 name = "chumo-api-staging"
 [env.staging.vars]
 ENVIRONMENT = "staging"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
 [[env.staging.r2_buckets]]
 binding = "UPLOAD_BUCKET"
 bucket_name = "chumo-uploads-staging"
@@ -24,6 +28,8 @@ bucket_name = "chumo-uploads-staging"
 name = "chumo-api-production"
 [env.production.vars]
 ENVIRONMENT = "production"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
 [[env.production.r2_buckets]]
 binding = "UPLOAD_BUCKET"
 bucket_name = "chumo-uploads"
