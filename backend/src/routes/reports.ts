@@ -8,7 +8,6 @@ import {
   driveSearchFiles,
   driveCreateFolder,
   driveCopyFile,
-  driveListFilesInFolder,
   driveGetFile,
   sheetsUpdateValues,
   sheetsClearValues,
@@ -371,6 +370,9 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
     return c.json({ error: 'Report Drive configuration is incomplete' }, 500);
   }
 
+  const mm = String(month).padStart(2, '0');
+  const fileName = `ソニー損害保険株式会社様_運用工数表-${year}_${mm}`;
+
   let folderId: string;
   let spreadsheetId: string | null = null;
 
@@ -378,14 +380,14 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
     folderId = existingFolderId;
 
     if (overwrite) {
-      // 既存スプレッドシートを検索してクリア→再利用
-      const existingSheets = await driveListFilesInFolder(
+      // ファイル名で対象スプレッドシートを特定してクリア→再利用
+      const escapedFileName = fileName.replace(/'/g, "\\'");
+      const matchingSheets = await driveSearchFiles(
         accessToken,
-        folderId,
-        'application/vnd.google-apps.spreadsheet'
+        `name='${escapedFileName}' and '${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`
       );
-      if (existingSheets.length > 0) {
-        spreadsheetId = existingSheets[0].id;
+      if (matchingSheets.length > 0) {
+        spreadsheetId = matchingSheets[0].id;
         const cleared = await sheetsClearValues(accessToken, spreadsheetId, 'データ!A:Z');
         if (!cleared) {
           return c.json({ error: 'スプレッドシートのクリアに失敗しました' }, 500);
@@ -404,8 +406,6 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
 
   // スプレッドシートが無い場合はテンプレートからコピー
   if (!spreadsheetId) {
-    const mm = String(month).padStart(2, '0');
-    const fileName = `ソニー損害保険株式会社様_運用工数表-${year}_${mm}`;
     spreadsheetId = await driveCopyFile(
       accessToken,
       templateId,

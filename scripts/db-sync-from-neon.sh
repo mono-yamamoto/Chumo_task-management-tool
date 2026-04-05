@@ -51,7 +51,7 @@ DUMP=$(docker run --rm --network host postgres:17-alpine \
 
 echo "🗑️  ローカル DB のデータをクリア中..."
 # 全テーブルを TRUNCATE（外部キー考慮で CASCADE）
-docker exec -i "$CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -c "
+if ! docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$LOCAL_USER" -d "$LOCAL_DB" -c "
 DO \$\$
 DECLARE r RECORD;
 BEGIN
@@ -60,10 +60,16 @@ BEGIN
     EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
   END LOOP;
 END \$\$;
-" > /dev/null
+" > /dev/null 2>&1; then
+  echo "❌ TRUNCATE に失敗しました"
+  exit 1
+fi
 
 echo "📥 ローカル DB にデータを投入中..."
-echo "$DUMP" | docker exec -i "$CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" > /dev/null 2>&1
+if ! echo "$DUMP" | docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$LOCAL_USER" -d "$LOCAL_DB" > /dev/null 2>&1; then
+  echo "❌ インポートに失敗しました（TRUNCATE 済みのため復旧が必要な可能性があります）"
+  exit 1
+fi
 
 # 件数確認
 echo ""

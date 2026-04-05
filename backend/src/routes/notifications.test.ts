@@ -61,7 +61,6 @@ describe('Notifications API', () => {
         body: JSON.stringify({
           taskId: 'task-notify',
           commentId: 'comment-1',
-          authorId: 'author-user',
           content: '<p>テストコメント</p>',
           mentionedUserIds: ['mentioned-user'],
           projectType: 'MONO',
@@ -77,7 +76,7 @@ describe('Notifications API', () => {
       expect(notifications).toHaveLength(1);
       expect(notifications[0]!.recipientId).toBe('mentioned-user');
       expect(notifications[0]!.type).toBe('mention');
-      expect(notifications[0]!.title).toContain('投稿者');
+      expect(notifications[0]!.title).toContain('テストユーザー');
       expect(notifications[0]!.body).toContain('通知テスト用タスク');
       expect(notifications[0]!.body).toContain('テストコメント');
     });
@@ -91,9 +90,8 @@ describe('Notifications API', () => {
         body: JSON.stringify({
           taskId: 'task-notify',
           commentId: 'comment-2',
-          authorId: 'author-user',
           content: 'セルフメンション',
-          mentionedUserIds: ['author-user'],
+          mentionedUserIds: ['test-user'],
           projectType: 'MONO',
         }),
       });
@@ -112,7 +110,6 @@ describe('Notifications API', () => {
         body: JSON.stringify({
           taskId: 'task-notify',
           commentId: 'comment-4',
-          authorId: 'author-user',
           content: '<p><strong>太字</strong> &amp; <em>斜体</em></p>',
           mentionedUserIds: ['mentioned-user'],
           projectType: 'MONO',

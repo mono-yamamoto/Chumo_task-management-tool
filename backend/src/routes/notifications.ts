@@ -131,7 +131,6 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
 const mentionNotificationSchema = z.object({
   taskId: z.string(),
   commentId: z.string(),
-  authorId: z.string(),
   content: z.string(),
   mentionedUserIds: z.array(z.string()),
   projectType: z.string(),
@@ -139,12 +138,13 @@ const mentionNotificationSchema = z.object({
 
 app.post('/mention', zValidator('json', mentionNotificationSchema), async (c) => {
   const db = c.get('db');
+  const userId = c.get('userId');
   const data = c.req.valid('json');
 
   const sentCount = await createMentionNotifications(db, {
     taskId: data.taskId,
     commentId: data.commentId,
-    authorId: data.authorId,
+    authorId: userId,
     content: data.content,
     mentionedUserIds: data.mentionedUserIds,
   });
