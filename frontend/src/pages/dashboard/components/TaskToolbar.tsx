@@ -7,9 +7,17 @@ interface TaskToolbarProps {
   taskCount: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  onFilterToggle?: () => void;
+  isFilterActive?: boolean;
 }
 
-export function TaskToolbar({ taskCount, viewMode, onViewModeChange }: TaskToolbarProps) {
+export function TaskToolbar({
+  taskCount,
+  viewMode,
+  onViewModeChange,
+  onFilterToggle,
+  isFilterActive = false,
+}: TaskToolbarProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -35,7 +43,12 @@ export function TaskToolbar({ taskCount, viewMode, onViewModeChange }: TaskToolb
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}
         />
-        <Button variant="outline" size="sm" className="text-text-secondary text-xs">
+        <Button
+          variant={isFilterActive ? 'primary' : 'outline'}
+          size="sm"
+          className={isFilterActive ? 'text-xs' : 'text-text-secondary text-xs'}
+          onPress={onFilterToggle}
+        >
           <Filter size={16} />
           フィルター
         </Button>

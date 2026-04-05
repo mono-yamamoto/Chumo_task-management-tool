@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Header } from '../../components/layout/Header';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { TaskTableView } from './components/TaskTableView';
@@ -10,25 +10,70 @@ import { Spinner } from '../../components/ui/Spinner';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTaskDrawer } from '../../hooks/useTaskDrawer';
 import { useTasks } from '../../hooks/useTasks';
+import { useTaskFilters } from '../../hooks/useTaskFilters';
+import { applyTaskFilters } from '../../lib/constants';
 import type { Task } from '../../types';
 
 const PER_PAGE = 30;
 
 export function TaskListPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const offset = (currentPage - 1) * PER_PAGE;
+  const { filters } = useTaskFilters();
+
+  // クライアントサイドフィルタが有効な場合は全件取得
+  const hasClientFilters = !!(
+    filters.title ||
+    (filters.status && filters.status !== '完了以外') ||
+    filters.assigneeId ||
+    filters.kubunLabelId ||
+    filters.itUpMonth ||
+    filters.releaseMonth
+  );
+
+  const excludeCompleted = !filters.status || filters.status === '完了以外';
 
   const { data, isLoading, error } = useTasks({
-    excludeCompleted: true,
-    limit: PER_PAGE,
-    offset,
+    projectType: filters.projectType || undefined,
+    excludeCompleted,
+    // クライアントサイドフィルタ時は全件取得
+    ...(hasClientFilters
+      ? { limit: 9999, offset: 0 }
+      : { limit: PER_PAGE, offset: (currentPage - 1) * PER_PAGE }),
   });
 
-  const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
-  const hasMore = data?.hasMore ?? false;
+  // フィルタ変更時にページを1に戻す
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    filters.title,
+    filters.projectType,
+    filters.status,
+    filters.assigneeId,
+    filters.kubunLabelId,
+    filters.timer,
+    filters.itUpMonth,
+    filters.releaseMonth,
+  ]);
 
-  // hasMore ベースで総件数を推定（正確な totalCount は API に追加が必要）
-  const estimatedTotal = hasMore ? offset + PER_PAGE + 1 : offset + tasks.length;
+  const filteredTasks = useMemo(
+    () => applyTaskFilters(data?.tasks ?? [], filters),
+    [data?.tasks, filters]
+  );
+
+  // クライアントサイドページング
+  const tasks = useMemo(() => {
+    if (hasClientFilters) {
+      const start = (currentPage - 1) * PER_PAGE;
+      return filteredTasks.slice(start, start + PER_PAGE);
+    }
+    return filteredTasks;
+  }, [filteredTasks, currentPage, hasClientFilters]);
+
+  const totalItems = hasClientFilters
+    ? filteredTasks.length
+    : data?.hasMore
+      ? (currentPage - 1) * PER_PAGE + PER_PAGE + 1
+      : (currentPage - 1) * PER_PAGE + filteredTasks.length;
 
   const { viewMode, setViewMode } = useViewMode('tasks');
   const { selectedTaskId, openDrawer, closeDrawer } = useTaskDrawer();
@@ -43,7 +88,7 @@ export function TaskListPage() {
 
       <div className="flex-1 overflow-y-auto p-8 space-y-6">
         <TaskListToolbar
-          taskCount={tasks.length}
+          taskCount={hasClientFilters ? filteredTasks.length : tasks.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
@@ -71,14 +116,14 @@ export function TaskListPage() {
         ) : viewMode === 'table' ? (
           <div className="space-y-4">
             <Pagination
-              totalItems={estimatedTotal}
+              totalItems={totalItems}
               currentPage={currentPage}
               perPage={PER_PAGE}
               onPageChange={setCurrentPage}
             />
             <TaskTableView tasks={tasks} onTaskClick={handleTaskClick} enableInfoBg />
             <Pagination
-              totalItems={estimatedTotal}
+              totalItems={totalItems}
               currentPage={currentPage}
               perPage={PER_PAGE}
               onPageChange={setCurrentPage}

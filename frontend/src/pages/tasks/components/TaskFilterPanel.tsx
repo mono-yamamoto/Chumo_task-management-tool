@@ -5,6 +5,7 @@ import { Select } from '../../../components/ui/Select';
 import { PROJECT_TYPES } from '../../../types';
 import { useUsers } from '../../../hooks/useUsers';
 import { useLabels } from '../../../hooks/useLabels';
+import { useTaskFilters } from '../../../hooks/useTaskFilters';
 
 const FLOW_STATUS_OPTIONS = [
   { value: '完了以外', label: '完了以外' },
@@ -42,6 +43,7 @@ const MONTH_OPTIONS = generateMonthOptions();
 export function TaskFilterPanel() {
   const { data: users = [] } = useUsers();
   const { data: labels = [] } = useLabels();
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters();
 
   const assignOptions = users.map((u) => ({
     value: u.id,
@@ -61,7 +63,13 @@ export function TaskFilterPanel() {
           <ListFilter size={18} className="text-text-primary" />
           <span className="text-sm font-bold text-text-primary">フィルター</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-text-tertiary">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 text-xs text-text-tertiary"
+          onPress={clearFilters}
+          isDisabled={!hasActiveFilters}
+        >
           <X size={14} />
           クリア
         </Button>
@@ -71,39 +79,79 @@ export function TaskFilterPanel() {
       <div className="flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-text-secondary">タイトル</span>
-          <Input placeholder="タイトルで検索..." inputClassName="bg-bg-primary" />
+          <Input
+            placeholder="タイトルで検索..."
+            inputClassName="bg-bg-primary"
+            value={filters.title}
+            onChange={(v) => setFilter('title', v)}
+          />
         </div>
         <Select
           label="プロジェクト"
           options={PROJECT_OPTIONS}
           placeholder="すべて"
           className="flex-1"
+          value={filters.projectType}
+          onChange={(v) => setFilter('projectType', v)}
+          active={!!filters.projectType}
         />
         <Select
           label="ステータス"
           options={FLOW_STATUS_OPTIONS}
-          value="完了以外"
-          active
+          placeholder="すべて"
           className="flex-1"
+          value={filters.status}
+          onChange={(v) => setFilter('status', v)}
+          active={!!filters.status}
         />
-        <Select label="アサイン" options={assignOptions} placeholder="すべて" className="flex-1" />
+        <Select
+          label="アサイン"
+          options={assignOptions}
+          placeholder="すべて"
+          className="flex-1"
+          value={filters.assigneeId}
+          onChange={(v) => setFilter('assigneeId', v)}
+          active={!!filters.assigneeId}
+        />
       </div>
 
       {/* フィルター Row 2 */}
       <div className="flex items-end gap-3">
-        <Select label="区分" options={kubunOptions} placeholder="すべて" className="flex-1" />
-        <Select label="タイマー" options={TIMER_OPTIONS} placeholder="すべて" className="flex-1" />
+        <Select
+          label="区分"
+          options={kubunOptions}
+          placeholder="すべて"
+          className="flex-1"
+          value={filters.kubunLabelId}
+          onChange={(v) => setFilter('kubunLabelId', v)}
+          active={!!filters.kubunLabelId}
+        />
+        <Select
+          label="タイマー"
+          options={TIMER_OPTIONS}
+          placeholder="すべて"
+          className="flex-1"
+          value={filters.timer}
+          onChange={(v) => setFilter('timer', v)}
+          active={!!filters.timer}
+        />
         <Select
           label="ITアップ月"
           options={MONTH_OPTIONS}
           placeholder="すべて"
           className="flex-1"
+          value={filters.itUpMonth}
+          onChange={(v) => setFilter('itUpMonth', v)}
+          active={!!filters.itUpMonth}
         />
         <Select
           label="リリース月"
           options={MONTH_OPTIONS}
           placeholder="すべて"
           className="flex-1"
+          value={filters.releaseMonth}
+          onChange={(v) => setFilter('releaseMonth', v)}
+          active={!!filters.releaseMonth}
         />
       </div>
     </div>
