@@ -4,6 +4,8 @@ import { cn } from '../../lib/utils';
 interface AvatarGroupUser {
   id: string;
   displayName: string;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
   imageUrl?: string;
 }
 
@@ -26,7 +28,8 @@ export function AvatarGroup({ users, max = 5, size = 'sm', className }: AvatarGr
         <Avatar
           key={user.id}
           name={user.displayName}
-          imageUrl={user.imageUrl}
+          imageUrl={user.avatarUrl ?? user.imageUrl}
+          colorName={user.avatarColor}
           size={size}
           className="ring-2 ring-bg-primary"
         />

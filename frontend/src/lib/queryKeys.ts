@@ -18,6 +18,13 @@ export const queryKeys = {
     userId ? (['tasks', 'assigned', userId] as const) : (['tasks', 'assigned'] as const),
   task: (taskId: string) => ['tasks', 'detail', taskId] as const,
 
+  // Task Pins
+  taskPins: () => ['taskPins'] as const,
+
+  // Notifications
+  notifications: () => ['notifications'] as const,
+  unreadNotificationCount: () => ['notifications', 'unread-count'] as const,
+
   // Comments
   comments: (taskId: string) => ['comments', taskId] as const,
   unreadComments: () => ['comments', 'unread'] as const,

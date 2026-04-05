@@ -1,5 +1,6 @@
 import { X, Trash2 } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { IconButton } from '../../ui/IconButton';
 
 interface DrawerHeaderProps {
   title: string;
@@ -14,14 +15,9 @@ export function DrawerHeader({ title, onClose, onDelete, isDeleting }: DrawerHea
       {/* タイトル + 閉じる */}
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-bold leading-normal text-text-primary">{title}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-secondary"
-          aria-label="閉じる"
-        >
+        <IconButton onPress={onClose} aria-label="閉じる" className="shrink-0">
           <X size={20} />
-        </button>
+        </IconButton>
       </div>
 
       {/* 削除ボタン */}

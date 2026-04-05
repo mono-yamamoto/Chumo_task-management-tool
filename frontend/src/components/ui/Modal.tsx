@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { IconButton } from './IconButton';
 
 interface ModalProps {
   isOpen: boolean;
@@ -52,13 +53,14 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border-default px-6 py-5">
                 <h2 className="text-lg font-bold text-text-primary">{title}</h2>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-secondary hover:text-text-primary"
+                <IconButton
+                  onPress={onClose}
+                  aria-label="閉じる"
+                  size="sm"
+                  className="rounded-lg text-text-tertiary"
                 >
                   <X size={20} />
-                </button>
+                </IconButton>
               </div>
 
               {/* Body */}

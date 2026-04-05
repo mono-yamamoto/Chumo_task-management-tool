@@ -32,7 +32,11 @@ export function MemberCardSection({ member, tasks, onTaskClick }: MemberCardSect
     <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
       {/* メンバーヘッダー */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <Avatar name={member.displayName} />
+        <Avatar
+          name={member.displayName}
+          imageUrl={member.avatarUrl ?? undefined}
+          colorName={member.avatarColor}
+        />
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-text-primary">{member.displayName}</span>
           <span className="text-xs text-text-tertiary">{roleLabel}</span>
@@ -52,7 +56,20 @@ export function MemberCardSection({ member, tasks, onTaskClick }: MemberCardSect
           >
             <CardSectionHeader label={FLOW_STATUS_LABELS[status]} count={statusTasks.length} />
             {statusTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onClick={onTaskClick} enableInfoBg />
+              <div
+                key={task.id}
+                onClick={() => onTaskClick(task)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onTaskClick(task);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <TaskCard task={task} enableInfoBg />
+              </div>
             ))}
           </div>
         ))}

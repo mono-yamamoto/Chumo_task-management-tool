@@ -76,6 +76,8 @@ export const externalSourceEnum = pgEnum('external_source', ['backlog']);
 
 export const syncStatusEnum = pgEnum('sync_status', ['ok', 'failed']);
 
+export const notificationTypeEnum = pgEnum('notification_type', ['mention', 'session_reminder']);
+
 // --- Tables ---
 
 export const users = pgTable('users', {
@@ -84,6 +86,8 @@ export const users = pgTable('users', {
   displayName: text('display_name').notNull(),
   role: userRoleEnum('role').notNull().default('member'),
   isAllowed: boolean('is_allowed').notNull().default(false),
+  avatarUrl: text('avatar_url'),
+  avatarColor: text('avatar_color'),
   githubUsername: text('github_username'),
   googleRefreshToken: text('google_refresh_token'),
   googleOAuthUpdatedAt: timestamp('google_oauth_updated_at', { withTimezone: true }),
@@ -136,6 +140,9 @@ export const tasks = pgTable(
     priority: priorityEnum('priority'),
     order: real('order').notNull().default(0),
     over3Reason: text('over3_reason'),
+    sessionReminders: jsonb('session_reminders').$type<
+      Record<string, { sentAt: string; sentBy: string }>
+    >(),
     createdBy: text('created_by').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -223,6 +230,44 @@ export const taskActivities = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('task_activities_task_id_idx').on(table.taskId)]
+);
+
+export const taskPins = pgTable(
+  'task_pins',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    order: real('order').notNull().default(0),
+    pinnedAt: timestamp('pinned_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('task_pins_user_task_idx').on(table.userId, table.taskId),
+    index('task_pins_user_id_idx').on(table.userId),
+  ]
+);
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    recipientId: text('recipient_id').notNull(),
+    type: notificationTypeEnum('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+    commentId: text('comment_id'),
+    actorId: text('actor_id').notNull(),
+    isRead: boolean('is_read').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('notifications_recipient_id_idx').on(table.recipientId),
+    index('notifications_recipient_read_idx').on(table.recipientId, table.isRead),
+    index('notifications_created_at_idx').on(table.createdAt),
+  ]
 );
 
 export const contacts = pgTable('contacts', {

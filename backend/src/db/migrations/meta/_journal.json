@@ -22,6 +22,27 @@
       "when": 1772945500000,
       "tag": "0002_assignee_ids_gin_index",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775262006297,
+      "tag": "0003_colossal_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775353741698,
+      "tag": "0004_military_marauders",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775355168231,
+      "tag": "0005_flat_true_believers",
+      "breakpoints": true
     }
   ]
 }

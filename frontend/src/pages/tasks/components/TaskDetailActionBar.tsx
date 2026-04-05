@@ -1,46 +1,78 @@
-import { Play, FolderOpen, MessageCircle, Flame, PawPrint, ExternalLink } from 'lucide-react';
+import { Play, Square, ExternalLink, Folder, MessageCircle, Flame, PawPrint } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { IntegrationLinkButton } from '../../../components/ui/IntegrationLinkButton';
+import { useActiveSession, useTimer, useElapsedTime } from '../../../hooks/useTimer';
+import { useIntegrationActions } from '../../../hooks/useIntegrationActions';
+import { openExternal } from '../../../lib/utils';
+import type { Task } from '../../../types';
 
-export function TaskDetailActionBar() {
-  return (
-    <div className="flex items-center gap-2 py-2">
-      {/* タイマー開始 */}
-      <button
-        type="button"
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary-default px-4 py-2 text-sm font-medium text-text-inverse transition-colors hover:bg-primary-hover"
-        onClick={() => {}} // TODO: タイマー開始処理
-      >
-        <Play size={16} />
-        <span>タイマー開始</span>
-      </button>
-
-      {/* 外部サービス連携ボタン群 */}
-      <OutlinedActionButton icon={<FolderOpen size={16} />} label="DRIVE作成" />
-      <OutlinedActionButton icon={<MessageCircle size={16} />} label="CHAT作成" />
-      <OutlinedActionButton icon={<Flame size={16} />} label="FIRE issue作成" />
-      <OutlinedActionButton icon={<PawPrint size={16} />} label="PET issue作成" />
-
-      {/* BACKLOG */}
-      <button
-        type="button"
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-teal-200 bg-bg-brand-subtle px-3 py-2 text-xs font-medium text-primary-default transition-colors hover:bg-teal-100"
-        onClick={() => {}} // TODO: BACKLOG連携処理
-      >
-        <ExternalLink size={16} />
-        <span>BACKLOGを開く</span>
-      </button>
-    </div>
-  );
+interface TaskDetailActionBarProps {
+  task: Task;
 }
 
-function OutlinedActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+export function TaskDetailActionBar({ task }: TaskDetailActionBarProps) {
+  const { data: activeSession } = useActiveSession();
+  const { start, stop } = useTimer();
+  const { drive, chat, fire, pet } = useIntegrationActions(task);
+
+  const isThisTaskActive = activeSession != null && activeSession.taskId === task.id;
+  const isOtherTaskActive = activeSession != null && !isThisTaskActive;
+  const { formatted } = useElapsedTime(
+    isThisTaskActive && activeSession ? activeSession.startedAt : null
+  );
+
+  const handleTimerToggle = () => {
+    if (isThisTaskActive && activeSession) {
+      stop.mutate({
+        sessionId: activeSession.id,
+        projectType: activeSession.projectType ?? task.projectType,
+      });
+    } else {
+      start.mutate({ taskId: task.id, projectType: task.projectType });
+    }
+  };
+
   return (
-    <button
-      type="button"
-      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border-default px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary"
-      onClick={() => {}} // TODO: 外部サービス連携処理
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
+    <div className="flex items-center gap-2 py-2">
+      {/* タイマー */}
+      {isThisTaskActive ? (
+        <Button
+          variant="ghost"
+          onPress={handleTimerToggle}
+          isDisabled={stop.isPending}
+          className="bg-error-bg text-error-text hover:bg-red-200 hover:text-error-text"
+        >
+          <Square size={16} fill="currentColor" />
+          停止 {formatted}
+        </Button>
+      ) : (
+        <Button
+          variant="primary"
+          onPress={handleTimerToggle}
+          isDisabled={start.isPending || isOtherTaskActive}
+        >
+          <Play size={16} />
+          {isOtherTaskActive ? '他タイマー稼働中' : 'タイマー開始'}
+        </Button>
+      )}
+
+      {/* 外部サービス連携ボタン群 */}
+      <IntegrationLinkButton icon={<Folder size={16} />} {...drive} />
+      <IntegrationLinkButton icon={<MessageCircle size={16} />} {...chat} />
+      <IntegrationLinkButton icon={<Flame size={16} />} {...fire} />
+      <IntegrationLinkButton icon={<PawPrint size={16} />} {...pet} />
+
+      {/* BACKLOG */}
+      <Button
+        variant="outline"
+        size="sm"
+        onPress={() => task.backlogUrl && openExternal(task.backlogUrl)}
+        isDisabled={!task.backlogUrl}
+        className="border-teal-200 bg-bg-brand-subtle text-xs text-primary-default hover:bg-teal-100"
+      >
+        <ExternalLink size={16} />
+        BACKLOGを開く
+      </Button>
+    </div>
   );
 }

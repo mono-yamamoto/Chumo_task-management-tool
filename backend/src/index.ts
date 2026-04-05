@@ -16,6 +16,7 @@ import chatRoute from './routes/chat';
 import driveRoute from './routes/drive';
 import notificationsRoute from './routes/notifications';
 import uploadRoute from './routes/upload';
+import taskPinsRoute from './routes/task-pins';
 
 export type Env = {
   Bindings: {
@@ -30,6 +31,8 @@ export type Env = {
     DRIVE_PARENT_ID: string;
     CHECKSHEET_TEMPLATE_ID: string;
     APP_ORIGIN: string;
+    REPORT_DRIVE_PARENT_ID: string;
+    REPORT_TEMPLATE_ID: string;
     INTERNAL_API_KEY: string;
     UPLOAD_BUCKET: R2Bucket;
   };
@@ -116,5 +119,6 @@ app.route('/api/chat', chatRoute);
 app.route('/api/drive', driveRoute);
 app.route('/api/notifications', notificationsRoute);
 app.route('/api/upload', uploadRoute);
+app.route('/api/task-pins', taskPinsRoute);
 
 export default app;

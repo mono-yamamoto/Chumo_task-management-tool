@@ -6,6 +6,8 @@ import { useAuth } from './useAuth';
 
 interface UpdateUserData {
   displayName?: string;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
   githubUsername?: string;
   chatId?: string | null;
   isAllowed?: boolean;

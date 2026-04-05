@@ -1,6 +1,9 @@
-import { ChevronLeft, ChevronRight, Calendar, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Upload, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
+
+const REPORT_DRIVE_FOLDER_URL =
+  'https://drive.google.com/drive/u/1/folders/1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH';
 
 interface ReportToolbarProps {
   year: number;
@@ -8,6 +11,7 @@ interface ReportToolbarProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onExport: () => void;
+  isExporting?: boolean;
 }
 
 export function ReportToolbar({
@@ -16,6 +20,7 @@ export function ReportToolbar({
   onPrevMonth,
   onNextMonth,
   onExport,
+  isExporting = false,
 }: ReportToolbarProps) {
   return (
     <div className="flex h-10 items-center justify-between">
@@ -42,20 +47,29 @@ export function ReportToolbar({
         </div>
 
         {/* 日付指定トグル */}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary"
-        >
+        <Button variant="outline" size="sm" className="rounded-lg text-text-secondary">
           <Calendar size={16} />
-          <span>日付指定</span>
-        </button>
+          日付指定
+        </Button>
       </div>
 
-      {/* スプレッドシート出力 */}
-      <Button variant="primary" size="sm" onPress={onExport}>
-        <Upload size={16} />
-        スプレッドシートに出力
-      </Button>
+      <div className="flex items-center gap-2">
+        {/* Driveフォルダを開く */}
+        <Button
+          variant="secondary"
+          size="sm"
+          onPress={() => window.open(REPORT_DRIVE_FOLDER_URL, '_blank')}
+        >
+          <ExternalLink size={16} />
+          Drive
+        </Button>
+
+        {/* スプレッドシート出力 */}
+        <Button variant="primary" size="sm" onPress={onExport} isDisabled={isExporting}>
+          {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+          {isExporting ? '出力中...' : 'スプレッドシートに出力'}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 
 const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_dev';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
 
 /**
  * テスト用DB接続を作成する
@@ -20,10 +20,12 @@ export function createTestDb() {
  * FK制約の順序を考慮して削除
  */
 export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
+  await db.delete(schema.notifications);
   await db.delete(schema.taskActivities);
   await db.delete(schema.taskComments);
   await db.delete(schema.taskSessions);
   await db.delete(schema.taskExternals);
+  await db.delete(schema.taskPins);
   await db.delete(schema.tasks);
   await db.delete(schema.labels);
   await db.delete(schema.contacts);

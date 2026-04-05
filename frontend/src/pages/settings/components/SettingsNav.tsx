@@ -1,11 +1,12 @@
-import { User, Puzzle, Bell, Shield } from 'lucide-react';
+import { User, Puzzle, Shield } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type { SettingsTab } from '../SettingsPage';
 
 const TABS = [
   { id: 'profile' as const, label: 'プロフィール', icon: User },
   { id: 'integrations' as const, label: '連携', icon: Puzzle },
-  { id: 'notifications' as const, label: '通知', icon: Bell },
+  // TODO: Web Push 実装後に復活
+  // { id: 'notifications' as const, label: '通知', icon: Bell },
   { id: 'admin' as const, label: 'メンバー管理', icon: Shield },
 ];
 

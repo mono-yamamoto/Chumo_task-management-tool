@@ -7,9 +7,14 @@ import type { ViewMode } from '../../../hooks/useViewMode';
 interface MemberTaskToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  onNewTask: () => void;
 }
 
-export function MemberTaskToolbar({ viewMode, onViewModeChange }: MemberTaskToolbarProps) {
+export function MemberTaskToolbar({
+  viewMode,
+  onViewModeChange,
+  onNewTask,
+}: MemberTaskToolbarProps) {
   return (
     <div className="flex items-center justify-between">
       <h2 className="text-xl font-bold text-text-primary">メンバー別タスク一覧</h2>
@@ -36,7 +41,7 @@ export function MemberTaskToolbar({ viewMode, onViewModeChange }: MemberTaskTool
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}
         />
-        <Button size="sm" className="px-4">
+        <Button size="sm" className="px-4" onPress={onNewTask}>
           <Plus size={16} />
           新規タスク
         </Button>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Send, Trash2 } from 'lucide-react';
 import { Avatar } from '../../ui/Avatar';
+import { IconButton } from '../../ui/IconButton';
 import { Spinner } from '../../ui/Spinner';
 import {
   useTaskComments,
@@ -18,7 +19,7 @@ interface CommentTabProps {
 
 export function CommentTab({ taskId, projectType }: CommentTabProps) {
   const { data: comments, isLoading } = useTaskComments(taskId, projectType);
-  const { getUserName } = useUsers();
+  const { getUserName, getUserById } = useUsers();
   const { userId } = useAuth();
 
   if (!taskId || !projectType) {
@@ -47,6 +48,8 @@ export function CommentTab({ taskId, projectType }: CommentTabProps) {
               key={comment.id}
               comment={comment}
               authorName={getUserName(comment.authorId)}
+              authorAvatarUrl={getUserById(comment.authorId)?.avatarUrl ?? undefined}
+              authorAvatarColor={getUserById(comment.authorId)?.avatarColor}
               isOwn={comment.authorId === userId}
               taskId={taskId}
             />
@@ -65,11 +68,15 @@ export function CommentTab({ taskId, projectType }: CommentTabProps) {
 function CommentItem({
   comment,
   authorName,
+  authorAvatarUrl,
+  authorAvatarColor,
   isOwn,
   taskId,
 }: {
   comment: TaskComment;
   authorName: string;
+  authorAvatarUrl?: string;
+  authorAvatarColor?: string | null;
   isOwn: boolean;
   taskId: string;
 }) {
@@ -78,7 +85,13 @@ function CommentItem({
 
   return (
     <div className="group flex gap-3">
-      <Avatar name={authorName} size="sm" className="mt-0.5 shrink-0" />
+      <Avatar
+        name={authorName}
+        imageUrl={authorAvatarUrl}
+        colorName={authorAvatarColor}
+        size="sm"
+        className="mt-0.5 shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary">{authorName}</span>
@@ -87,14 +100,14 @@ function CommentItem({
             {createdAt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
           </span>
           {isOwn && (
-            <button
-              type="button"
-              onClick={() => deleteComment.mutate({ commentId: comment.id, taskId })}
-              className="ml-auto hidden rounded p-1 text-text-tertiary hover:bg-error-bg hover:text-error-text group-hover:block"
+            <IconButton
+              onPress={() => deleteComment.mutate({ commentId: comment.id, taskId })}
               aria-label="コメントを削除"
+              size="sm"
+              className="ml-auto hidden rounded p-1 text-text-tertiary hover:bg-error-bg hover:text-error-text group-hover:block"
             >
               <Trash2 size={14} />
-            </button>
+            </IconButton>
           )}
         </div>
         <p className="mt-1 text-sm leading-relaxed text-text-secondary whitespace-pre-wrap">
@@ -137,15 +150,14 @@ function CommentForm({ taskId, projectType }: { taskId: string; projectType: str
           rows={2}
           className="flex-1 resize-none rounded-md border border-border-default bg-bg-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-primary-default focus:outline-none"
         />
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!content.trim() || createComment.isPending}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-default text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
+        <IconButton
+          onPress={handleSubmit}
+          isDisabled={!content.trim() || createComment.isPending}
           aria-label="コメントを送信"
+          className="shrink-0 bg-primary-default text-white hover:bg-primary-hover hover:text-white"
         >
           <Send size={16} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

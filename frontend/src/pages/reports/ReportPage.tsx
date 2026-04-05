@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/layout/Header';
 import { Tabs, TabList, Tab, TabPanel } from '../../components/ui/Tabs';
 import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { TaskDrawer } from '../../components/shared/TaskDrawer/TaskDrawer';
 import { ReportDetailTab } from '../../components/shared/ReportDrawer/ReportDetailTab';
@@ -9,10 +11,11 @@ import { ReportToolbar } from './components/ReportToolbar';
 import { DateRangeRow } from './components/DateRangeRow';
 import { SummaryRow } from './components/SummaryRow';
 import { ReportTable } from './components/ReportTable';
-import { ExportModalContent } from './components/ExportModalContent';
 import { SessionEditModalContent } from './components/SessionEditModalContent';
-import { useReportData, downloadReportCsv } from '../../hooks/useReportData';
-import { useAuth } from '../../hooks/useAuth';
+import { useReportData } from '../../hooks/useReportData';
+import { useExportToSheets } from '../../hooks/useExportToSheets';
+import { useToast } from '../../hooks/useToast';
+import { HttpError } from '../../lib/api';
 import type { ReportEntry, ReportType, TaskSession } from '../../types';
 
 function getLastDayOfMonth(year: number, month: number): number {
@@ -28,7 +31,9 @@ function formatDateISO(year: number, month: number, day: number): string {
 }
 
 export function ReportPage() {
-  const { getToken } = useAuth();
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+  const { checkExport, executeExport, isProcessing } = useExportToSheets();
 
   // 月ナビ状態
   const now = new Date();
@@ -38,9 +43,9 @@ export function ReportPage() {
   // タブ状態
   const [activeTab, setActiveTab] = useState<ReportType | 'all'>('all');
 
-  // エクスポート状態
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportRange, setExportRange] = useState<'all' | 'normal' | 'brg'>('all');
+  // 上書き確認モーダル
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [existingFolderId, setExistingFolderId] = useState<string | undefined>();
 
   // セッション編集
   const [editingSession, setEditingSession] = useState<{
@@ -102,6 +107,22 @@ export function ReportPage() {
     });
   }, []);
 
+  const handleStartDateChange = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      setYear(d.getFullYear());
+      setMonth(d.getMonth() + 1);
+    }
+  }, []);
+
+  const handleEndDateChange = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      setYear(d.getFullYear());
+      setMonth(d.getMonth() + 1);
+    }
+  }, []);
+
   const handleRowClick = (entry: ReportEntry) => {
     setSelectedEntry(entry);
   };
@@ -114,11 +135,58 @@ export function ReportPage() {
     setActiveTab(key as ReportType | 'all');
   };
 
-  const handleExport = useCallback(async () => {
-    const csvType = exportRange === 'all' ? 'normal' : exportRange;
-    await downloadReportCsv(csvType, fromDate, toDate, getToken);
-    setIsExportModalOpen(false);
-  }, [exportRange, fromDate, toDate, getToken]);
+  const handleExportError = useCallback(
+    (error: Error) => {
+      if (error instanceof HttpError && error.details?.requiresAuth) {
+        addToast('Google Drive認証が必要です。設定ページへ移動します。', 'warning');
+        navigate('/settings?tab=integrations');
+      } else {
+        addToast(error.message || 'スプレッドシートの出力に失敗しました', 'error');
+      }
+    },
+    [addToast, navigate]
+  );
+
+  const handleExport = useCallback(() => {
+    checkExport.mutate(
+      { year, month },
+      {
+        onSuccess: (data) => {
+          if (data.exists) {
+            setExistingFolderId(data.folderId);
+            setShowOverwriteConfirm(true);
+          } else {
+            // フォルダが無いので即出力
+            executeExport.mutate(
+              { year, month },
+              {
+                onSuccess: (res) => {
+                  addToast('スプレッドシートを作成しました', 'success');
+                  window.open(res.spreadsheetUrl, '_blank');
+                },
+                onError: handleExportError,
+              }
+            );
+          }
+        },
+        onError: handleExportError,
+      }
+    );
+  }, [year, month, checkExport, executeExport, addToast, handleExportError]);
+
+  const handleOverwriteConfirm = useCallback(() => {
+    setShowOverwriteConfirm(false);
+    executeExport.mutate(
+      { year, month, overwrite: true, folderId: existingFolderId },
+      {
+        onSuccess: (res) => {
+          addToast('スプレッドシートを上書きしました', 'success');
+          window.open(res.spreadsheetUrl, '_blank');
+        },
+        onError: handleExportError,
+      }
+    );
+  }, [year, month, existingFolderId, executeExport, addToast, handleExportError]);
 
   return (
     <>
@@ -130,10 +198,16 @@ export function ReportPage() {
           month={month}
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
-          onExport={() => setIsExportModalOpen(true)}
+          onExport={handleExport}
+          isExporting={isProcessing}
         />
 
-        <DateRangeRow startDate={startDate} endDate={endDate} />
+        <DateRangeRow
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+        />
 
         <Tabs selectedKey={activeTab} onSelectionChange={handleTabChange}>
           <TabList>
@@ -167,8 +241,7 @@ export function ReportPage() {
       </div>
 
       <TaskDrawer
-        isOpen={selectedEntry != null}
-        title={selectedEntry?.title ?? ''}
+        taskId={selectedEntry?.taskId ?? null}
         onClose={() => setSelectedEntry(null)}
         detailTabLabel="レポート詳細"
         detailPadding={false}
@@ -180,26 +253,37 @@ export function ReportPage() {
       />
 
       <Modal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        title="スプレッドシートに出力"
+        isOpen={showOverwriteConfirm}
+        onClose={() => setShowOverwriteConfirm(false)}
+        title="上書き確認"
         footer={
-          <ExportModalContent.Footer
-            onCancel={() => setIsExportModalOpen(false)}
-            onExport={handleExport}
-          />
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" size="sm" onPress={() => setShowOverwriteConfirm(false)}>
+              キャンセル
+            </Button>
+            <Button variant="primary" size="sm" onPress={handleOverwriteConfirm}>
+              上書き
+            </Button>
+          </div>
         }
       >
-        <ExportModalContent range={exportRange} onRangeChange={setExportRange} />
+        <p className="text-sm text-text-primary">
+          {month}月のデータが既に存在します。上書きしますか？
+        </p>
       </Modal>
 
       <Modal
         isOpen={editingSession != null}
         onClose={() => setEditingSession(null)}
         title="セッション時間の編集"
-        footer={<SessionEditModalContent.Footer onCancel={() => setEditingSession(null)} />}
       >
-        {editingSession && <SessionEditModalContent session={editingSession.session} />}
+        {editingSession && (
+          <SessionEditModalContent
+            session={editingSession.session}
+            onCancel={() => setEditingSession(null)}
+            onSaved={() => setEditingSession(null)}
+          />
+        )}
       </Modal>
     </>
   );

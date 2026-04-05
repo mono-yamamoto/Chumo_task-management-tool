@@ -11,7 +11,20 @@ const AVATAR_COLORS = [
   'bg-red-500',
 ] as const;
 
-function getAvatarColor(name: string): string {
+/** プロフィール設定のカラー名 → Avatar 背景クラス */
+const COLOR_NAME_MAP: Record<string, string> = {
+  teal: 'bg-teal-500',
+  blue: 'bg-blue-500',
+  green: 'bg-green-500',
+  amber: 'bg-amber-500',
+  red: 'bg-red-500',
+  neutral: 'bg-neutral-500',
+};
+
+function getAvatarColor(name: string, colorName?: string | null): string {
+  if (colorName && COLOR_NAME_MAP[colorName]) {
+    return COLOR_NAME_MAP[colorName];
+  }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -43,13 +56,14 @@ const sizeStyles = {
 interface AvatarProps {
   name: string;
   imageUrl?: string;
+  colorName?: string | null;
   size?: keyof typeof sizeStyles;
   className?: string;
 }
 
-export function Avatar({ name, imageUrl, size = 'md', className }: AvatarProps) {
+export function Avatar({ name, imageUrl, colorName, size = 'md', className }: AvatarProps) {
   const initials = getInitials(name);
-  const colorClass = getAvatarColor(name);
+  const colorClass = getAvatarColor(name, colorName);
 
   return (
     <div

@@ -9,7 +9,10 @@ import {
   Palette,
 } from 'lucide-react';
 import { SidebarNavItem } from './SidebarNavItem';
+import { Avatar } from '../ui/Avatar';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../hooks/useAuth';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'ダッシュボード', icon: <LayoutDashboard size={20} /> },
@@ -19,8 +22,15 @@ const NAV_ITEMS = [
   { path: '/settings', label: '設定', icon: <Settings size={20} /> },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: '管理者',
+  member: 'メンバー',
+};
+
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
+  const { user: clerkUser } = useAuth();
+  const { data: currentUser } = useCurrentUser();
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col bg-teal-950 border-r border-teal-800 px-4 py-6">
@@ -66,12 +76,19 @@ export function Sidebar() {
 
         {/* ユーザープロフィール */}
         <div className="flex items-center gap-3 border-t border-teal-700 px-2 pt-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-default">
-            <span className="text-sm font-bold text-white">T</span>
-          </div>
+          <Avatar
+            name={currentUser?.displayName ?? clerkUser?.fullName ?? '?'}
+            imageUrl={currentUser?.avatarUrl ?? undefined}
+            colorName={currentUser?.avatarColor}
+            size="md"
+          />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">Tanaka Yui</p>
-            <p className="truncate text-xs text-teal-400">Project Manager</p>
+            <p className="truncate text-sm font-medium text-white">
+              {currentUser?.displayName ?? clerkUser?.fullName ?? ''}
+            </p>
+            <p className="truncate text-xs text-teal-400">
+              {currentUser?.role ? (ROLE_LABELS[currentUser.role] ?? currentUser.role) : ''}
+            </p>
           </div>
         </div>
       </div>

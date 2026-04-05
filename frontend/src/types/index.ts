@@ -52,6 +52,8 @@ export interface User {
   displayName: string;
   role: UserRole;
   isAllowed: boolean;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
   githubUsername?: string;
   googleOAuthUpdatedAt?: Date;
   chatId?: string;
@@ -110,10 +112,18 @@ export interface Task {
   priority?: Priority | null;
   order: number;
   over3Reason?: string;
+  sessionReminders?: Record<string, { sentAt: string; sentBy: string }>;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date | null;
+}
+
+export interface TaskPin {
+  id: string;
+  taskId: string;
+  order: number;
+  pinnedAt: string;
 }
 
 export interface TaskSession {
@@ -186,6 +196,21 @@ export interface TaskComment {
   readBy: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type NotificationType = 'mention' | 'session_reminder';
+
+export interface AppNotification {
+  id: string;
+  recipientId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  taskId: string | null;
+  commentId: string | null;
+  actorId: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export type ReportType = 'normal' | 'brg';

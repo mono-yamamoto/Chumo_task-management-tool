@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { Input } from '../ui/Input';
-import { IconButton } from '../ui/IconButton';
 import { TimerWidget } from '../shared/TimerWidget';
+import { NotificationPopover } from './NotificationPopover';
 
 interface HeaderProps {
   title: string;
@@ -11,16 +12,28 @@ interface HeaderProps {
 
 /** 検索 + 通知ベルのデフォルトアクション */
 function DefaultHeaderActions() {
+  const [searchValue, setSearchValue] = useState('');
+  const navigate = useNavigate();
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      navigate(`/tasks?title=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
   return (
     <>
       <TimerWidget />
-      <Input placeholder="タスクを検索..." icon={<Search size={16} />} className="w-[220px]" />
-      <div className="relative">
-        <IconButton aria-label="通知" className="h-9 w-9 rounded-md border border-border-default">
-          <Bell size={18} />
-        </IconButton>
-        <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
+      <div onKeyDown={handleKeyDown}>
+        <Input
+          placeholder="タスクを検索..."
+          icon={<Search size={16} />}
+          className="w-[220px]"
+          value={searchValue}
+          onChange={setSearchValue}
+        />
       </div>
+      <NotificationPopover />
     </>
   );
 }

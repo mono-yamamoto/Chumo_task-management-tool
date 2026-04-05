@@ -8,9 +8,15 @@ interface TaskListToolbarProps {
   taskCount: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  onNewTask: () => void;
 }
 
-export function TaskListToolbar({ taskCount, viewMode, onViewModeChange }: TaskListToolbarProps) {
+export function TaskListToolbar({
+  taskCount,
+  viewMode,
+  onViewModeChange,
+  onNewTask,
+}: TaskListToolbarProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2.5">
@@ -43,7 +49,7 @@ export function TaskListToolbar({ taskCount, viewMode, onViewModeChange }: TaskL
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}
         />
-        <Button size="sm" className="px-4">
+        <Button size="sm" className="px-4" onPress={onNewTask}>
           <Plus size={16} />
           新規タスク
         </Button>

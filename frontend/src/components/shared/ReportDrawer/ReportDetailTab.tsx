@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Pencil, Bell, Check } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Pencil, Bell, Check, RotateCw } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { IconButton } from '../../ui/IconButton';
+import { Avatar } from '../../ui/Avatar';
 import type { ReportEntry, TaskSession } from '../../../types';
 import { formatDuration } from '../../../lib/taskUtils';
-
-// セッション未記録メンバーのモックデータ
-const MOCK_UNRECORDED_MEMBERS = [
-  { id: 'user-unr-1', name: '菊池', initial: '菊', color: 'bg-blue-600' },
-  { id: 'user-unr-2', name: '山本', initial: '山', color: 'bg-green-600', notified: true },
-];
-
-// セッション用のダミーアバターカラー
-const AVATAR_COLORS = ['bg-amber-600', 'bg-teal-600', 'bg-amber-600', 'bg-purple-600'];
+import { formatDateTime as fmtDateTime, formatTime as fmtTime } from '../../../lib/constants';
+import { useUpdateTask } from '../../../hooks/useTaskMutations';
+import { useTask } from '../../../hooks/useTask';
+import { useUsers } from '../../../hooks/useUsers';
+import { useSendSessionReminder } from '../../../hooks/useSessionReminders';
 
 interface ReportDetailTabProps {
   entry: ReportEntry;
@@ -20,11 +18,27 @@ interface ReportDetailTabProps {
 
 export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) {
   const [reason, setReason] = useState(entry.over3Reason ?? '');
+  const updateTask = useUpdateTask();
+  const { data: task } = useTask(entry.taskId);
+  const { getUserName, getUserById } = useUsers();
+
   useEffect(() => {
     setReason(entry.over3Reason ?? '');
   }, [entry]);
 
   const totalSec = entry.sessions.reduce((sum, s) => sum + s.durationSec, 0);
+
+  // セッション記録済みのユーザーID
+  const recordedUserIds = useMemo(
+    () => new Set(entry.sessions.map((s) => s.userId)),
+    [entry.sessions]
+  );
+
+  // セッション未記録メンバー
+  const unrecordedMembers = useMemo(() => {
+    if (!task?.assigneeIds) return [];
+    return task.assigneeIds.filter((id) => !recordedUserIds.has(id));
+  }, [task?.assigneeIds, recordedUserIds]);
 
   return (
     <div className="space-y-0">
@@ -44,6 +58,18 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
         <p id="over3ReasonHelp" className="text-xs text-text-tertiary">
           3時間を超過した場合は理由を記入してください
         </p>
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            size="sm"
+            isDisabled={reason === (entry.over3Reason ?? '') || updateTask.isPending}
+            onPress={() =>
+              updateTask.mutate({ taskId: entry.taskId, data: { over3Reason: reason } })
+            }
+          >
+            {updateTask.isPending ? '保存中...' : '保存'}
+          </Button>
+        </div>
       </div>
 
       {/* セッション履歴 */}
@@ -56,60 +82,147 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
         </div>
 
         <div className="space-y-0">
-          {entry.sessions.map((session, i) => (
-            <SessionRow
-              key={session.id}
-              session={session}
-              colorClass={AVATAR_COLORS[i % AVATAR_COLORS.length]!}
-              onEdit={() => onEditSession(entry, session)}
-            />
-          ))}
+          {entry.sessions.map((session) => {
+            const user = getUserById(session.userId);
+            return (
+              <SessionRow
+                key={session.id}
+                session={session}
+                userName={getUserName(session.userId)}
+                avatarUrl={user?.avatarUrl ?? undefined}
+                avatarColor={user?.avatarColor}
+                onEdit={() => onEditSession(entry, session)}
+              />
+            );
+          })}
         </div>
       </div>
 
       {/* セッション未記録メンバー */}
-      <div className="space-y-2 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-text-tertiary">セッション未記録メンバー</span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
-          >
-            <Bell size={14} />
-            全員に通知
-          </Button>
-        </div>
-        <p className="text-xs text-text-tertiary">
-          以下のメンバーはアサインされていますがセッション履歴がありません
-        </p>
+      {unrecordedMembers.length > 0 && (
+        <UnrecordedMembersSection
+          taskId={entry.taskId}
+          unrecordedMemberIds={unrecordedMembers}
+          sessionReminders={task?.sessionReminders}
+        />
+      )}
+    </div>
+  );
+}
 
-        <div className="space-y-1">
-          {MOCK_UNRECORDED_MEMBERS.map((member) => (
-            <div key={member.id} className="flex items-center justify-between py-1.5">
+/** セッション未記録メンバーセクション */
+function UnrecordedMembersSection({
+  taskId,
+  unrecordedMemberIds,
+  sessionReminders,
+}: {
+  taskId: string;
+  unrecordedMemberIds: string[];
+  sessionReminders?: Record<string, { sentAt: string; sentBy: string }>;
+}) {
+  const { getUserName, getUserById } = useUsers();
+  const sendReminder = useSendSessionReminder();
+  // 「通知済み」→「再送」切り替え��のローカル状態
+  const [resendIds, setResendIds] = useState<Set<string>>(new Set());
+
+  const unnotifiedIds = useMemo(
+    () => unrecordedMemberIds.filter((id) => !sessionReminders?.[id]),
+    [unrecordedMemberIds, sessionReminders]
+  );
+
+  const allNotified = unnotifiedIds.length === 0;
+
+  const handleNotifyAll = useCallback(() => {
+    if (unnotifiedIds.length === 0) return;
+    sendReminder.mutate({ taskId, targetUserIds: unnotifiedIds });
+  }, [taskId, unnotifiedIds, sendReminder]);
+
+  const handleNotifySingle = useCallback(
+    (userId: string) => {
+      sendReminder.mutate({ taskId, targetUserIds: [userId] });
+      // 再送ボタンから送った場合、ローカル状態をリセット
+      setResendIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    },
+    [taskId, sendReminder]
+  );
+
+  const handleToggleResend = useCallback((userId: string) => {
+    setResendIds((prev) => {
+      const next = new Set(prev);
+      next.add(userId);
+      return next;
+    });
+  }, []);
+
+  return (
+    <div className="space-y-2 px-6 py-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-text-tertiary">セッション未記録メンバー</span>
+        <Button
+          variant="outline"
+          size="sm"
+          isDisabled={allNotified || sendReminder.isPending}
+          onPress={handleNotifyAll}
+          className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
+        >
+          <Bell size={14} />
+          全員に通知
+        </Button>
+      </div>
+      <p className="text-xs text-text-tertiary">
+        以下のメンバーはアサイン��れていますがセッショ��履歴がありません
+      </p>
+
+      <div className="space-y-1">
+        {unrecordedMemberIds.map((userId) => {
+          const user = getUserById(userId);
+          const name = getUserName(userId);
+          const isNotified = !!sessionReminders?.[userId];
+          const isResendMode = resendIds.has(userId);
+
+          return (
+            <div key={userId} className="flex items-center justify-between py-1.5">
               <div className="flex items-center gap-2">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full ${member.color}`}
-                >
-                  <span className="text-[11px] font-bold text-white">{member.initial}</span>
-                </div>
-                <span className="text-sm font-medium text-text-primary">{member.name}</span>
+                <Avatar
+                  name={name}
+                  imageUrl={user?.avatarUrl ?? undefined}
+                  colorName={user?.avatarColor}
+                  size="sm"
+                />
+                <span className="text-sm font-medium text-text-primary">{name}</span>
               </div>
 
-              {member.notified ? (
+              {isNotified && !isResendMode ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  isDisabled
+                  onPress={() => handleToggleResend(userId)}
                   className="h-7 px-2.5 text-xs text-primary-default border-primary-default bg-bg-brand-subtle opacity-100"
                 >
                   <Check size={14} />
                   通知済み
                 </Button>
+              ) : isResendMode ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isDisabled={sendReminder.isPending}
+                  onPress={() => handleNotifySingle(userId)}
+                  className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
+                >
+                  <RotateCw size={14} />
+                  再送
+                </Button>
               ) : (
                 <Button
                   variant="outline"
                   size="sm"
+                  isDisabled={sendReminder.isPending}
+                  onPress={() => handleNotifySingle(userId)}
                   className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
                 >
                   <Bell size={14} />
@@ -117,8 +230,8 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
                 </Button>
               )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -126,25 +239,21 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
 
 interface SessionRowProps {
   session: TaskSession;
-  colorClass: string;
+  userName: string;
+  avatarUrl?: string;
+  avatarColor?: string | null;
   onEdit: () => void;
 }
 
-function SessionRow({ session, colorClass, onEdit }: SessionRowProps) {
-  const userName = getSessionUserName(session.userId);
-  const initial = userName.charAt(0);
-  const startStr = formatDateTime(session.startedAt);
-  const endStr = session.endedAt ? formatTime(session.endedAt) : '-';
+function SessionRow({ session, userName, avatarUrl, avatarColor, onEdit }: SessionRowProps) {
+  const startStr = fmtDateTime(session.startedAt);
+  const endStr = session.endedAt ? fmtTime(session.endedAt) : '-';
   const duration = formatDuration(session.durationSec);
 
   return (
     <div className="flex items-center justify-between py-2">
       <div className="flex items-center gap-2">
-        <div
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colorClass}`}
-        >
-          <span className="text-[11px] font-bold text-white">{initial}</span>
-        </div>
+        <Avatar name={userName} imageUrl={avatarUrl} colorName={avatarColor} size="sm" />
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-medium text-text-primary">{userName}</span>
           <span className="text-xs text-text-tertiary">
@@ -155,47 +264,15 @@ function SessionRow({ session, colorClass, onEdit }: SessionRowProps) {
 
       <div className="flex items-center gap-2">
         <span className="text-sm text-text-secondary">{duration}</span>
-        <button
-          type="button"
-          onClick={onEdit}
+        <IconButton
+          onPress={onEdit}
           aria-label="セッションを編集"
-          className="text-text-tertiary transition-colors hover:text-text-primary"
+          size="sm"
+          className="text-text-tertiary hover:text-text-primary"
         >
           <Pencil size={16} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );
-}
-
-// ヘルパー関数
-function getSessionUserName(userId: string): string {
-  const names: Record<string, string> = {
-    'user-1': '田中',
-    'user-2': '佐藤',
-    'user-3': '鈴木',
-    'user-4': '高橋',
-    'user-5': '伊藤',
-    'user-6': '渡辺',
-  };
-  return names[userId] ?? 'Unknown';
-}
-
-function formatDateTime(date: Date): string {
-  const d = new Date(date);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const da = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${y}-${mo}-${da} ${h}:${m}:${s}`;
-}
-
-function formatTime(date: Date): string {
-  const d = new Date(date);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
 }
