@@ -118,6 +118,13 @@ export interface Task {
   completedAt?: Date | null;
 }
 
+export interface TaskPin {
+  id: string;
+  taskId: string;
+  order: number;
+  pinnedAt: string;
+}
+
 export interface TaskSession {
   id: string;
   taskId: string;

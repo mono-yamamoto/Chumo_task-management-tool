@@ -14,9 +14,17 @@ interface TaskTableRowProps {
   task: Task;
   onClick: (task: Task) => void;
   enableInfoBg?: boolean;
+  isPinned?: boolean;
+  onTogglePin?: (taskId: string, isPinned: boolean) => void;
 }
 
-export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps) {
+export function TaskTableRow({
+  task,
+  onClick,
+  enableInfoBg,
+  isPinned,
+  onTogglePin,
+}: TaskTableRowProps) {
   const bgVariant = getTaskBgVariant(task, { enableInfoVariant: enableInfoBg });
   const bgClass = getTaskBgClass(bgVariant);
   const { getUserById } = useUsers();
@@ -63,8 +71,27 @@ export function TaskTableRow({ task, onClick, enableInfoBg }: TaskTableRowProps)
       }}
     >
       {/* ピン */}
-      <div className="w-7 shrink-0 flex items-center justify-center">
-        <Pin size={16} className="text-neutral-300" />
+      <div
+        className="w-7 shrink-0 flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {onTogglePin ? (
+          <IconButton
+            aria-label={isPinned ? 'ピン解除' : 'ピン留め'}
+            size="sm"
+            onPress={() => onTogglePin(task.id, !!isPinned)}
+            className={cn(
+              'h-7 w-7 rounded-full',
+              isPinned
+                ? 'text-primary-default hover:bg-bg-brand-subtle'
+                : 'text-neutral-300 hover:text-neutral-500 hover:bg-bg-secondary'
+            )}
+          >
+            <Pin size={16} fill={isPinned ? 'currentColor' : 'none'} />
+          </IconButton>
+        ) : (
+          <Pin size={16} className="text-neutral-300" />
+        )}
       </div>
 
       {/* タイトル */}
