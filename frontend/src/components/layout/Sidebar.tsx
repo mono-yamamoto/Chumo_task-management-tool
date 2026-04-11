@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   ListTodo,
@@ -7,7 +8,9 @@ import {
   SquareCheckBig,
   StickyNote,
   Palette,
+  LogOut,
 } from 'lucide-react';
+import { Button as AriaButton, DialogTrigger, Popover, Dialog } from 'react-aria-components';
 import { SidebarNavItem } from './SidebarNavItem';
 import { Avatar } from '../ui/Avatar';
 import { useTheme } from '../../hooks/useTheme';
@@ -19,7 +22,6 @@ const NAV_ITEMS = [
   { path: '/tasks', label: 'タスク', icon: <ListTodo size={20} /> },
   { path: '/report', label: 'レポート', icon: <BarChart3 size={20} /> },
   { path: '/contact', label: 'お問い合わせ', icon: <MessageSquare size={20} /> },
-  { path: '/settings', label: '設定', icon: <Settings size={20} /> },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -29,7 +31,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
-  const { user: clerkUser } = useAuth();
+  const { user: clerkUser, logout } = useAuth();
   const { data: currentUser } = useCurrentUser();
 
   return (
@@ -58,7 +60,7 @@ export function Sidebar() {
         {/* メモ */}
         <button
           type="button"
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-base text-teal-300 transition-colors hover:bg-teal-800/50 hover:text-teal-200 [&_svg]:text-teal-400"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-base text-teal-300 transition-colors hover:bg-teal-800/50 hover:text-teal-200 [&_svg]:text-teal-400 cursor-pointer"
         >
           <StickyNote size={20} />
           <span>メモ</span>
@@ -68,29 +70,63 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-teal-300 transition-colors hover:bg-teal-800/50 hover:text-teal-200 [&_svg]:text-teal-400 h-9"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-teal-300 transition-colors hover:bg-teal-800/50 hover:text-teal-200 [&_svg]:text-teal-400 h-9 cursor-pointer"
         >
           <Palette size={20} />
           <span>{theme === 'light' ? 'ライトモード' : 'ダークモード'}</span>
         </button>
 
-        {/* ユーザープロフィール */}
-        <div className="flex items-center gap-3 border-t border-teal-700 px-2 pt-2">
-          <Avatar
-            name={currentUser?.displayName ?? clerkUser?.fullName ?? '?'}
-            imageUrl={currentUser?.avatarUrl ?? undefined}
-            colorName={currentUser?.avatarColor}
-            size="md"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">
-              {currentUser?.displayName ?? clerkUser?.fullName ?? ''}
-            </p>
-            <p className="truncate text-xs text-teal-400">
-              {currentUser?.role ? (ROLE_LABELS[currentUser.role] ?? currentUser.role) : ''}
-            </p>
-          </div>
-        </div>
+        {/* ユーザープロフィール + ポップアップメニュー */}
+        <DialogTrigger>
+          <AriaButton className="flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-teal-800/50 cursor-pointer">
+            <Avatar
+              name={currentUser?.displayName ?? clerkUser?.fullName ?? '?'}
+              imageUrl={currentUser?.avatarUrl ?? undefined}
+              colorName={currentUser?.avatarColor}
+              size="md"
+            />
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-medium text-white">
+                {currentUser?.displayName ?? clerkUser?.fullName ?? ''}
+              </p>
+              <p className="truncate text-xs text-teal-400">
+                {currentUser?.role ? (ROLE_LABELS[currentUser.role] ?? currentUser.role) : ''}
+              </p>
+            </div>
+          </AriaButton>
+          <Popover
+            placement="top start"
+            offset={8}
+            className="w-[var(--trigger-width)] rounded-lg border border-teal-800 bg-teal-950 shadow-lg outline-none"
+          >
+            <Dialog className="outline-none">
+              {({ close }) => (
+                <div className="py-1">
+                  <NavLink
+                    to="/settings"
+                    onClick={close}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-teal-300 transition-colors hover:bg-teal-800/50 hover:text-teal-200"
+                  >
+                    <Settings size={16} />
+                    <span>設定</span>
+                  </NavLink>
+                  <div className="my-1 border-t border-teal-800" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      logout();
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 transition-colors hover:bg-teal-800/50 hover:text-red-300 cursor-pointer"
+                  >
+                    <LogOut size={16} />
+                    <span>ログアウト</span>
+                  </button>
+                </div>
+              )}
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
       </div>
     </aside>
   );
