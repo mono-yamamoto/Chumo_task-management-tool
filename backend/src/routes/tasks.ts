@@ -145,7 +145,7 @@ app.get('/', async (c) => {
 
 /**
  * GET /assigned
- * ユーザーにアサインされた未完了タスク一覧
+ * ユーザーにアサインされたタスク一覧（完了含む）
  */
 app.get('/assigned', async (c) => {
   const db = c.get('db');
@@ -154,7 +154,7 @@ app.get('/assigned', async (c) => {
   const result = await db
     .select()
     .from(tasks)
-    .where(and(arrayContains(tasks.assigneeIds, [userId]), ne(tasks.flowStatus, '完了')));
+    .where(arrayContains(tasks.assigneeIds, [userId]));
 
   return c.json({ tasks: result });
 });
