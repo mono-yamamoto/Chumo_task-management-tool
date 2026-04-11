@@ -50,7 +50,7 @@ export function CommentItem({
               onPress={() => deleteComment.mutate({ commentId: comment.id, taskId })}
               aria-label="コメントを削除"
               size="sm"
-              className="ml-auto hidden rounded p-1 text-text-tertiary hover:bg-error-bg hover:text-error-text group-hover:block"
+              className="ml-auto rounded p-1 text-text-tertiary opacity-0 transition-opacity hover:bg-error-bg hover:text-error-text group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
             >
               <Trash2 size={14} />
             </IconButton>

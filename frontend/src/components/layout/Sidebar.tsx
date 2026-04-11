@@ -113,7 +113,7 @@ export function Sidebar() {
             offset={8}
             className="w-[var(--trigger-width)] rounded-lg border border-teal-800 bg-teal-950 shadow-lg outline-none"
           >
-            <Dialog className="outline-none">
+            <Dialog aria-label="ユーザーメニュー" className="outline-none">
               {({ close }) => (
                 <div className="py-1">
                   <NavLink

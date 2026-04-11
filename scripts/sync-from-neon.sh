@@ -138,7 +138,7 @@ info "ローカルDBをクリーンアップ中..."
 "
 
 info "ローカルDBにリストア中..."
-"$PSQL" "$LOCAL_URL" -f "$DUMP_FILE" --quiet --output=/dev/null
+"$PSQL" "$LOCAL_URL" -v ON_ERROR_STOP=1 --single-transaction -f "$DUMP_FILE" --quiet --output=/dev/null
 
 # --- 件数確認 ---
 info "同期結果:"

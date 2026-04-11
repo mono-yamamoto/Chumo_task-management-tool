@@ -111,16 +111,23 @@ app.get('/', async (c) => {
 
 /**
  * GET /assigned
- * ユーザーにアサインされたタスク一覧（完了含む）
+ * ユーザーにアサインされたタスク一覧（デフォルト: 完了除外）
+ * includeCompleted=true で完了タスクも含む
  */
 app.get('/assigned', async (c) => {
   const db = c.get('db');
   const userId = c.req.query('userId') ?? c.get('userId');
+  const includeCompleted = c.req.query('includeCompleted') === 'true';
+
+  const conditions = [arrayContains(tasks.assigneeIds, [userId])];
+  if (!includeCompleted) {
+    conditions.push(ne(tasks.flowStatus, '完了'));
+  }
 
   const result = await db
     .select()
     .from(tasks)
-    .where(arrayContains(tasks.assigneeIds, [userId]));
+    .where(and(...conditions));
 
   return c.json({ tasks: result });
 });

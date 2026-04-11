@@ -18,6 +18,8 @@ export function CommentForm({ taskId, projectType, className }: CommentFormProps
   const [isEmpty, setIsEmpty] = useState(true);
 
   const handleSubmit = (html: string, mentionedUserIds: string[]) => {
+    if (createComment.isPending || editorRef.current?.isEmpty()) return;
+
     createComment.mutate(
       { taskId, projectType, content: html, mentionedUserIds },
       {

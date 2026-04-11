@@ -12,7 +12,7 @@ import { useCurrentUser } from '../../hooks/useCurrentUser';
 export function ContactPage() {
   const [showResolved, setShowResolved] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [updatingContactId, setUpdatingContactId] = useState<string | null>(null);
+  const [updatingContactIds, setUpdatingContactIds] = useState<Set<string>>(new Set());
 
   const status = showResolved ? 'resolved' : 'pending';
   const { data: contacts = [], isLoading, error } = useContacts(status);
@@ -22,10 +22,17 @@ export function ContactPage() {
 
   const handleStatusChange = useCallback(
     (contactId: string, newStatus: 'pending' | 'resolved') => {
-      setUpdatingContactId(contactId);
+      setUpdatingContactIds((prev) => new Set(prev).add(contactId));
       updateStatus.mutate(
         { contactId, status: newStatus },
-        { onSettled: () => setUpdatingContactId(null) }
+        {
+          onSettled: () =>
+            setUpdatingContactIds((prev) => {
+              const next = new Set(prev);
+              next.delete(contactId);
+              return next;
+            }),
+        }
       );
     },
     [updateStatus]
@@ -92,7 +99,7 @@ export function ContactPage() {
                 key={contact.id}
                 contact={contact}
                 onStatusChange={handleStatusChange}
-                isUpdating={updatingContactId === contact.id}
+                isUpdating={updatingContactIds.has(contact.id)}
               />
             ))}
           </div>

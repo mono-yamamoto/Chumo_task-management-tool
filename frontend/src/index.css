@@ -293,10 +293,12 @@ body {
   line-height: 1.5;
 }
 
-.comment-editor-content:empty::before {
+.comment-editor-content p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--color-neutral-400);
   pointer-events: none;
+  float: left;
+  height: 0;
 }
 
 .comment-editor-content p {

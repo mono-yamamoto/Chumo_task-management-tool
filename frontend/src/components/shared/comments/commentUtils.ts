@@ -23,8 +23,8 @@ export function plainTextToHtml(text: string): string {
 /** DOMPurify でサニタイズ */
 export function sanitizeCommentHtml(html: string): string {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'a', 'span', 'strong', 'em', 'img'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'data-id', 'src', 'alt'],
+    ALLOWED_TAGS: ['p', 'br', 'a', 'span', 'strong', 'em'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'data-id'],
   });
 }
 

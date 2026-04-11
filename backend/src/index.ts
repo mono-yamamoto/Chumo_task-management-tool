@@ -34,6 +34,7 @@ export type Env = {
     REPORT_DRIVE_PARENT_ID: string;
     REPORT_TEMPLATE_ID: string;
     INTERNAL_API_KEY: string;
+    BACKLOG_WEBHOOK_SECRET: string;
     UPLOAD_BUCKET: R2Bucket;
   };
 };

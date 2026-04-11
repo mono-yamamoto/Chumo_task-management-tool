@@ -15,9 +15,13 @@ function ForceSignOut() {
 
   useEffect(() => {
     sessionStorage.setItem('access-denied', 'true');
-    signOut().then(() => {
-      navigate('/login', { replace: true });
-    });
+    void signOut()
+      .catch(() => {
+        // 失敗してもログイン画面へ戻して再試行可能にする
+      })
+      .finally(() => {
+        navigate('/login', { replace: true });
+      });
   }, [signOut, navigate]);
 
   return (
@@ -34,6 +38,13 @@ function ForceSignOut() {
 export function AuthGuard() {
   const { isLoaded, isSignedIn } = useClerkAuth();
   const { data: currentUser, isLoading, error, refetch } = useCurrentUser();
+
+  // 認可判定はキャッシュに依存せず、マウント時に常に再検証する
+  useEffect(() => {
+    if (isSignedIn) {
+      void refetch();
+    }
+  }, [isSignedIn, refetch]);
 
   // Clerk ローディング中 or API ローディング中
   if (!isLoaded || (isSignedIn && isLoading)) {

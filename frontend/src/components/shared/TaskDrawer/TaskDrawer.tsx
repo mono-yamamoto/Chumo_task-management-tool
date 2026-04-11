@@ -63,6 +63,13 @@ export function TaskDrawer({
     setDeleteConfirmInput('');
   }, []);
 
+  // ドロワーが閉じたら削除確認モーダルもリセット
+  useEffect(() => {
+    if (!isOpen && showDeleteConfirm) {
+      handleCloseDeleteConfirm();
+    }
+  }, [isOpen, showDeleteConfirm, handleCloseDeleteConfirm]);
+
   const handleDeleteConfirm = useCallback(async () => {
     if (!task || deleteConfirmInput !== task.title) return;
     await deleteTask.mutateAsync(task.id);

@@ -8,7 +8,7 @@ interface TaskUnrecordedMembersProps {
 }
 
 export function TaskUnrecordedMembers({ task }: TaskUnrecordedMembersProps) {
-  const { data: sessions } = useTaskSessions(task.id, task.projectType);
+  const { data: sessions, isLoading } = useTaskSessions(task.id, task.projectType);
 
   const recordedUserIds = useMemo(() => new Set((sessions ?? []).map((s) => s.userId)), [sessions]);
 
@@ -17,7 +17,7 @@ export function TaskUnrecordedMembers({ task }: TaskUnrecordedMembersProps) {
     [task.assigneeIds, recordedUserIds]
   );
 
-  if (unrecordedMembers.length === 0) return null;
+  if (isLoading || unrecordedMembers.length === 0) return null;
 
   return (
     <UnrecordedMembersSection

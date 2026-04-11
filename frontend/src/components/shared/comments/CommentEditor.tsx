@@ -4,6 +4,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Mention from '@tiptap/extension-mention';
+import Placeholder from '@tiptap/extension-placeholder';
 import { ReactRenderer } from '@tiptap/react';
 import type { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { MentionList } from './MentionList';
@@ -65,6 +66,9 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
           orderedList: false,
           listItem: false,
         }),
+        Placeholder.configure({
+          placeholder,
+        }),
         Link.configure({
           openOnClick: false,
           autolink: true,
@@ -120,6 +124,9 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
                 },
 
                 onUpdate: (props: SuggestionProps<User>) => {
+                  selectedIndex =
+                    props.items.length === 0 ? 0 : Math.min(selectedIndex, props.items.length - 1);
+
                   if (component) {
                     component.updateProps({
                       items: props.items,
@@ -154,7 +161,8 @@ export const CommentEditor = forwardRef<CommentEditorHandle, CommentEditorProps>
 
                   if (props.event.key === 'ArrowDown') {
                     const items = (component?.props as { items?: User[] })?.items || [];
-                    selectedIndex = Math.min(items.length - 1, selectedIndex + 1);
+                    selectedIndex =
+                      items.length === 0 ? 0 : Math.min(items.length - 1, selectedIndex + 1);
                     component?.updateProps({ selectedIndex });
                     return true;
                   }

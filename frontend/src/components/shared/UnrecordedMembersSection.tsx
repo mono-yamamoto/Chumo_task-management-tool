@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Bell, Check, RotateCw } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { Avatar } from '../ui/Avatar';
-import { useUsers } from '../../hooks/useUsers';
-import { useSendSessionReminder } from '../../hooks/useSessionReminders';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
+import { useUsers } from '@/hooks/useUsers';
+import { useSendSessionReminder } from '@/hooks/useSessionReminders';
 
 interface UnrecordedMembersSectionProps {
   taskId: string;
