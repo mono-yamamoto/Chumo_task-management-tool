@@ -56,7 +56,7 @@ export function TaskDetailPage() {
             projectType={task.projectType}
             over3Reason={task.over3Reason}
           />
-          <TaskUnrecordedMembers />
+          <TaskUnrecordedMembers task={task} />
           <div className="h-px bg-border-default" />
           <TaskDetailComments taskId={task.id} projectType={task.projectType} />
         </div>

@@ -1,54 +1,29 @@
-import { Bell, Check } from 'lucide-react';
-import { Avatar } from '../../../components/ui/Avatar';
-import { Button } from '../../../components/ui/Button';
+import { useMemo } from 'react';
+import { UnrecordedMembersSection } from '../../../components/shared/UnrecordedMembersSection';
+import { useTaskSessions } from '../../../hooks/useTimer';
+import type { Task } from '../../../types';
 
-const MOCK_UNRECORDED = [
-  { id: 'u1', name: '菊池', notified: false },
-  { id: 'u2', name: '山本', notified: true },
-];
+interface TaskUnrecordedMembersProps {
+  task: Task;
+}
 
-export function TaskUnrecordedMembers() {
+export function TaskUnrecordedMembers({ task }: TaskUnrecordedMembersProps) {
+  const { data: sessions } = useTaskSessions(task.id, task.projectType);
+
+  const recordedUserIds = useMemo(() => new Set((sessions ?? []).map((s) => s.userId)), [sessions]);
+
+  const unrecordedMembers = useMemo(
+    () => task.assigneeIds.filter((id) => !recordedUserIds.has(id)),
+    [task.assigneeIds, recordedUserIds]
+  );
+
+  if (unrecordedMembers.length === 0) return null;
+
   return (
-    <div className="flex flex-col gap-2">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-text-secondary">セッション未記録メンバー</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onPress={() => {}} // TODO: 全員通知処理
-          className="h-7 border-primary-default px-2.5 text-xs text-primary-default hover:bg-bg-brand-subtle"
-        >
-          <Bell size={14} />
-          全員に通知
-        </Button>
-      </div>
-
-      {/* メンバーリスト */}
-      <div className="flex flex-col gap-2">
-        {MOCK_UNRECORDED.map((member) => (
-          <div key={member.id} className="flex h-10 items-center gap-3">
-            <Avatar name={member.name} size="sm" className="h-7 w-7" />
-            <span className="min-w-0 flex-1 text-sm text-text-primary">{member.name}</span>
-            {member.notified ? (
-              <span className="inline-flex h-7 items-center gap-1 rounded-md border border-primary-default bg-bg-brand-subtle px-2.5 py-1 text-xs font-medium text-primary-default">
-                <Check size={14} />
-                <span>通知済み</span>
-              </span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onPress={() => {}} // TODO: 個別通知処理
-                className="h-7 border-primary-default px-2.5 text-xs text-primary-default hover:bg-bg-brand-subtle"
-              >
-                <Bell size={14} />
-                通知
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+    <UnrecordedMembersSection
+      taskId={task.id}
+      unrecordedMemberIds={unrecordedMembers}
+      sessionReminders={task.sessionReminders}
+    />
   );
 }
