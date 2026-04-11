@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Bell, Check, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -19,6 +19,10 @@ export function UnrecordedMembersSection({
   const { getUserName, getUserById } = useUsers();
   const sendReminder = useSendSessionReminder();
   const [resendIds, setResendIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setResendIds(new Set());
+  }, [taskId]);
 
   const unnotifiedIds = useMemo(
     () => unrecordedMemberIds.filter((id) => !sessionReminders?.[id]),

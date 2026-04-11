@@ -72,11 +72,14 @@ export function TaskDrawer({
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!task || deleteConfirmInput !== task.title) return;
-    await deleteTask.mutateAsync(task.id);
-    setShowDeleteConfirm(false);
-    setDeleteConfirmInput('');
-    onClose();
-  }, [task, deleteTask, onClose, deleteConfirmInput]);
+    try {
+      await deleteTask.mutateAsync(task.id);
+      handleCloseDeleteConfirm();
+      onClose();
+    } catch {
+      // 削除失敗時はモーダルを維持して再試行可能にする
+    }
+  }, [task, deleteTask, onClose, deleteConfirmInput, handleCloseDeleteConfirm]);
 
   // ESCキーで閉じる
   useEffect(() => {

@@ -28,44 +28,15 @@ export function sanitizeCommentHtml(html: string): string {
   });
 }
 
-// 正規表現用にIDをエスケープ
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// HTML属性用にIDをエスケープ
-function escapeHtmlAttribute(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
 /** 自分宛のメンションにハイライトクラスを追加 */
 export function highlightSelfMentions(html: string, currentUserId: string): string {
-  const escapedId = escapeRegExp(currentUserId);
-  const safeId = escapeHtmlAttribute(currentUserId);
-
-  const regex = new RegExp(
-    `<span([^>]*)class="comment-mention"([^>]*)data-id="${escapedId}"([^>]*)>`,
-    'g'
-  );
-  const regex2 = new RegExp(
-    `<span([^>]*)data-id="${escapedId}"([^>]*)class="comment-mention"([^>]*)>`,
-    'g'
-  );
-
-  return html
-    .replace(
-      regex,
-      '<span$1class="comment-mention comment-mention-self"$2data-id="' + safeId + '"$3>'
-    )
-    .replace(
-      regex2,
-      '<span$1data-id="' + safeId + '"$2class="comment-mention comment-mention-self"$3>'
-    );
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll<HTMLSpanElement>('span.comment-mention[data-id]').forEach((el) => {
+    if (el.getAttribute('data-id') === currentUserId) {
+      el.classList.add('comment-mention-self');
+    }
+  });
+  return doc.body.innerHTML;
 }
 
 /** コメントコンテンツをレンダリング用HTMLに変換 */

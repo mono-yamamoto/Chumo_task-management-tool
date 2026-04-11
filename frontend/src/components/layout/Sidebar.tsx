@@ -129,7 +129,9 @@ export function Sidebar() {
                     type="button"
                     onClick={() => {
                       close();
-                      logout();
+                      void logout().catch(() => {
+                        // ログアウト失敗時もメニューは閉じ済み、次回操作で再試行可能
+                      });
                     }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 transition-colors hover:bg-teal-800/50 hover:text-red-300 cursor-pointer"
                   >

@@ -119,26 +119,14 @@ if $DRY_RUN; then
   exit 0
 fi
 
-# --- ローカルDBクリーンアップ & リストア ---
-info "ローカルDBをクリーンアップ中..."
-"$PSQL" "$LOCAL_URL" --quiet --output=/dev/null -c "
-  TRUNCATE TABLE
-    notifications,
-    task_activities,
-    task_comments,
-    task_sessions,
-    task_externals,
-    task_pins,
-    tasks,
-    labels,
-    contacts,
-    projects,
-    users
-  CASCADE;
-"
-
-info "ローカルDBにリストア中..."
-"$PSQL" "$LOCAL_URL" -v ON_ERROR_STOP=1 --single-transaction -f "$DUMP_FILE" --quiet --output=/dev/null
+# --- ローカルDBクリーンアップ & リストア（同一トランザクション） ---
+info "ローカルDBをクリーンアップしてリストア中..."
+{
+  echo "BEGIN;"
+  echo "TRUNCATE TABLE notifications, task_activities, task_comments, task_sessions, task_externals, task_pins, tasks, labels, contacts, projects, users CASCADE;"
+  cat "$DUMP_FILE"
+  echo "COMMIT;"
+} | "$PSQL" "$LOCAL_URL" -v ON_ERROR_STOP=1 --quiet --output=/dev/null
 
 # --- 件数確認 ---
 info "同期結果:"
