@@ -111,6 +111,7 @@ export function TaskDrawer({
                 <>
                   <DrawerHeader
                     title={title}
+                    taskId={task.id}
                     onClose={onClose}
                     onDelete={handleDeleteRequest}
                     isDeleting={deleteTask.isPending}

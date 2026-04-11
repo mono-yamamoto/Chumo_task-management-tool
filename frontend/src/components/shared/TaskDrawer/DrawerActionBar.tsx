@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Play, Square, ExternalLink, Folder, MessageCircle, Flame, PawPrint } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { IntegrationLinkButton } from '../../ui/IntegrationLinkButton';
@@ -12,7 +11,6 @@ interface DrawerActionBarProps {
 }
 
 export function DrawerActionBar({ task }: DrawerActionBarProps) {
-  const navigate = useNavigate();
   const { data: activeSession } = useActiveSession();
   const { start, stop } = useTimer();
   const { drive, chat, fire, pet } = useIntegrationActions(task);
@@ -36,16 +34,6 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
 
   return (
     <div className="border-b border-border-default px-6 py-4 space-y-3">
-      {/* 詳細ページボタン */}
-      <Button
-        variant="outline"
-        size="lg"
-        onPress={() => navigate(`/tasks/${task.id}`)}
-        className="w-full border-primary-default text-primary-default hover:bg-bg-brand-subtle"
-      >
-        詳細ページ
-      </Button>
-
       {/* タイマーボタン */}
       {isThisTaskActive ? (
         <Button
@@ -53,7 +41,7 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
           size="lg"
           onPress={handleTimerToggle}
           isDisabled={stop.isPending}
-          className="w-full bg-error-bg text-error-text hover:bg-red-200 hover:text-error-text"
+          className="w-full h-20 bg-error-bg text-error-text hover:bg-red-200 hover:text-error-text"
         >
           <Square size={16} fill="currentColor" />
           停止 {formatted}
@@ -64,7 +52,7 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
           size="lg"
           onPress={handleTimerToggle}
           isDisabled={start.isPending || isOtherTaskActive}
-          className="w-full border-primary-default text-primary-default hover:bg-bg-brand-subtle"
+          className="w-full h-20 border-primary-default text-primary-default hover:bg-bg-brand-subtle"
           aria-label={isOtherTaskActive ? '他のタイマーが稼働中です' : 'タイマー開始'}
         >
           <Play size={18} />

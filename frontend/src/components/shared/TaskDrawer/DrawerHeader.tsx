@@ -1,20 +1,33 @@
+import { useNavigate } from 'react-router-dom';
 import { X, Trash2 } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { IconButton } from '../../ui/IconButton';
 
 interface DrawerHeaderProps {
   title: string;
+  taskId?: string | null;
   onClose: () => void;
   onDelete?: () => void;
   isDeleting?: boolean;
 }
 
-export function DrawerHeader({ title, onClose, onDelete, isDeleting }: DrawerHeaderProps) {
+export function DrawerHeader({ title, taskId, onClose, onDelete, isDeleting }: DrawerHeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="border-b border-border-default px-6 py-5 space-y-4">
       {/* タイトル + 閉じる */}
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-bold leading-normal text-text-primary">{title}</h2>
+        {taskId ? (
+          <h2
+            className="text-lg font-bold leading-normal text-text-primary underline decoration-text-tertiary underline-offset-2 cursor-pointer hover:text-primary-default hover:decoration-primary-default transition-colors"
+            onClick={() => navigate(`/tasks/${taskId}`)}
+          >
+            {title}
+          </h2>
+        ) : (
+          <h2 className="text-lg font-bold leading-normal text-text-primary">{title}</h2>
+        )}
         <IconButton onPress={onClose} aria-label="閉じる" className="shrink-0">
           <X size={20} />
         </IconButton>
