@@ -74,10 +74,12 @@ export function ReportPage() {
         taskId: item.taskId,
         title: item.title,
         type: reportType,
+        projectType: item.projectType,
         totalDurationSec: item.durationSec,
         over3Reason: item.over3hours,
         sessions: [],
         date: new Date(year, month - 1, 1),
+        currentUserUnrecorded: item.currentUserUnrecorded,
       })),
     [data?.items, reportType, year, month]
   );
@@ -217,6 +219,14 @@ export function ReportPage() {
 
           <div className="mt-6 space-y-6">
             <SummaryRow totalDurationSec={totalDurationSec} entryCount={entries.length} />
+
+            {entries.some((e) => e.currentUserUnrecorded) && (
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center rounded-full bg-error-bg px-3 py-1 text-xs font-medium text-error-text">
+                  セッション未記録
+                </span>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="flex justify-center py-12">

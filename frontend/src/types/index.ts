@@ -220,8 +220,10 @@ export interface ReportEntry {
   taskId: string;
   title: string;
   type: ReportType;
+  projectType: string;
   totalDurationSec: number;
   over3Reason?: string;
   sessions: TaskSession[];
   date: Date;
+  currentUserUnrecorded: boolean;
 }

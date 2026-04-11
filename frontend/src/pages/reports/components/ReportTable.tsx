@@ -23,7 +23,9 @@ export function ReportTable({ entries, onRowClick }: ReportTableProps) {
           <button
             type="button"
             onClick={() => onRowClick(entry)}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-bg-secondary"
+            className={`flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-bg-secondary ${
+              entry.currentUserUnrecorded ? 'border-l-[3px] border-l-error-text bg-error-bg' : ''
+            }`}
           >
             <span className="flex-1 truncate text-sm text-text-primary">{entry.title}</span>
             <span className="w-[140px] text-center text-sm text-text-secondary">
