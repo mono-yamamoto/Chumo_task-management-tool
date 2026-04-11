@@ -13,13 +13,13 @@ export function StatsRow({ active, dueSoon, overdue, done }: StatsRowProps) {
     <div className="grid grid-cols-4 gap-4">
       <StatsCard label="対応中" value={active} icon={<Activity size={20} />} variant="default" />
       <StatsCard
-        label="期限1週間以内"
+        label="IT期限1週間以内"
         value={dueSoon}
         icon={<Clock size={20} />}
         variant="warning"
       />
       <StatsCard
-        label="期限超過"
+        label="IT期限超過"
         value={overdue}
         icon={<AlertTriangle size={20} />}
         variant="error"
