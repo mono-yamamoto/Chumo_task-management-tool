@@ -41,6 +41,7 @@ interface ReportItem {
   over3hours?: string;
   taskId: string;
   projectType: string;
+  currentUserUnrecorded: boolean;
 }
 
 /**
@@ -51,7 +52,8 @@ async function fetchReportData(
   db: Database,
   fromDate: Date,
   toDate: Date,
-  type: 'normal' | 'brg'
+  type: 'normal' | 'brg',
+  userId?: string
 ): Promise<{ items: ReportItem[]; totalDurationSec: number }> {
   // 1. 「運用」区分ラベルのIDを取得
   const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
@@ -69,25 +71,20 @@ async function fetchReportData(
   // 3. 対象タスクを取得
   // BRGタイプ: projectType=BRGREG の全タスク（kubunLabelId不問）
   // 通常タイプ: kubunLabelId=運用 のタスクのみ
-  let targetTasks: { id: string; title: string; projectType: string; over3Reason: string | null }[];
+  const taskSelect = {
+    id: tasks.id,
+    title: tasks.title,
+    projectType: tasks.projectType,
+    over3Reason: tasks.over3Reason,
+    assigneeIds: tasks.assigneeIds,
+  };
+
+  let targetTasks: Awaited<ReturnType<typeof db.select<typeof taskSelect>>>;
   if (type === 'brg') {
-    targetTasks = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        projectType: tasks.projectType,
-        over3Reason: tasks.over3Reason,
-      })
-      .from(tasks)
-      .where(eq(tasks.projectType, 'BRGREG'));
+    targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
   } else {
     const allTasks = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        projectType: tasks.projectType,
-        over3Reason: tasks.over3Reason,
-      })
+      .select(taskSelect)
       .from(tasks)
       .where(eq(tasks.kubunLabelId, unyoLabel.id));
     targetTasks = allTasks.filter((t) =>
@@ -114,8 +111,9 @@ async function fetchReportData(
       )
     );
 
-  // 5. タスクIDごとにdurationSecを集計
+  // 5. タスクIDごとにdurationSecを集計 + セッション記録済みユーザーを追跡
   const durationByTaskId = new Map<string, number>();
+  const recordedUsersByTaskId = new Map<string, Set<string>>();
   for (const session of sessions) {
     if (!session.endedAt) continue;
 
@@ -126,6 +124,12 @@ async function fetchReportData(
 
     if (duration > 0) {
       durationByTaskId.set(session.taskId, (durationByTaskId.get(session.taskId) ?? 0) + duration);
+      let userSet = recordedUsersByTaskId.get(session.taskId);
+      if (!userSet) {
+        userSet = new Set();
+        recordedUsersByTaskId.set(session.taskId, userSet);
+      }
+      userSet.add(session.userId);
     }
   }
 
@@ -135,12 +139,16 @@ async function fetchReportData(
     const task = taskMap.get(taskId);
     if (!task) continue;
 
+    const isAssigned = userId ? task.assigneeIds.includes(userId) : false;
+    const hasSession = userId ? (recordedUsersByTaskId.get(taskId)?.has(userId) ?? false) : false;
+
     items.push({
       title: task.title,
       durationSec,
       over3hours: durationSec > 10800 ? (task.over3Reason ?? undefined) : undefined,
       taskId,
       projectType: task.projectType,
+      currentUserUnrecorded: isAssigned && !hasSession,
     });
   }
 
@@ -173,7 +181,8 @@ app.get('/time', async (c) => {
   // toDateをその日の終了時刻まで含める
   toDate.setHours(23, 59, 59, 999);
 
-  const { items, totalDurationSec } = await fetchReportData(db, fromDate, toDate, type);
+  const userId = c.get('userId');
+  const { items, totalDurationSec } = await fetchReportData(db, fromDate, toDate, type, userId);
 
   return c.json({ items, totalDurationSec });
 });

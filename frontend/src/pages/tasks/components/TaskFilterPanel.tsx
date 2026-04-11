@@ -66,7 +66,7 @@ export function TaskFilterPanel() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-auto px-2 py-1 text-xs text-text-tertiary"
+          className="h-auto px-2 py-1 text-xs text-text-secondary cursor-pointer disabled:opacity-100 disabled:pointer-events-auto"
           onPress={clearFilters}
           isDisabled={!hasActiveFilters}
         >
@@ -96,7 +96,7 @@ export function TaskFilterPanel() {
           active={!!filters.projectType}
         />
         <Select
-          label="ステータス"
+          label="担当"
           options={FLOW_STATUS_OPTIONS}
           placeholder="すべて"
           className="flex-1"

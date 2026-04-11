@@ -91,7 +91,7 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
 
       {/* プロパティ */}
       <section className="py-3">
-        <PropertyRow label="ステータス">
+        <PropertyRow label="担当">
           <Select
             options={FLOW_STATUS_OPTIONS}
             value={task.flowStatus}

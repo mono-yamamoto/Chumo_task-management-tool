@@ -24,8 +24,6 @@ export type FlowStatus =
   | 'デザイン'
   | '待ち'
   | '対応中'
-  | '週次報告'
-  | '月次報告'
   | '完了';
 
 export type ProgressStatus =
@@ -39,6 +37,7 @@ export type ProgressStatus =
   | 'デザイン'
   | 'コーディング'
   | '品管チェック'
+  | 'FAQ公開申請'
   | 'IT連絡済み'
   | 'ST連絡済み'
   | 'SENJU登録'
@@ -220,8 +219,10 @@ export interface ReportEntry {
   taskId: string;
   title: string;
   type: ReportType;
+  projectType: string;
   totalDurationSec: number;
   over3Reason?: string;
   sessions: TaskSession[];
   date: Date;
+  currentUserUnrecorded: boolean;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { CircleCheckBig, Plus } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
@@ -6,17 +6,37 @@ import { Spinner } from '../../components/ui/Spinner';
 import { ContactCard } from './components/ContactCard';
 import { ContactFormDrawer } from './components/ContactFormDrawer';
 import type { ContactFormData } from './components/ContactFormDrawer';
-import { useContacts, useCreateContact } from '../../hooks/useContacts';
+import { useContacts, useCreateContact, useUpdateContactStatus } from '../../hooks/useContacts';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 export function ContactPage() {
   const [showResolved, setShowResolved] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [updatingContactIds, setUpdatingContactIds] = useState<Set<string>>(new Set());
 
   const status = showResolved ? 'resolved' : 'pending';
   const { data: contacts = [], isLoading, error } = useContacts(status);
   const createContact = useCreateContact();
+  const updateStatus = useUpdateContactStatus();
   const { data: currentUser } = useCurrentUser();
+
+  const handleStatusChange = useCallback(
+    (contactId: string, newStatus: 'pending' | 'resolved') => {
+      setUpdatingContactIds((prev) => new Set(prev).add(contactId));
+      updateStatus.mutate(
+        { contactId, status: newStatus },
+        {
+          onSettled: () =>
+            setUpdatingContactIds((prev) => {
+              const next = new Set(prev);
+              next.delete(contactId);
+              return next;
+            }),
+        }
+      );
+    },
+    [updateStatus]
+  );
 
   const handleSubmit = (data: ContactFormData) => {
     createContact.mutate(
@@ -75,7 +95,12 @@ export function ContactPage() {
         ) : (
           <div className="flex flex-col gap-6">
             {contacts.map((contact) => (
-              <ContactCard key={contact.id} contact={contact} />
+              <ContactCard
+                key={contact.id}
+                contact={contact}
+                onStatusChange={handleStatusChange}
+                isUpdating={updatingContactIds.has(contact.id)}
+              />
             ))}
           </div>
         )}

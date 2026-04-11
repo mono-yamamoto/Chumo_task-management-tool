@@ -248,3 +248,75 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ---------- Comment Editor & Content ---------- */
+.comment-html-content p {
+  margin: 0;
+}
+
+.comment-html-content a,
+.comment-html-content .comment-link {
+  color: var(--color-teal-600);
+  text-decoration: none;
+  word-break: break-all;
+}
+.comment-html-content a:hover,
+.comment-html-content .comment-link:hover {
+  text-decoration: underline;
+}
+
+.comment-html-content .comment-mention {
+  background-color: var(--color-teal-100);
+  color: var(--color-teal-700);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 500;
+}
+
+.comment-html-content .comment-mention-self {
+  background-color: var(--color-green-100);
+  color: var(--color-green-700);
+}
+
+.comment-html-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+/* TipTap editor area */
+.comment-editor-content {
+  outline: none;
+  min-height: 48px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.comment-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-neutral-400);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.comment-editor-content p {
+  margin: 0;
+}
+
+.comment-editor-content .comment-mention {
+  background-color: var(--color-teal-100);
+  color: var(--color-teal-700);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 500;
+}
+
+.comment-editor-content .comment-link {
+  color: var(--color-teal-600);
+  text-decoration: none;
+}
+.comment-editor-content .comment-link:hover {
+  text-decoration: underline;
+}

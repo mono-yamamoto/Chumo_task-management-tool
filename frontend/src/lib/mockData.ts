@@ -365,6 +365,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-1',
     title: 'REG2017-2263 【伊藤】火災保険_FAQ 2件修正',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 9258, // 2時間34分18秒
     sessions: [
       {
@@ -383,6 +385,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-2',
     title: 'REG2017-2264 【伊藤】GOOD DRIVE 契約者のキャッシュバック率_数値更新',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 5437, // 1時間30分37秒
     sessions: [
       {
@@ -401,6 +405,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-3',
     title: 'REG2017-2251 【伊藤】総合トップ_コエキチ数値更新（FY25_2Q）',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 387, // 6分27秒
     sessions: [
       {
@@ -419,6 +425,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-4',
     title: 'REG2017-2257 【伊藤】火災「一緒に見積サポート」FAQの作成依頼',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 14669, // 4時間4分29秒
     sessions: [
       {
@@ -445,6 +453,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-5',
     title: 'REG2017-2266 【飯田】火災_SEO記事コンテンツ（新規2本）',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 32679, // 9時間4分39秒
     sessions: [
       {
@@ -463,6 +473,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-6',
     title: 'REG2017-2252 【梅村】等級訂正ガイドページの制作',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 21792, // 6時間3分12秒
     over3Reason: 'デザインしながらコーディングしたため',
     sessions: [
@@ -482,6 +494,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-7',
     title: 'REG2017-2267 【加倉井】sオブジェクト削除_後続',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 4525, // 1時間15分25秒
     sessions: [
       {
@@ -500,6 +514,8 @@ export const MOCK_REPORT_ENTRIES: ReportEntry[] = [
     taskId: 'task-8',
     title: 'REG2017-2269 【加倉井】SFGLキャンペーンバナー第3弾切替',
     type: 'normal',
+    projectType: 'REG2017',
+    currentUserUnrecorded: false,
     totalDurationSec: 6112, // 1時間41分52秒
     sessions: [
       {

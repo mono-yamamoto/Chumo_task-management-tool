@@ -1,4 +1,6 @@
+import { CheckCircle, RotateCcw } from 'lucide-react';
 import type { Contact, ContactType } from '../../../types';
+import { Button } from '../../../components/ui/Button';
 
 const TYPE_CONFIG: Record<ContactType, { label: string; bgClass: string; textClass: string }> = {
   error: {
@@ -20,9 +22,11 @@ const TYPE_CONFIG: Record<ContactType, { label: string; bgClass: string; textCla
 
 interface ContactCardProps {
   contact: Contact;
+  onStatusChange?: (contactId: string, status: 'pending' | 'resolved') => void;
+  isUpdating?: boolean;
 }
 
-export function ContactCard({ contact }: ContactCardProps) {
+export function ContactCard({ contact, onStatusChange, isUpdating }: ContactCardProps) {
   const config = TYPE_CONFIG[contact.type];
   const dateStr = new Date(contact.createdAt).toLocaleString('ja-JP', {
     year: 'numeric',
@@ -31,6 +35,8 @@ export function ContactCard({ contact }: ContactCardProps) {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const isPending = contact.status === 'pending';
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border-default bg-bg-primary p-5">
@@ -52,6 +58,26 @@ export function ContactCard({ contact }: ContactCardProps) {
         <span className="text-xs leading-normal text-text-tertiary">
           {contact.userName} &middot; {dateStr}
         </span>
+        {onStatusChange && (
+          <Button
+            variant={isPending ? 'primary' : 'outline'}
+            size="sm"
+            onPress={() => onStatusChange(contact.id, isPending ? 'resolved' : 'pending')}
+            isDisabled={isUpdating}
+          >
+            {isPending ? (
+              <>
+                <CheckCircle size={14} />
+                {isUpdating ? '処理中...' : '解決済みにする'}
+              </>
+            ) : (
+              <>
+                <RotateCcw size={14} />
+                {isUpdating ? '処理中...' : '対応中に戻す'}
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

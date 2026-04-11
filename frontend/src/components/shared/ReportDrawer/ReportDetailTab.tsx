@@ -1,15 +1,19 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Pencil, Bell, Check, RotateCw } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Pencil } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { IconButton } from '../../ui/IconButton';
 import { Avatar } from '../../ui/Avatar';
+import { Spinner } from '../../ui/Spinner';
+import { UnrecordedMembersSection } from '../UnrecordedMembersSection';
 import type { ReportEntry, TaskSession } from '../../../types';
 import { formatDuration } from '../../../lib/taskUtils';
 import { formatDateTime as fmtDateTime, formatTime as fmtTime } from '../../../lib/constants';
 import { useUpdateTask } from '../../../hooks/useTaskMutations';
 import { useTask } from '../../../hooks/useTask';
 import { useUsers } from '../../../hooks/useUsers';
-import { useSendSessionReminder } from '../../../hooks/useSessionReminders';
+import { useTaskSessions } from '../../../hooks/useTimer';
+
+const EMPTY_SESSIONS: TaskSession[] = [];
 
 interface ReportDetailTabProps {
   entry: ReportEntry;
@@ -21,20 +25,20 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
   const updateTask = useUpdateTask();
   const { data: task } = useTask(entry.taskId);
   const { getUserName, getUserById } = useUsers();
+  const { data: fetchedSessions, isLoading: isLoadingSessions } = useTaskSessions(
+    entry.taskId,
+    entry.projectType
+  );
+  const sessions = fetchedSessions ?? EMPTY_SESSIONS;
 
   useEffect(() => {
     setReason(entry.over3Reason ?? '');
   }, [entry]);
 
-  const totalSec = entry.sessions.reduce((sum, s) => sum + s.durationSec, 0);
+  const totalSec = sessions.reduce((sum, s) => sum + s.durationSec, 0);
 
-  // セッション記録済みのユーザーID
-  const recordedUserIds = useMemo(
-    () => new Set(entry.sessions.map((s) => s.userId)),
-    [entry.sessions]
-  );
+  const recordedUserIds = useMemo(() => new Set(sessions.map((s) => s.userId)), [sessions]);
 
-  // セッション未記録メンバー
   const unrecordedMembers = useMemo(() => {
     if (!task?.assigneeIds) return [];
     return task.assigneeIds.filter((id) => !recordedUserIds.has(id));
@@ -81,21 +85,27 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
           </span>
         </div>
 
-        <div className="space-y-0">
-          {entry.sessions.map((session) => {
-            const user = getUserById(session.userId);
-            return (
-              <SessionRow
-                key={session.id}
-                session={session}
-                userName={getUserName(session.userId)}
-                avatarUrl={user?.avatarUrl ?? undefined}
-                avatarColor={user?.avatarColor}
-                onEdit={() => onEditSession(entry, session)}
-              />
-            );
-          })}
-        </div>
+        {isLoadingSessions ? (
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" />
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {sessions.map((session) => {
+              const user = getUserById(session.userId);
+              return (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  userName={getUserName(session.userId)}
+                  avatarUrl={user?.avatarUrl ?? undefined}
+                  avatarColor={user?.avatarColor}
+                  onEdit={() => onEditSession(entry, session)}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* セッション未記録メンバー */}
@@ -106,133 +116,6 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
           sessionReminders={task?.sessionReminders}
         />
       )}
-    </div>
-  );
-}
-
-/** セッション未記録メンバーセクション */
-function UnrecordedMembersSection({
-  taskId,
-  unrecordedMemberIds,
-  sessionReminders,
-}: {
-  taskId: string;
-  unrecordedMemberIds: string[];
-  sessionReminders?: Record<string, { sentAt: string; sentBy: string }>;
-}) {
-  const { getUserName, getUserById } = useUsers();
-  const sendReminder = useSendSessionReminder();
-  // 「通知済み」→「再送」切り替え��のローカル状態
-  const [resendIds, setResendIds] = useState<Set<string>>(new Set());
-
-  const unnotifiedIds = useMemo(
-    () => unrecordedMemberIds.filter((id) => !sessionReminders?.[id]),
-    [unrecordedMemberIds, sessionReminders]
-  );
-
-  const allNotified = unnotifiedIds.length === 0;
-
-  const handleNotifyAll = useCallback(() => {
-    if (unnotifiedIds.length === 0) return;
-    sendReminder.mutate({ taskId, targetUserIds: unnotifiedIds });
-  }, [taskId, unnotifiedIds, sendReminder]);
-
-  const handleNotifySingle = useCallback(
-    (userId: string) => {
-      sendReminder.mutate({ taskId, targetUserIds: [userId] });
-      // 再送ボタンから送った場合、ローカル状態をリセット
-      setResendIds((prev) => {
-        const next = new Set(prev);
-        next.delete(userId);
-        return next;
-      });
-    },
-    [taskId, sendReminder]
-  );
-
-  const handleToggleResend = useCallback((userId: string) => {
-    setResendIds((prev) => {
-      const next = new Set(prev);
-      next.add(userId);
-      return next;
-    });
-  }, []);
-
-  return (
-    <div className="space-y-2 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-text-tertiary">セッション未記録メンバー</span>
-        <Button
-          variant="outline"
-          size="sm"
-          isDisabled={allNotified || sendReminder.isPending}
-          onPress={handleNotifyAll}
-          className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
-        >
-          <Bell size={14} />
-          全員に通知
-        </Button>
-      </div>
-      <p className="text-xs text-text-tertiary">
-        以下のメンバーはアサイン��れていますがセッショ��履歴がありません
-      </p>
-
-      <div className="space-y-1">
-        {unrecordedMemberIds.map((userId) => {
-          const user = getUserById(userId);
-          const name = getUserName(userId);
-          const isNotified = !!sessionReminders?.[userId];
-          const isResendMode = resendIds.has(userId);
-
-          return (
-            <div key={userId} className="flex items-center justify-between py-1.5">
-              <div className="flex items-center gap-2">
-                <Avatar
-                  name={name}
-                  imageUrl={user?.avatarUrl ?? undefined}
-                  colorName={user?.avatarColor}
-                  size="sm"
-                />
-                <span className="text-sm font-medium text-text-primary">{name}</span>
-              </div>
-
-              {isNotified && !isResendMode ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onPress={() => handleToggleResend(userId)}
-                  className="h-7 px-2.5 text-xs text-primary-default border-primary-default bg-bg-brand-subtle opacity-100"
-                >
-                  <Check size={14} />
-                  通知済み
-                </Button>
-              ) : isResendMode ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  isDisabled={sendReminder.isPending}
-                  onPress={() => handleNotifySingle(userId)}
-                  className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
-                >
-                  <RotateCw size={14} />
-                  再送
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  isDisabled={sendReminder.isPending}
-                  onPress={() => handleNotifySingle(userId)}
-                  className="h-7 px-2.5 text-xs text-primary-default border-primary-default"
-                >
-                  <Bell size={14} />
-                  通知
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

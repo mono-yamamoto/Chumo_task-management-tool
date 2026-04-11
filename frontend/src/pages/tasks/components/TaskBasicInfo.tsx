@@ -72,8 +72,7 @@ export function TaskBasicInfo({ task }: TaskBasicInfoProps) {
     <div className="flex flex-col gap-3">
       <h2 className="text-md font-bold text-text-primary">基本情報</h2>
 
-      {/* ステータス */}
-      <FormRow label="ステータス">
+      <FormRow label="担当">
         <Select
           options={FLOW_STATUS_OPTIONS}
           value={task.flowStatus}

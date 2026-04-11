@@ -39,8 +39,6 @@ export const FLOW_STATUS_LABELS: Record<FlowStatus, string> = {
   デザイン: 'デザイン',
   待ち: '待ち',
   対応中: '対応中',
-  週次報告: '週次報告',
-  月次報告: '月次報告',
   完了: '完了',
 };
 
@@ -61,6 +59,7 @@ export const PROGRESS_STATUS_COLOR_MAP: Record<ProgressStatus, string> = {
   デザイン: 'bg-pink-700',
   コーディング: 'bg-pink-800',
   品管チェック: 'bg-pink-900',
+  FAQ公開申請: 'bg-amber-600',
   // 完了・連絡段階（Cyan 500→700）
   IT連絡済み: 'bg-cyan-500',
   ST連絡済み: 'bg-cyan-600',

@@ -31,9 +31,9 @@ export function Tab({ className, badge, children, ...props }: TabProps) {
       className={cn(
         'relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors',
         'text-text-tertiary hover:text-text-primary',
-        'selected:text-text-primary selected:font-medium',
-        'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5',
-        'selected:after:bg-primary-default',
+        'data-selected:text-primary-default data-selected:font-bold',
+        'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:rounded-full',
+        'data-selected:after:bg-primary-default',
         'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-border-focus',
         className
       )}

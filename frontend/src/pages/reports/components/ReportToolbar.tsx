@@ -12,6 +12,8 @@ interface ReportToolbarProps {
   onNextMonth: () => void;
   onExport: () => void;
   isExporting?: boolean;
+  showDateRange?: boolean;
+  onToggleDateRange?: () => void;
 }
 
 export function ReportToolbar({
@@ -21,6 +23,8 @@ export function ReportToolbar({
   onNextMonth,
   onExport,
   isExporting = false,
+  showDateRange = false,
+  onToggleDateRange,
 }: ReportToolbarProps) {
   return (
     <div className="flex h-10 items-center justify-between">
@@ -47,7 +51,12 @@ export function ReportToolbar({
         </div>
 
         {/* 日付指定トグル */}
-        <Button variant="outline" size="sm" className="rounded-lg text-text-secondary">
+        <Button
+          variant={showDateRange ? 'primary' : 'outline'}
+          size="sm"
+          className={`rounded-lg ${showDateRange ? '' : 'text-text-secondary'}`}
+          onPress={onToggleDateRange}
+        >
           <Calendar size={16} />
           日付指定
         </Button>

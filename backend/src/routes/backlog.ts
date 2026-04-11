@@ -23,6 +23,12 @@ const app = new Hono<BacklogEnv>();
 // --- POST /webhook ---
 
 app.post('/webhook', async (c) => {
+  // Webhook認証: 共有シークレットで検証
+  const secret = c.req.header('X-Backlog-Webhook-Secret') ?? c.req.query('secret');
+  if (!secret || secret !== c.env.BACKLOG_WEBHOOK_SECRET) {
+    return c.json({ error: 'Invalid webhook secret' }, 401);
+  }
+
   const db = c.get('db');
   const body = (await c.req.json()) as BacklogWebhookPayload;
 

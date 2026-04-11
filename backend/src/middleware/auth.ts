@@ -6,7 +6,9 @@ import type { Env } from '../index';
 import type { Database } from '../db';
 
 // prefix一致でスキップするパス
-const SKIP_PREFIX_PATHS = ['/api/files/', '/api/backlog/webhook'];
+const SKIP_PREFIX_PATHS = ['/api/files/'];
+// Webhookパス（Clerk認証はスキップし、ルート側で独自検証を行う）
+const WEBHOOK_PREFIX_PATHS = ['/api/backlog/webhook'];
 // 完全一致でスキップするパス（クエリパラメータは無視）
 const SKIP_EXACT_PATHS = ['/api/drive/callback'];
 // isAllowed チェックをスキップするパス（ID移行フローで未登録ユーザーがアクセスする）
@@ -39,6 +41,11 @@ export const authMiddleware = createMiddleware<
 >(async (c, next) => {
   const path = c.req.path;
   if (SKIP_PREFIX_PATHS.some((p) => path.startsWith(p)) || SKIP_EXACT_PATHS.includes(path)) {
+    return next();
+  }
+
+  // Webhook: Clerk認証はスキップ、ルート側で独自検証を行う
+  if (WEBHOOK_PREFIX_PATHS.some((p) => path.startsWith(p))) {
     return next();
   }
 

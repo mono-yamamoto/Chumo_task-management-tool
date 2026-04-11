@@ -43,6 +43,13 @@
       "when": 1775355168231,
       "tag": "0005_flat_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775894757939,
+      "tag": "0006_dazzling_frog_thor",
+      "breakpoints": true
     }
   ]
 }

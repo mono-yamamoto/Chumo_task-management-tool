@@ -135,11 +135,14 @@ export function TaskListPage() {
 
         {/* 凡例行 */}
         <div className="flex items-center gap-3">
+          <span className="inline-flex items-center rounded-full bg-info-bg px-3 py-1 text-xs font-medium text-info-text">
+            新着タスク
+          </span>
           <span className="inline-flex items-center rounded-full bg-warning-bg px-3 py-1 text-xs font-medium text-warning-text">
-            期限1週間以内
+            IT期限1週間以内
           </span>
           <span className="inline-flex items-center rounded-full bg-error-bg px-3 py-1 text-xs font-medium text-error-text">
-            期限超過
+            IT期限超過
           </span>
         </div>
 

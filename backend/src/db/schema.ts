@@ -23,8 +23,6 @@ export const flowStatusEnum = pgEnum('flow_status', [
   'デザイン',
   '待ち',
   '対応中',
-  '週次報告',
-  '月次報告',
   '完了',
 ]);
 
@@ -39,6 +37,7 @@ export const progressStatusEnum = pgEnum('progress_status', [
   'デザイン',
   'コーディング',
   '品管チェック',
+  'FAQ公開申請',
   'IT連絡済み',
   'ST連絡済み',
   'SENJU登録',

@@ -9,6 +9,7 @@ interface ReportItem {
   over3hours?: string;
   taskId: string;
   projectType: string;
+  currentUserUnrecorded: boolean;
 }
 
 interface ReportResponse {

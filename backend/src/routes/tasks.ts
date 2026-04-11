@@ -1,8 +1,15 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, ne, desc, arrayContains } from 'drizzle-orm';
-import { tasks, taskExternals } from '../db/schema';
+import { eq, and, ne, desc, arrayContains, sql } from 'drizzle-orm';
+import {
+  tasks,
+  taskExternals,
+  projectTypeEnum as projectTypePgEnum,
+  flowStatusEnum as flowStatusPgEnum,
+  progressStatusEnum as progressStatusPgEnum,
+  priorityEnum as priorityPgEnum,
+} from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
 import type { Database } from '../db';
@@ -13,51 +20,10 @@ const app = new Hono<TaskEnv>();
 
 // --- Validation Schemas ---
 
-const projectTypeEnum = z.enum([
-  'REG2017',
-  'BRGREG',
-  'MONO',
-  'MONO_ADMIN',
-  'DES_FIRE',
-  'DesignSystem',
-  'DMREG2',
-  'monosus',
-  'PRREG',
-]);
-
-const flowStatusEnum = z.enum([
-  '未着手',
-  'ディレクション',
-  'コーディング',
-  'デザイン',
-  '待ち',
-  '対応中',
-  '週次報告',
-  '月次報告',
-  '完了',
-]);
-
-const progressStatusEnum = z
-  .enum([
-    '未着手',
-    '仕様確認',
-    '待ち',
-    '調査',
-    '見積',
-    'CO',
-    'ロック解除待ち',
-    'デザイン',
-    'コーディング',
-    '品管チェック',
-    'IT連絡済み',
-    'ST連絡済み',
-    'SENJU登録',
-    '親課題',
-  ])
-  .nullable()
-  .optional();
-
-const priorityEnum = z.enum(['low', 'medium', 'high', 'urgent']).nullable().optional();
+const projectTypeEnum = z.enum(projectTypePgEnum.enumValues);
+const flowStatusEnum = z.enum(flowStatusPgEnum.enumValues);
+const progressStatusEnum = z.enum(progressStatusPgEnum.enumValues).nullable().optional();
+const priorityEnum = z.enum(priorityPgEnum.enumValues).nullable().optional();
 
 const createTaskSchema = z.object({
   projectType: projectTypeEnum,
@@ -131,7 +97,10 @@ app.get('/', async (c) => {
   const query = db
     .select()
     .from(tasks)
-    .orderBy(desc(tasks.createdAt))
+    .orderBy(
+      sql`CASE WHEN ${tasks.flowStatus} = '未着手' AND ${tasks.assigneeIds} = '{}'::text[] THEN 0 ELSE 1 END`,
+      desc(tasks.createdAt)
+    )
     .limit(limitValue)
     .offset(offset);
 
@@ -142,16 +111,23 @@ app.get('/', async (c) => {
 
 /**
  * GET /assigned
- * ユーザーにアサインされた未完了タスク一覧
+ * ユーザーにアサインされたタスク一覧（デフォルト: 完了除外）
+ * includeCompleted=true で完了タスクも含む
  */
 app.get('/assigned', async (c) => {
   const db = c.get('db');
   const userId = c.req.query('userId') ?? c.get('userId');
+  const includeCompleted = c.req.query('includeCompleted') === 'true';
+
+  const conditions = [arrayContains(tasks.assigneeIds, [userId])];
+  if (!includeCompleted) {
+    conditions.push(ne(tasks.flowStatus, '完了'));
+  }
 
   const result = await db
     .select()
     .from(tasks)
-    .where(and(arrayContains(tasks.assigneeIds, [userId]), ne(tasks.flowStatus, '完了')));
+    .where(and(...conditions));
 
   return c.json({ tasks: result });
 });
