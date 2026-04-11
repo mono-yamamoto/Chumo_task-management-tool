@@ -47,6 +47,9 @@ export function ReportPage() {
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [existingFolderId, setExistingFolderId] = useState<string | undefined>();
 
+  // 日付範囲の表示
+  const [showDateRange, setShowDateRange] = useState(false);
+
   // セッション編集
   const [editingSession, setEditingSession] = useState<{
     entry: ReportEntry;
@@ -202,14 +205,18 @@ export function ReportPage() {
           onNextMonth={handleNextMonth}
           onExport={handleExport}
           isExporting={isProcessing}
+          showDateRange={showDateRange}
+          onToggleDateRange={() => setShowDateRange((v) => !v)}
         />
 
-        <DateRangeRow
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={handleStartDateChange}
-          onEndDateChange={handleEndDateChange}
-        />
+        {showDateRange && (
+          <DateRangeRow
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={handleStartDateChange}
+            onEndDateChange={handleEndDateChange}
+          />
+        )}
 
         <Tabs selectedKey={activeTab} onSelectionChange={handleTabChange}>
           <TabList>
