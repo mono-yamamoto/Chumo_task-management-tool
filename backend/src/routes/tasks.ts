@@ -2,7 +2,14 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, ne, desc, arrayContains, sql } from 'drizzle-orm';
-import { tasks, taskExternals } from '../db/schema';
+import {
+  tasks,
+  taskExternals,
+  projectTypeEnum as projectTypePgEnum,
+  flowStatusEnum as flowStatusPgEnum,
+  progressStatusEnum as progressStatusPgEnum,
+  priorityEnum as priorityPgEnum,
+} from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
 import type { Database } from '../db';
@@ -13,51 +20,10 @@ const app = new Hono<TaskEnv>();
 
 // --- Validation Schemas ---
 
-const projectTypeEnum = z.enum([
-  'REG2017',
-  'BRGREG',
-  'MONO',
-  'MONO_ADMIN',
-  'DES_FIRE',
-  'DesignSystem',
-  'DMREG2',
-  'monosus',
-  'PRREG',
-]);
-
-const flowStatusEnum = z.enum([
-  '未着手',
-  'ディレクション',
-  'コーディング',
-  'デザイン',
-  '待ち',
-  '対応中',
-  '週次報告',
-  '月次報告',
-  '完了',
-]);
-
-const progressStatusEnum = z
-  .enum([
-    '未着手',
-    '仕様確認',
-    '待ち',
-    '調査',
-    '見積',
-    'CO',
-    'ロック解除待ち',
-    'デザイン',
-    'コーディング',
-    '品管チェック',
-    'IT連絡済み',
-    'ST連絡済み',
-    'SENJU登録',
-    '親課題',
-  ])
-  .nullable()
-  .optional();
-
-const priorityEnum = z.enum(['low', 'medium', 'high', 'urgent']).nullable().optional();
+const projectTypeEnum = z.enum(projectTypePgEnum.enumValues);
+const flowStatusEnum = z.enum(flowStatusPgEnum.enumValues);
+const progressStatusEnum = z.enum(progressStatusPgEnum.enumValues).nullable().optional();
+const priorityEnum = z.enum(priorityPgEnum.enumValues).nullable().optional();
 
 const createTaskSchema = z.object({
   projectType: projectTypeEnum,

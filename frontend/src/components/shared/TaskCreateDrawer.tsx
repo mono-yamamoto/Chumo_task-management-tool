@@ -212,8 +212,7 @@ export function TaskCreateDrawer({ isOpen, onClose, defaultProjectType }: TaskCr
                 />
               </FieldLabel>
 
-              {/* ステータス */}
-              <FieldLabel label="ステータス">
+              <FieldLabel label="担当">
                 <Select
                   options={FLOW_STATUS_OPTIONS}
                   value={flowStatus}

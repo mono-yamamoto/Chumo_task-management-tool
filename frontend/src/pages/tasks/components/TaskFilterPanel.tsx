@@ -96,7 +96,7 @@ export function TaskFilterPanel() {
           active={!!filters.projectType}
         />
         <Select
-          label="ステータス"
+          label="担当"
           options={FLOW_STATUS_OPTIONS}
           placeholder="すべて"
           className="flex-1"
