@@ -66,7 +66,7 @@ export function TaskFilterPanel() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-auto px-2 py-1 text-xs text-text-tertiary"
+          className="h-auto px-2 py-1 text-xs text-text-secondary cursor-pointer disabled:opacity-100 disabled:pointer-events-auto"
           onPress={clearFilters}
           isDisabled={!hasActiveFilters}
         >
