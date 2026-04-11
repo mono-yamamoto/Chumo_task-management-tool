@@ -6,7 +6,7 @@ import type { Env } from '../index';
 import type { Database } from '../db';
 
 // prefix一致でスキップするパス
-const SKIP_PREFIX_PATHS = ['/api/files/'];
+const SKIP_PREFIX_PATHS = ['/api/files/', '/api/backlog/webhook'];
 // 完全一致でスキップするパス（クエリパラメータは無視）
 const SKIP_EXACT_PATHS = ['/api/drive/callback'];
 // isAllowed チェックをスキップするパス（ID移行フローで未登録ユーザーがアクセスする）
