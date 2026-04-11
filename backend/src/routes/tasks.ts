@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, ne, desc, arrayContains } from 'drizzle-orm';
+import { eq, and, ne, desc, arrayContains, sql } from 'drizzle-orm';
 import { tasks, taskExternals } from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
@@ -131,7 +131,10 @@ app.get('/', async (c) => {
   const query = db
     .select()
     .from(tasks)
-    .orderBy(desc(tasks.createdAt))
+    .orderBy(
+      sql`CASE WHEN ${tasks.flowStatus} = '未着手' AND ${tasks.assigneeIds} = '{}'::text[] THEN 0 ELSE 1 END`,
+      desc(tasks.createdAt)
+    )
     .limit(limitValue)
     .offset(offset);
 
