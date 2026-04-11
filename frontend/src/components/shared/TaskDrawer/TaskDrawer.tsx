@@ -6,6 +6,7 @@ import { useDeleteTask } from '../../../hooks/useTaskMutations';
 import { Spinner } from '../../ui/Spinner';
 import { Modal } from '../../ui/Modal';
 import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
 import { DrawerHeader } from './DrawerHeader';
 import { DrawerActionBar } from './DrawerActionBar';
 import { DrawerTabBar } from './DrawerTabBar';
@@ -49,18 +50,26 @@ export function TaskDrawer({
 
   // 削除関連
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const deleteTask = useDeleteTask();
 
   const handleDeleteRequest = useCallback(() => {
+    setDeleteConfirmInput('');
     setShowDeleteConfirm(true);
   }, []);
 
+  const handleCloseDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(false);
+    setDeleteConfirmInput('');
+  }, []);
+
   const handleDeleteConfirm = useCallback(async () => {
-    if (!task) return;
+    if (!task || deleteConfirmInput !== task.title) return;
     await deleteTask.mutateAsync(task.id);
     setShowDeleteConfirm(false);
+    setDeleteConfirmInput('');
     onClose();
-  }, [task, deleteTask, onClose]);
+  }, [task, deleteTask, onClose, deleteConfirmInput]);
 
   // ESCキーで閉じる
   useEffect(() => {
@@ -68,7 +77,7 @@ export function TaskDrawer({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (showDeleteConfirm) {
-          setShowDeleteConfirm(false);
+          handleCloseDeleteConfirm();
         } else {
           onClose();
         }
@@ -76,7 +85,7 @@ export function TaskDrawer({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, showDeleteConfirm]);
+  }, [isOpen, onClose, showDeleteConfirm, handleCloseDeleteConfirm]);
 
   return (
     <>
@@ -147,27 +156,38 @@ export function TaskDrawer({
       {/* 削除確認ダイアログ */}
       <Modal
         isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onClose={handleCloseDeleteConfirm}
         title="タスクの削除"
         footer={
           <div className="flex justify-end gap-3">
-            <Button variant="outline" size="sm" onPress={() => setShowDeleteConfirm(false)}>
+            <Button variant="outline" size="sm" onPress={handleCloseDeleteConfirm}>
               キャンセル
             </Button>
             <Button
               variant="destructive"
               size="sm"
               onPress={handleDeleteConfirm}
-              isDisabled={deleteTask.isPending}
+              isDisabled={deleteConfirmInput !== task?.title || deleteTask.isPending}
             >
               {deleteTask.isPending ? '削除中...' : '削除する'}
             </Button>
           </div>
         }
       >
-        <p className="text-sm text-text-secondary">
-          「{task?.title}」を削除しますか？この操作は取り消せません。
-        </p>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-secondary">
+            この操作は取り消せません。削除するには、タスクのタイトルを正確に入力してください。
+          </p>
+          <p className="rounded-md bg-bg-secondary px-3 py-2 text-sm font-bold text-text-primary">
+            {task?.title}
+          </p>
+          <Input
+            value={deleteConfirmInput}
+            onChange={setDeleteConfirmInput}
+            placeholder="タスクタイトルを入力"
+            aria-label="削除確認のためタスクタイトルを入力"
+          />
+        </div>
       </Modal>
     </>
   );
