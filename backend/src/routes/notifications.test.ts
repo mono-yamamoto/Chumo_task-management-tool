@@ -45,6 +45,7 @@ async function seedNotificationData() {
     projectType: 'MONO',
     title: '通知テスト用タスク',
     kubunLabelId: 'label-1',
+    assigneeIds: ['test-user', 'mentioned-user', 'author-user'],
     order: 1,
     createdBy: 'author-user',
   });
