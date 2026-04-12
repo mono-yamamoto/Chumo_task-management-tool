@@ -14,9 +14,11 @@ import {
   labels,
   projects,
 } from '../db/schema';
-import { generateSignedFileUrl } from '../lib/crypto';
+import { importHmacKey, generateSignedFileUrl } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
+
+type SignEnv = Pick<Env['Bindings'], 'APP_ORIGIN' | 'INTERNAL_API_KEY'>;
 
 type UserEnv = Env & { Variables: { db: Database; userId: string } };
 
@@ -41,19 +43,15 @@ const safeUserColumns = {
 /** avatarUrl（R2キー）を署名付きURLに変換する */
 async function resolveAvatarUrl<T extends { avatarUrl: string | null }>(
   user: T,
-  env: { APP_ORIGIN?: string; INTERNAL_API_KEY: string }
+  env: SignEnv,
+  cryptoKey?: CryptoKey
 ): Promise<T> {
   if (!user.avatarUrl) return user;
   const baseUrl = env.APP_ORIGIN || 'http://localhost:8787';
-  const signedUrl = await generateSignedFileUrl(baseUrl, user.avatarUrl, env.INTERNAL_API_KEY);
+  const signedUrl = await generateSignedFileUrl(baseUrl, user.avatarUrl, env.INTERNAL_API_KEY, {
+    cryptoKey,
+  });
   return { ...user, avatarUrl: signedUrl };
-}
-
-async function resolveAvatarUrls<T extends { avatarUrl: string | null }>(
-  userList: T[],
-  env: { APP_ORIGIN?: string; INTERNAL_API_KEY: string }
-): Promise<T[]> {
-  return Promise.all(userList.map((u) => resolveAvatarUrl(u, env)));
 }
 
 /**
@@ -63,7 +61,8 @@ async function resolveAvatarUrls<T extends { avatarUrl: string | null }>(
 app.get('/', async (c) => {
   const db = c.get('db');
   const result = await db.select(safeUserColumns).from(users);
-  return c.json({ users: await resolveAvatarUrls(result, c.env) });
+  const key = await importHmacKey(c.env.INTERNAL_API_KEY, 'sign');
+  return c.json({ users: await Promise.all(result.map((u) => resolveAvatarUrl(u, c.env, key))) });
 });
 
 /**

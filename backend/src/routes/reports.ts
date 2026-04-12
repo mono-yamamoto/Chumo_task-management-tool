@@ -41,6 +41,14 @@ function sanitizeCsvCell(value: string): string {
   return CSV_FORMULA_TRIGGER.test(value) ? `'${value}` : value;
 }
 
+interface TaskRow {
+  id: string;
+  title: string;
+  projectType: string;
+  over3Reason: string | null;
+  assigneeIds: string[];
+}
+
 interface ReportItem {
   title: string;
   durationSec: number;
@@ -85,13 +93,6 @@ async function fetchReportData(
     assigneeIds: tasks.assigneeIds,
   };
 
-  type TaskRow = {
-    id: string;
-    title: string;
-    projectType: string;
-    over3Reason: string | null;
-    assigneeIds: string[];
-  };
   let targetTasks: TaskRow[];
   if (type === 'brg') {
     targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
