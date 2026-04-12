@@ -199,8 +199,9 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
   if (body.avatarColor !== undefined) updateData.avatarColor = body.avatarColor;
   if (body.githubUsername !== undefined) updateData.githubUsername = body.githubUsername;
   if (body.chatId !== undefined) updateData.chatId = body.chatId || null;
-  if (body.googleRefreshToken !== undefined)
+  if (body.googleRefreshToken !== undefined) {
     updateData.googleRefreshToken = body.googleRefreshToken;
+  }
   if (body.googleOAuthUpdatedAt !== undefined) {
     updateData.googleOAuthUpdatedAt = body.googleOAuthUpdatedAt
       ? new Date(body.googleOAuthUpdatedAt)
