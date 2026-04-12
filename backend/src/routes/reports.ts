@@ -35,6 +35,12 @@ function isBRGREGProject(projectType: string): boolean {
   return projectType === 'BRGREG';
 }
 
+/** CSVインジェクション防止: 先頭が数式トリガー文字の場合にシングルクォートをプレフィクス */
+const CSV_FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+function sanitizeCsvCell(value: string): string {
+  return CSV_FORMULA_TRIGGER.test(value) ? `'${value}` : value;
+}
+
 interface ReportItem {
   title: string;
   durationSec: number;
@@ -217,9 +223,9 @@ app.get('/time/csv', async (c) => {
   const csvRows = [
     ['title', 'durationSec', 'over3hours'],
     ...items.map((item) => [
-      `"${item.title.replace(/"/g, '""')}"`,
+      `"${sanitizeCsvCell(item.title).replace(/"/g, '""')}"`,
       item.durationSec.toString(),
-      item.over3hours ? `"${item.over3hours.replace(/"/g, '""')}"` : '',
+      item.over3hours ? `"${sanitizeCsvCell(item.over3hours).replace(/"/g, '""')}"` : '',
     ]),
   ];
 
