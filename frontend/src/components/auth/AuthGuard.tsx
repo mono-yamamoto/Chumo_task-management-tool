@@ -4,6 +4,7 @@ import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Spinner } from '../ui/Spinner';
 import { Button } from '../ui/Button';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { usePreviewMode } from '../../hooks/usePreviewMode';
 import { HttpError } from '../../lib/api';
 
 /**
@@ -36,6 +37,7 @@ function ForceSignOut() {
  * <Route element={<AuthGuard />}> で使う
  */
 export function AuthGuard() {
+  const { isPreview } = usePreviewMode();
   const { isLoaded, isSignedIn } = useClerkAuth();
   const { data: currentUser, isLoading, error, refetch } = useCurrentUser();
 
@@ -45,6 +47,10 @@ export function AuthGuard() {
       void refetch();
     }
   }, [isSignedIn, refetch]);
+
+  if (isPreview) {
+    return <Outlet />;
+  }
 
   // Clerk ローディング中 or API ローディング中
   if (!isLoaded || (isSignedIn && isLoading)) {

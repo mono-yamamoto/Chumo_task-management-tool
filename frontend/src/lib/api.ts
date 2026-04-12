@@ -1,3 +1,5 @@
+import { PREVIEW_TOKEN_KEY } from '../hooks/usePreviewMode';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export class HttpError extends Error {
@@ -39,6 +41,11 @@ export async function apiClient<T>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    const previewToken = localStorage.getItem(PREVIEW_TOKEN_KEY);
+    if (previewToken) {
+      headers['X-Preview-Token'] = previewToken;
+    }
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {

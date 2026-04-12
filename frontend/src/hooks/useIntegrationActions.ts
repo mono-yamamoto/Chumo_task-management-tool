@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useIntegrations, type IntegrationResult } from './useIntegrations';
+import { usePreviewMode } from './usePreviewMode';
 import { useToast } from './useToast';
 import { HttpError } from '../lib/api';
 import { openExternal } from '../lib/utils';
@@ -17,7 +18,12 @@ export function useIntegrationActions(task: Task) {
   const navigate = useNavigate();
   const { createDriveFolder, createChatThread, createFireIssue, createPetIssue } =
     useIntegrations();
+  const { isPreview } = usePreviewMode();
   const { addToast } = useToast();
+
+  const previewBlock = useCallback(() => {
+    addToast('プレビューモードでは外部サービスへの連携はできません', 'warning');
+  }, [addToast]);
 
   const makeCreateHandler = useCallback(
     (mutation: IntegrationMutation, opts?: { onAuthError?: () => void }) => () => {
@@ -38,8 +44,10 @@ export function useIntegrationActions(task: Task) {
     [task.id, addToast]
   );
 
-  const makeClickHandler = (url: string | null | undefined, createHandler: () => void) =>
-    url ? () => openExternal(url) : createHandler;
+  const makeClickHandler = (url: string | null | undefined, createHandler: () => void) => {
+    if (isPreview) return previewBlock;
+    return url ? () => openExternal(url) : createHandler;
+  };
 
   const handleDriveCreate = makeCreateHandler(createDriveFolder, {
     onAuthError: () => navigate('/settings?tab=integrations'),
@@ -72,6 +80,15 @@ export function useIntegrationActions(task: Task) {
       isPending: createPetIssue.isPending,
       active: !!task.petIssueUrl,
       label: task.petIssueUrl ? 'PET開く' : 'PET issue作成',
+    },
+    backlog: {
+      onClick: isPreview
+        ? previewBlock
+        : () => {
+            if (task.backlogUrl) openExternal(task.backlogUrl);
+          },
+      active: !!task.backlogUrl,
+      label: 'BACKLOGを開く',
     },
   };
 }

@@ -37,6 +37,8 @@ export type Env = {
     INTERNAL_API_KEY: string;
     BACKLOG_WEBHOOK_SECRET: string;
     UPLOAD_BUCKET: R2Bucket;
+    PREVIEW_ACCESS_TOKEN?: string;
+    PREVIEW_USER_ID?: string;
   };
 };
 
@@ -53,7 +55,7 @@ app.use(
       return allowed.includes(origin) ? origin : allowed[0];
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Preview-Token'],
   })
 );
 

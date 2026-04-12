@@ -9,6 +9,8 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useUsers } from '../../../hooks/useUsers';
 import { useUpdateUser } from '../../../hooks/useUpdateUser';
 import { useInviteUser } from '../../../hooks/useInviteUser';
+import { usePreviewMode } from '../../../hooks/usePreviewMode';
+import { useToast } from '../../../hooks/useToast';
 import type { User } from '../../../types';
 
 const TABLE_COLUMNS = [
@@ -82,6 +84,8 @@ export function AdminTab() {
   const { data: users = [], isLoading } = useUsers();
   const updateUser = useUpdateUser();
   const inviteUser = useInviteUser();
+  const { isPreview } = usePreviewMode();
+  const { addToast } = useToast();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [inviteMessage, setInviteMessage] = useState<{
@@ -147,7 +151,13 @@ export function AdminTab() {
           variant="primary"
           size="md"
           className="gap-1.5 text-sm"
-          onPress={() => setAddModalOpen(true)}
+          onPress={() => {
+            if (isPreview) {
+              addToast('プレビューモードではメンバー管理はできません', 'warning');
+              return;
+            }
+            setAddModalOpen(true);
+          }}
         >
           <Plus size={16} />
           メンバー追加
