@@ -55,7 +55,7 @@
 ```bash
 # ✅ ルートの package.json 経由で実行
 bun run test              # → backend テスト
-bun run lint              # → frontend lint
+bun run lint              # → frontend + backend lint
 bun run type-check        # → frontend 型チェック
 bun run build             # → frontend ビルド
 bun run backend:db:generate  # → Drizzle マイグレーション生成
@@ -172,8 +172,8 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
 
 ```bash
 # すべてプロジェクトルートから実行
-bun run lint          # フロントエンド lint
-bun run type-check    # フロントエンド型チェック
+bun run lint          # フロントエンド + バックエンド lint
+bun run type-check    # フロントエンド + バックエンド型チェック
 bun run test          # バックエンドテスト
 ```
 

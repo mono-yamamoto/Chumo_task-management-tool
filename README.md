@@ -26,7 +26,7 @@
 | ストレージ       | —                                                       | Cloudflare R2               |
 | ルーティング     | react-router-dom v7                                     | Hono Router                 |
 | テスト           | —                                                       | Vitest                      |
-| Linter/Formatter | oxlint + oxfmt                                          | —                           |
+| Linter/Formatter | oxlint + oxfmt                                          | oxlint + oxfmt              |
 
 ## ディレクトリ構成
 
@@ -74,7 +74,7 @@ bun run dev
 ```bash
 bun run dev                  # フロント + バック同時起動
 bun run build                # フロントエンドビルド
-bun run lint                 # フロントエンド lint（oxlint）
+bun run lint                 # フロント + バック lint（oxlint）
 bun run type-check           # フロント + バック型チェック
 bun run test                 # バックエンドテスト（Vitest）
 ```
@@ -94,6 +94,8 @@ bun run frontend:type-check  # 型チェック
 ```bash
 bun run backend:dev          # 開発サーバー起動（Docker DB自動起動）
 bun run backend:deploy       # デプロイ（Cloudflare Workers）
+bun run backend:lint         # lint（oxlint）
+bun run backend:format       # フォーマット（oxfmt）
 bun run backend:test         # テスト（Vitest）
 bun run backend:test:coverage # カバレッジ付きテスト
 bun run backend:type-check   # 型チェック（※ルートのtype-checkに含まれる）

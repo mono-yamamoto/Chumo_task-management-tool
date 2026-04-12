@@ -63,7 +63,7 @@ brew install gitleaks
 ### pre-commitで実行されるチェック
 
 1. **gitleaks**: 機密情報の検出
-2. **oxlint**: TypeScript/JavaScriptのリント（フロントエンドのみ、自動修正あり）
+2. **oxlint**: TypeScript/JavaScriptのリント（フロントエンド + バックエンド、自動修正あり）
 3. **tsc**: 型チェック（フロントエンド + バックエンド）
 4. **oxfmt**: コードフォーマット（自動修正あり）
 
@@ -94,7 +94,7 @@ gh auth login
 ```bash
 bun run dev               # フロント+バック同時起動
 bun run build             # フロントエンドビルド
-bun run lint              # フロントエンドlint
+bun run lint              # フロントエンド + バックエンドlint
 bun run type-check        # フロントエンド型チェック
 bun run test              # バックエンドテスト
 bun run backend:deploy    # バックエンドデプロイ
