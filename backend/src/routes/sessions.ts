@@ -22,7 +22,6 @@ const createSessionSchema = z.object({
 const updateSessionSchema = z.object({
   startedAt: z.coerce.date().optional(),
   endedAt: z.coerce.date().nullable().optional(),
-  userId: z.string().optional(),
   note: z.string().nullable().optional(),
 });
 
@@ -117,6 +116,12 @@ app.put('/:id', zValidator('json', updateSessionSchema), async (c) => {
     return c.json({ error: 'Session not found' }, 404);
   }
 
+  // 所有者チェック
+  const userId = c.get('userId');
+  if (existing.userId !== userId) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
   // durationSec を再計算
   const startedAt = data.startedAt ?? existing.startedAt;
   const endedAt = data.endedAt !== undefined ? data.endedAt : existing.endedAt;
@@ -145,11 +150,17 @@ app.delete('/:id', async (c) => {
   const sessionId = c.req.param('id');
 
   const [existing] = await db
-    .select({ id: taskSessions.id })
+    .select({ id: taskSessions.id, userId: taskSessions.userId })
     .from(taskSessions)
     .where(eq(taskSessions.id, sessionId));
 
   if (!existing) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
+  // 所有者チェック
+  const userId = c.get('userId');
+  if (existing.userId !== userId) {
     return c.json({ error: 'Session not found' }, 404);
   }
 
