@@ -8,12 +8,12 @@ set -euo pipefail
 #   ./scripts/db-sync-from-neon.sh
 #
 # 前提:
-#   - Docker コンテナ chumo-test-postgres が起動中
+#   - Docker コンテナ chumo-postgres が起動中
 #   - ローカル DB にマイグレーション適用済み
 #   - NEON_DATABASE_URL が設定されている（引数 or .env.neon）
 # ==============================================================
 
-CONTAINER="chumo-test-postgres"
+CONTAINER="chumo-postgres"
 LOCAL_USER="chumo"
 LOCAL_DB="chumo_dev"
 

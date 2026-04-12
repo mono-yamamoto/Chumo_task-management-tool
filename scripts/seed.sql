@@ -8,7 +8,7 @@ BEGIN;
 -- ===== 既存シードデータクリア（外部キー考慮で依存順に削除） =====
 -- シードIDを明示列挙し、非シードデータを誤削除しない
 DELETE FROM task_comments WHERE id IN ('comment-001','comment-002','comment-003','comment-004','comment-005');
-DELETE FROM task_sessions WHERE id IN ('session-001','session-002','session-003','session-004','session-005','session-006');
+DELETE FROM task_sessions WHERE id IN ('session-001','session-002','session-003','session-004','session-005','session-006','session-007','session-008','session-009','session-010','session-011','session-012');
 DELETE FROM task_activities WHERE task_id IN ('task-001','task-002','task-003','task-004','task-005','task-006','task-007','task-008','task-009','task-010','task-011','task-012');
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'task_pins') THEN
@@ -21,6 +21,7 @@ END $$;
 DELETE FROM task_externals WHERE task_id IN ('task-001','task-002','task-003','task-004','task-005','task-006','task-007','task-008','task-009','task-010','task-011','task-012');
 DELETE FROM tasks WHERE id IN ('task-001','task-002','task-003','task-004','task-005','task-006','task-007','task-008','task-009','task-010','task-011','task-012');
 DELETE FROM labels WHERE id IN ('kubun-unyo','kubun-kaihatsu','kubun-design','kubun-other');
+DELETE FROM contacts WHERE id IN ('contact-001','contact-002','contact-003');
 DELETE FROM users WHERE id IN ('preview-user', 'demo-user-1', 'demo-user-2');
 
 -- ===== ユーザー =====
@@ -54,11 +55,11 @@ VALUES
   ('task-001', 'REG2017', 'トップページリニューアル', 'ファーストビューのレイアウト変更とヒーロー画像差し替え', 'ディレクション', '仕様確認', ARRAY['preview-user', 'demo-user-1'], 'kubun-kaihatsu', 'high', 1, 'preview-user', NOW() + INTERVAL '14 days', NOW() + INTERVAL '21 days', NOW() - INTERVAL '3 days', NOW()),
   ('task-002', 'REG2017', 'お知らせ一覧ページ追加', 'CMS連携のお知らせ一覧・詳細ページを新規作成', 'ディレクション', '仕様確認', ARRAY['demo-user-2'], 'kubun-kaihatsu', 'medium', 2, 'preview-user', NOW() + INTERVAL '10 days', NOW() + INTERVAL '17 days', NOW() - INTERVAL '2 days', NOW()),
   ('task-003', 'BRGREG', 'FAQ追加: ログイン不具合', 'ログインできない場合のFAQを追加', 'ディレクション', '仕様確認', ARRAY['preview-user'], 'kubun-unyo', 'medium', 3, 'preview-user', NOW() + INTERVAL '5 days', NOW() + INTERVAL '7 days', NOW() - INTERVAL '1 day', NOW()),
-  ('task-004', 'DES_FIRE', 'ボタンコンポーネント改修', 'アクセシビリティ対応とバリアント追加', 'ディレクション', '仕様確認', ARRAY['demo-user-1'], 'kubun-design', 'low', 4, 'demo-user-1', NULL, NULL, NOW() - INTERVAL '1 day', NOW()),
+  ('task-004', 'BRGREG', 'ボタンコンポーネント改修', 'アクセシビリティ対応とバリアント追加', 'ディレクション', '仕様確認', ARRAY['demo-user-1'], 'kubun-design', 'low', 4, 'demo-user-1', NULL, NULL, NOW() - INTERVAL '1 day', NOW()),
 
 -- コーディング
-  ('task-005', 'REG2017', 'フォームバリデーション改善', '入力チェックのリアルタイム表示とエラーメッセージ統一', 'コーディング', 'コーディング', ARRAY['preview-user'], 'kubun-kaihatsu', 'high', 5, 'preview-user', NOW() + INTERVAL '3 days', NOW() + INTERVAL '5 days', NOW() - INTERVAL '7 days', NOW()),
-  ('task-006', 'MONO', 'レスポンシブ対応: 商品一覧', 'SP/タブレット表示の崩れ修正', 'コーディング', 'コーディング', ARRAY['demo-user-1', 'preview-user'], 'kubun-kaihatsu', 'medium', 6, 'demo-user-1', NOW() + INTERVAL '2 days', NOW() + INTERVAL '4 days', NOW() - INTERVAL '5 days', NOW()),
+  ('task-005', 'REG2017', 'フォームバリデーション改善', '入力チェックのリアルタイム表示とエラーメッセージ統一', 'コーディング', 'コーディング', ARRAY['preview-user'], 'kubun-unyo', 'high', 5, 'preview-user', NOW() + INTERVAL '3 days', NOW() + INTERVAL '5 days', NOW() - INTERVAL '7 days', NOW()),
+  ('task-006', 'REG2017', 'レスポンシブ対応: 商品一覧', 'SP/タブレット表示の崩れ修正', 'コーディング', 'コーディング', ARRAY['demo-user-1', 'preview-user'], 'kubun-unyo', 'medium', 6, 'demo-user-1', NOW() + INTERVAL '2 days', NOW() + INTERVAL '4 days', NOW() - INTERVAL '5 days', NOW()),
 
 -- 対応中
   ('task-007', 'BRGREG', 'メール配信停止リンク修正', '配信停止URLが404になる不具合の修正', '対応中', 'コーディング', ARRAY['preview-user'], 'kubun-unyo', 'urgent', 7, 'preview-user', NOW() + INTERVAL '1 day', NOW() + INTERVAL '2 days', NOW() - INTERVAL '4 days', NOW()),
@@ -67,12 +68,12 @@ VALUES
   ('task-008', 'REG2017', 'クライアント確認待ち: デザインカンプ', '第2案のデザインカンプについてクライアント返答待ち', '待ち', '待ち', ARRAY['demo-user-2'], 'kubun-design', 'medium', 8, 'demo-user-2', NULL, NULL, NOW() - INTERVAL '6 days', NOW()),
 
 -- 完了
-  ('task-009', 'MONO', 'OGP画像設定', '各ページのOGP画像とmeta情報を設定', '完了', NULL, ARRAY['preview-user'], 'kubun-kaihatsu', 'low', 9, 'preview-user', NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day', NOW() - INTERVAL '14 days', NOW() - INTERVAL '1 day'),
+  ('task-009', 'REG2017', 'OGP画像設定', '各ページのOGP画像とmeta情報を設定', '完了', NULL, ARRAY['preview-user'], 'kubun-unyo', 'low', 9, 'preview-user', NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day', NOW() - INTERVAL '14 days', NOW() - INTERVAL '1 day'),
   ('task-010', 'BRGREG', 'SSL証明書更新', 'ステージング環境のSSL証明書を更新', '完了', NULL, ARRAY['demo-user-1'], 'kubun-unyo', 'high', 10, 'demo-user-1', NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days', NOW() - INTERVAL '10 days', NOW() - INTERVAL '5 days'),
 
 -- 未着手
   ('task-011', 'REG2017', 'パフォーマンス計測ツール導入', 'Core Web Vitals の計測基盤を構築', '未着手', NULL, ARRAY[]::text[], 'kubun-kaihatsu', 'low', 11, 'preview-user', NULL, NULL, NOW(), NOW()),
-  ('task-012', 'DES_FIRE', 'アイコンセット更新', 'Lucide Icons v0.300 への更新と不要アイコン削除', '未着手', NULL, ARRAY['demo-user-2'], 'kubun-design', 'low', 12, 'demo-user-2', NULL, NULL, NOW(), NOW())
+  ('task-012', 'BRGREG', 'アイコンセット更新', 'Lucide Icons v0.300 への更新と不要アイコン削除', '未着手', NULL, ARRAY['demo-user-2'], 'kubun-design', 'low', 12, 'demo-user-2', NULL, NULL, NOW(), NOW())
 ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
   description = EXCLUDED.description,
@@ -84,15 +85,28 @@ ON CONFLICT (id) DO UPDATE SET
   release_date = EXCLUDED.release_date,
   updated_at = NOW();
 
--- ===== タイマーセッション（完了済み） =====
+-- ===== タイマーセッション（完了済み・レポート確認用に多めに配置） =====
 INSERT INTO task_sessions (id, task_id, project_type, user_id, started_at, ended_at, duration_sec)
 VALUES
-  ('session-001', 'task-005', 'REG2017', 'preview-user', NOW() - INTERVAL '6 days' - INTERVAL '2 hours', NOW() - INTERVAL '6 days', 7200),
-  ('session-002', 'task-005', 'REG2017', 'preview-user', NOW() - INTERVAL '5 days' - INTERVAL '90 minutes', NOW() - INTERVAL '5 days', 5400),
-  ('session-003', 'task-007', 'BRGREG', 'preview-user', NOW() - INTERVAL '3 days' - INTERVAL '45 minutes', NOW() - INTERVAL '3 days', 2700),
-  ('session-004', 'task-006', 'MONO', 'demo-user-1', NOW() - INTERVAL '4 days' - INTERVAL '3 hours', NOW() - INTERVAL '4 days', 10800),
-  ('session-005', 'task-009', 'MONO', 'preview-user', NOW() - INTERVAL '8 days' - INTERVAL '1 hour', NOW() - INTERVAL '8 days', 3600),
-  ('session-006', 'task-010', 'BRGREG', 'demo-user-1', NOW() - INTERVAL '7 days' - INTERVAL '30 minutes', NOW() - INTERVAL '7 days', 1800)
+  -- task-001: トップページリニューアル (REG2017)
+  ('session-001', 'task-001', 'REG2017', 'preview-user', NOW() - INTERVAL '3 days' - INTERVAL '1 hour 30 minutes', NOW() - INTERVAL '3 days', 5400),
+  ('session-002', 'task-001', 'REG2017', 'demo-user-1',  NOW() - INTERVAL '2 days' - INTERVAL '2 hours', NOW() - INTERVAL '2 days', 7200),
+  -- task-003: FAQ追加 (BRGREG)
+  ('session-003', 'task-003', 'BRGREG',  'preview-user', NOW() - INTERVAL '1 day' - INTERVAL '45 minutes', NOW() - INTERVAL '1 day', 2700),
+  -- task-005: フォームバリデーション (REG2017)
+  ('session-004', 'task-005', 'REG2017', 'preview-user', NOW() - INTERVAL '6 days' - INTERVAL '2 hours', NOW() - INTERVAL '6 days', 7200),
+  ('session-005', 'task-005', 'REG2017', 'preview-user', NOW() - INTERVAL '5 days' - INTERVAL '1 hour 30 minutes', NOW() - INTERVAL '5 days', 5400),
+  ('session-006', 'task-005', 'REG2017', 'demo-user-2',  NOW() - INTERVAL '4 days' - INTERVAL '1 hour', NOW() - INTERVAL '4 days', 3600),
+  -- task-006: レスポンシブ対応 (REG2017)
+  ('session-007', 'task-006', 'REG2017', 'demo-user-1',  NOW() - INTERVAL '4 days' - INTERVAL '3 hours', NOW() - INTERVAL '4 days', 10800),
+  ('session-008', 'task-006', 'REG2017', 'preview-user', NOW() - INTERVAL '3 days' - INTERVAL '50 minutes', NOW() - INTERVAL '3 days', 3000),
+  -- task-007: メール配信停止リンク修正 (BRGREG)
+  ('session-009', 'task-007', 'BRGREG',  'preview-user', NOW() - INTERVAL '3 days' - INTERVAL '45 minutes', NOW() - INTERVAL '3 days', 2700),
+  ('session-010', 'task-007', 'BRGREG',  'preview-user', NOW() - INTERVAL '2 days' - INTERVAL '1 hour 15 minutes', NOW() - INTERVAL '2 days', 4500),
+  -- task-009: OGP画像設定 (REG2017, 完了)
+  ('session-011', 'task-009', 'REG2017', 'preview-user', NOW() - INTERVAL '8 days' - INTERVAL '1 hour', NOW() - INTERVAL '8 days', 3600),
+  -- task-010: SSL証明書更新 (BRGREG, 完了)
+  ('session-012', 'task-010', 'BRGREG',  'demo-user-1',  NOW() - INTERVAL '7 days' - INTERVAL '30 minutes', NOW() - INTERVAL '7 days', 1800)
 ON CONFLICT (id) DO NOTHING;
 
 -- ===== コメント =====
@@ -104,6 +118,18 @@ VALUES
   ('comment-004', 'task-007', 'BRGREG', 'demo-user-2', '<p>配信停止URLのパスが変わっていたようです。修正PRを出しています。</p>', ARRAY['preview-user'], ARRAY['demo-user-2'], NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
   ('comment-005', 'task-007', 'BRGREG', 'preview-user', '<p>確認しました。マージしてデプロイお願いします。</p>', ARRAY['demo-user-2'], ARRAY['preview-user'], NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day')
 ON CONFLICT (id) DO NOTHING;
+
+-- ===== お問い合わせ =====
+INSERT INTO contacts (id, type, title, content, user_id, user_name, user_email, status, created_at, updated_at)
+VALUES
+  ('contact-001', 'feature', 'ダッシュボードにグラフ表示がほしい', '月別のタスク完了数をグラフで可視化できると進捗が把握しやすいです。棒グラフか折れ線グラフで表示できると嬉しいです。', 'demo-user-1', '田中 太郎', 'tanaka@example.com', 'pending', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
+  ('contact-002', 'error', 'タイマーが停止できない場合がある', 'ネットワークが不安定な環境でタイマー停止ボタンを押すと、ローディングのまま止まらないことがあります。再読み込みすると停止されていますが、UIが追従しません。', 'demo-user-2', '鈴木 花子', 'suzuki@example.com', 'pending', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+  ('contact-003', 'feature', 'タスクの一括ステータス変更', '複数タスクを選択してまとめてステータスを変更できる機能がほしいです。月末のクローズ作業が楽になります。', 'preview-user', 'プレビューユーザー', 'preview@example.com', 'resolved', NOW() - INTERVAL '10 days', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  content = EXCLUDED.content,
+  status = EXCLUDED.status,
+  updated_at = NOW();
 
 -- ===== ピン留め（テーブルが存在する場合のみ） =====
 DO $$
