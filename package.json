@@ -25,6 +25,8 @@
     "backend:db:generate": "cd backend && bun run db:generate",
     "backend:db:migrate": "cd backend && bun run db:migrate",
     "backend:db:studio": "cd backend && bun run db:studio",
+    "db:seed": "bash scripts/db-seed.sh",
+    "db:seed:staging": "bash scripts/db-seed.sh --staging",
     "db:sync-from-neon": "bash scripts/sync-from-neon.sh",
     "mcp:serena": "uvx --from git+https://github.com/oraios/serena serena start-mcp-server"
   },

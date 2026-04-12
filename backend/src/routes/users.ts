@@ -82,6 +82,11 @@ app.get('/me', async (c) => {
     return c.json({ user: await resolveAvatarUrl(user, c.env) });
   }
 
+  // プレビューユーザーはClerk上に存在しないため、DB未登録なら404で終了
+  if (userId === c.env.PREVIEW_USER_ID) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
   // Clerk IDで見つからない場合、Clerkからメールを取得してメールで検索
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
