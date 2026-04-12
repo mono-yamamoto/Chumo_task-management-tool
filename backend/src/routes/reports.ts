@@ -85,7 +85,14 @@ async function fetchReportData(
     assigneeIds: tasks.assigneeIds,
   };
 
-  let targetTasks: Awaited<ReturnType<typeof db.select<typeof taskSelect>>>;
+  type TaskRow = {
+    id: string;
+    title: string;
+    projectType: string;
+    over3Reason: string | null;
+    assigneeIds: string[];
+  };
+  let targetTasks: TaskRow[];
   if (type === 'brg') {
     targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
   } else {

@@ -11,7 +11,8 @@
     "db:studio": "drizzle-kit studio",
     "test:db:push": "DATABASE_URL=${TEST_DATABASE_URL:-${DATABASE_URL:-postgresql://chumo:chumo_dev@localhost:5432/chumo_test}} drizzle-kit push --force",
     "test": "bun run test:db:push && vitest",
-    "test:coverage": "bun run test:db:push && vitest run --coverage"
+    "test:coverage": "bun run test:db:push && vitest run --coverage",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/backend": "^1.0.0",

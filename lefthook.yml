@@ -24,7 +24,19 @@ pre-commit:
       stage_fixed: true
       skip_empty: true
 
-    # 3. oxfmt (全体)
+    # 3. tsc (フロントエンド型チェック)
+    tsc-frontend:
+      glob: 'frontend/src/**/*.{ts,tsx}'
+      run: cd frontend && bunx tsc -b --noEmit
+      skip_empty: true
+
+    # 4. tsc (バックエンド型チェック)
+    tsc-backend:
+      glob: 'backend/src/**/*.ts'
+      run: cd backend && bunx tsc --noEmit
+      skip_empty: true
+
+    # 5. oxfmt (全体)
     oxfmt:
       glob: '**/*.{ts,tsx,js,jsx,json,md,css,scss,yaml,yml}'
       exclude:
