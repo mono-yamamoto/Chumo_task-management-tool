@@ -42,7 +42,7 @@ case "$TARGET" in
     fi
 
     echo "🌱 Neon staging DB にシード投入中..."
-    psql "$DB_URL" -f "$SEED_SQL"
+    psql -v ON_ERROR_STOP=1 "$DB_URL" -f "$SEED_SQL"
     echo "✅ staging シード完了！"
     ;;
 

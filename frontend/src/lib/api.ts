@@ -1,4 +1,4 @@
-import { PREVIEW_TOKEN_KEY } from '../hooks/usePreviewMode';
+import { PREVIEW_TOKEN_KEY, PREVIEW_ENABLED } from '../hooks/usePreviewMode';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -41,7 +41,7 @@ export async function apiClient<T>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  } else {
+  } else if (PREVIEW_ENABLED) {
     const previewToken = localStorage.getItem(PREVIEW_TOKEN_KEY);
     if (previewToken) {
       headers['X-Preview-Token'] = previewToken;

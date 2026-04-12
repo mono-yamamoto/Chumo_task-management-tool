@@ -82,6 +82,18 @@ DATABASE_URL=postgresql://chumo:chumo_dev@localhost:5432/chumo_dev \
 
 初回起動時にテスト用DB `chumo_test` も自動作成されます（`scripts/init-test-db.sh`）。
 
+### DBをリセットしたい場合
+
+ボリュームごと削除して初期状態に戻せます。
+
+```bash
+docker compose down -v        # コンテナ + ボリューム削除
+docker compose up -d postgres # 再作成（chumo_test DBも自動作成）
+# スキーマ再適用
+DATABASE_URL=postgresql://chumo:chumo_dev@localhost:5432/chumo_dev \
+  bunx drizzle-kit push --force
+```
+
 ### シードデータの投入
 
 デモ用のユーザー・タスク・セッションなどを投入できます。

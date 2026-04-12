@@ -119,11 +119,20 @@ export function AdminTab() {
 
   const handleDeleteMember = () => {
     if (!deleteTarget) return;
+    if (isPreview) {
+      addToast('プレビューモードではメンバー管理はできません', 'warning');
+      setDeleteTarget(null);
+      return;
+    }
     updateUser.mutate({ userId: deleteTarget.id, data: { isAllowed: false } });
     setDeleteTarget(null);
   };
 
   const handleRestoreMember = (userId: string) => {
+    if (isPreview) {
+      addToast('プレビューモードではメンバー管理はできません', 'warning');
+      return;
+    }
     updateUser.mutate({ userId, data: { isAllowed: true } });
   };
 
