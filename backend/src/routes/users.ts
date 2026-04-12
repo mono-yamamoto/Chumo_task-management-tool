@@ -14,6 +14,7 @@ import {
   labels,
   projects,
 } from '../db/schema';
+import { generateSignedFileUrl } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -37,6 +38,24 @@ const safeUserColumns = {
   updatedAt: users.updatedAt,
 };
 
+/** avatarUrl（R2キー）を署名付きURLに変換する */
+async function resolveAvatarUrl<T extends { avatarUrl: string | null }>(
+  user: T,
+  env: { APP_ORIGIN?: string; INTERNAL_API_KEY: string }
+): Promise<T> {
+  if (!user.avatarUrl) return user;
+  const baseUrl = env.APP_ORIGIN || 'http://localhost:8787';
+  const signedUrl = await generateSignedFileUrl(baseUrl, user.avatarUrl, env.INTERNAL_API_KEY);
+  return { ...user, avatarUrl: signedUrl };
+}
+
+async function resolveAvatarUrls<T extends { avatarUrl: string | null }>(
+  userList: T[],
+  env: { APP_ORIGIN?: string; INTERNAL_API_KEY: string }
+): Promise<T[]> {
+  return Promise.all(userList.map((u) => resolveAvatarUrl(u, env)));
+}
+
 /**
  * GET /
  * ユーザー一覧（認証済みユーザーのみ、機密情報は除外）
@@ -44,7 +63,7 @@ const safeUserColumns = {
 app.get('/', async (c) => {
   const db = c.get('db');
   const result = await db.select(safeUserColumns).from(users);
-  return c.json({ users: result });
+  return c.json({ users: await resolveAvatarUrls(result, c.env) });
 });
 
 /**
@@ -61,7 +80,7 @@ app.get('/me', async (c) => {
   const [user] = await db.select(safeUserColumns).from(users).where(eq(users.id, userId));
 
   if (user) {
-    return c.json({ user });
+    return c.json({ user: await resolveAvatarUrl(user, c.env) });
   }
 
   // Clerk IDで見つからない場合、Clerkからメールを取得してメールで検索
@@ -92,7 +111,7 @@ app.get('/me', async (c) => {
     await migrateUserId(db, oldId, newId);
 
     const [updatedUser] = await db.select(safeUserColumns).from(users).where(eq(users.id, newId));
-    return c.json({ user: updatedUser });
+    return c.json({ user: await resolveAvatarUrl(updatedUser, c.env) });
   } catch (e) {
     console.error('User ID migration failed:', e);
     return c.json({ error: 'User not found' }, 404);
@@ -113,7 +132,7 @@ app.get('/:id', async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  return c.json({ user });
+  return c.json({ user: await resolveAvatarUrl(user, c.env) });
 });
 
 const updateUserSchema = z.object({
@@ -171,7 +190,7 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    return c.json({ user: updated });
+    return c.json({ user: await resolveAvatarUrl(updated, c.env) });
   }
 
   // 自分自身の更新（isAllowed, role は自己変更不可 — admin専用）
@@ -199,7 +218,7 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  return c.json({ user: updated });
+  return c.json({ user: await resolveAvatarUrl(updated, c.env) });
 });
 
 const inviteSchema = z.object({

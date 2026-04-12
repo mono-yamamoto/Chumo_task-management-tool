@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { generateSignedFileUrl } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -54,11 +53,7 @@ app.post('/', async (c) => {
     httpMetadata: { contentType: file.type },
   });
 
-  // 署名付きファイルURL を生成（24時間有効）
-  const apiBase = c.env.APP_ORIGIN || 'http://localhost:8787';
-  const url = await generateSignedFileUrl(apiBase, key, c.env.INTERNAL_API_KEY);
-
-  return c.json({ url, key });
+  return c.json({ key });
 });
 
 export default app;
