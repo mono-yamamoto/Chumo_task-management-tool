@@ -2,15 +2,18 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 
-const DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
+/** テスト用DB URL（TEST_DATABASE_URL優先 → DATABASE_URL → ローカルフォールバック） */
+export const TEST_DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  process.env.DATABASE_URL ??
+  'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
 
 /**
  * テスト用DB接続を作成する
  * postgres-js ドライバを使用（ローカル/CI環境向け）
  */
 export function createTestDb() {
-  const client = postgres(DATABASE_URL);
+  const client = postgres(TEST_DATABASE_URL);
   const db = drizzle(client, { schema });
   return { db, client };
 }

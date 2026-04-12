@@ -17,12 +17,18 @@ import contactRoute from './contact';
 import chatRoute from './chat';
 import driveRoute from './drive';
 import notificationsRoute from './notifications';
+import taskPinsRoute from './task-pins';
+import { TEST_DATABASE_URL } from '../db/test-helpers';
 
-const DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgresql://chumo:chumo_dev@localhost:5432/chumo_test';
-
-const client = postgres(DATABASE_URL);
+const client = postgres(TEST_DATABASE_URL);
 const db = drizzle(client, { schema });
+
+/** テスト用env定数 */
+export const TEST_ENV = {
+  BACKLOG_WEBHOOK_SECRET: 'test-webhook-secret',
+  INTERNAL_API_KEY: 'test_internal_key',
+  CLERK_SECRET_KEY: 'test_secret_key',
+} as const;
 
 /**
  * テスト用アプリ（認証バイパス + ローカルDB）
@@ -33,10 +39,11 @@ type TestEnv = Env & { Variables: { db: Database; userId: string } };
 export function createTestApp(testUserId = 'test-user') {
   const app = new Hono<TestEnv>();
 
-  // DB + userId をテスト用に注入
+  // DB + userId + env をテスト用に注入
   app.use('*', async (c, next) => {
     c.set('db', db as unknown as Database);
     c.set('userId', testUserId);
+    (c.env as any) = { ...c.env, ...TEST_ENV };
     await next();
   });
 
@@ -53,6 +60,7 @@ export function createTestApp(testUserId = 'test-user') {
   app.route('/api/chat', chatRoute);
   app.route('/api/drive', driveRoute);
   app.route('/api/notifications', notificationsRoute);
+  app.route('/api/task-pins', taskPinsRoute);
 
   return app;
 }
