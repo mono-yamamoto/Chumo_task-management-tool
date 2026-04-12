@@ -56,7 +56,7 @@
 # ✅ ルートの package.json 経由で実行
 bun run test              # → backend テスト
 bun run lint              # → frontend + backend lint
-bun run type-check        # → frontend 型チェック
+bun run type-check        # → frontend + backend 型チェック
 bun run build             # → frontend ビルド
 bun run backend:db:generate  # → Drizzle マイグレーション生成
 bun run backend:db:migrate   # → Drizzle マイグレーション適用
