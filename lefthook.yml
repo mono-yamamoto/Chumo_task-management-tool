@@ -17,14 +17,10 @@ pre-commit:
         fi
         gitleaks protect --staged
 
-    # 2. ESLint (メインプロジェクト)
-    eslint:
-      glob: '**/*.{ts,tsx,js,jsx}'
-      exclude:
-        - 'node_modules/**'
-        - '*.config.js'
-        - '*.config.mjs'
-      run: npx eslint --fix {staged_files}
+    # 2. oxlint (フロントエンド)
+    oxlint:
+      glob: 'frontend/src/**/*.{ts,tsx}'
+      run: npx oxlint --fix -c frontend/.oxlintrc.json {staged_files}
       stage_fixed: true
       skip_empty: true
 
