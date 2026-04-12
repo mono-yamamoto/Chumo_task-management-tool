@@ -9,16 +9,18 @@ export const PREVIEW_ENABLED = import.meta.env.VITE_PREVIEW_ENABLED === 'true';
  * localStorage でログイン状態を保持し、Clerk認証をバイパスする
  */
 export function usePreviewMode() {
+  const storedToken = localStorage.getItem(PREVIEW_TOKEN_KEY);
   const isPreview =
     PREVIEW_ENABLED &&
     localStorage.getItem(PREVIEW_KEY) === 'true' &&
-    Boolean(localStorage.getItem(PREVIEW_TOKEN_KEY));
+    typeof storedToken === 'string' &&
+    storedToken.trim().length > 0;
 
   const loginAsPreview = () => {
     const token = import.meta.env.VITE_PREVIEW_TOKEN;
-    if (!PREVIEW_ENABLED || !token) return;
+    if (!PREVIEW_ENABLED || !token?.trim()) return;
     localStorage.setItem(PREVIEW_KEY, 'true');
-    localStorage.setItem(PREVIEW_TOKEN_KEY, token);
+    localStorage.setItem(PREVIEW_TOKEN_KEY, token.trim());
     window.location.href = '/dashboard';
   };
 
