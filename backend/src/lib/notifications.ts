@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { notifications, tasks, users } from '../db/schema';
 import { generateId } from './id';
 import type { Database } from '../db';
