@@ -66,7 +66,7 @@ if [[ -z "$NEON_URL" ]]; then
 fi
 
 # --- Docker コンテナ確認 ---
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'chumo-postgres\|chumo-test-postgres'; then
+if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^chumo-postgres$'; then
   warn "ローカルの PostgreSQL コンテナが起動していません。起動します..."
   docker compose -f "$ROOT_DIR/docker-compose.yml" up -d postgres
   sleep 2

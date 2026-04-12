@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight, Calendar, Upload, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
+import { usePreviewMode } from '../../../hooks/usePreviewMode';
+import { useToast } from '../../../hooks/useToast';
 
 const REPORT_DRIVE_FOLDER_URL =
   'https://drive.google.com/drive/u/1/folders/1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH';
@@ -26,6 +28,13 @@ export function ReportToolbar({
   showDateRange = false,
   onToggleDateRange,
 }: ReportToolbarProps) {
+  const { isPreview } = usePreviewMode();
+  const { addToast } = useToast();
+
+  const handlePreviewBlock = () => {
+    addToast('プレビューモードでは外部サービスへの連携はできません', 'warning');
+  };
+
   return (
     <div className="flex h-10 items-center justify-between">
       <div className="flex items-center gap-4">
@@ -67,14 +76,21 @@ export function ReportToolbar({
         <Button
           variant="secondary"
           size="sm"
-          onPress={() => window.open(REPORT_DRIVE_FOLDER_URL, '_blank')}
+          onPress={
+            isPreview ? handlePreviewBlock : () => window.open(REPORT_DRIVE_FOLDER_URL, '_blank')
+          }
         >
           <ExternalLink size={16} />
           Drive
         </Button>
 
         {/* スプレッドシート出力 */}
-        <Button variant="primary" size="sm" onPress={onExport} isDisabled={isExporting}>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={isPreview ? handlePreviewBlock : onExport}
+          isDisabled={isExporting}
+        >
           {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
           {isExporting ? '出力中...' : 'スプレッドシートに出力'}
         </Button>

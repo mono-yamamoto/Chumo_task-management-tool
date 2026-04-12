@@ -3,7 +3,6 @@ import { Button } from '../../ui/Button';
 import { IntegrationLinkButton } from '../../ui/IntegrationLinkButton';
 import { useActiveSession, useTimer, useElapsedTime } from '../../../hooks/useTimer';
 import { useIntegrationActions } from '../../../hooks/useIntegrationActions';
-import { openExternal } from '../../../lib/utils';
 import type { Task } from '../../../types';
 
 interface DrawerActionBarProps {
@@ -13,7 +12,7 @@ interface DrawerActionBarProps {
 export function DrawerActionBar({ task }: DrawerActionBarProps) {
   const { data: activeSession } = useActiveSession();
   const { start, stop } = useTimer();
-  const { drive, chat, fire, pet } = useIntegrationActions(task);
+  const { drive, chat, fire, pet, backlog } = useIntegrationActions(task);
 
   const isThisTaskActive = activeSession != null && activeSession.taskId === task.id;
   const isOtherTaskActive = activeSession != null && !isThisTaskActive;
@@ -76,12 +75,12 @@ export function DrawerActionBar({ task }: DrawerActionBarProps) {
       <Button
         variant="primary"
         size="lg"
-        onPress={() => task.backlogUrl && openExternal(task.backlogUrl)}
-        isDisabled={!task.backlogUrl}
+        onPress={backlog.onClick}
+        isDisabled={!backlog.active}
         className="w-full"
       >
         <ExternalLink size={16} />
-        BACKLOGを開く
+        {backlog.label}
       </Button>
     </div>
   );

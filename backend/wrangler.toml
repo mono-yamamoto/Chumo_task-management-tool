@@ -19,6 +19,8 @@ name = "chumo-api-staging"
 ENVIRONMENT = "staging"
 REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
 REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
+PREVIEW_USER_ID = "preview-user"
+# PREVIEW_ACCESS_TOKEN は wrangler secret で設定
 [[env.staging.r2_buckets]]
 binding = "UPLOAD_BUCKET"
 bucket_name = "chumo-uploads-staging"

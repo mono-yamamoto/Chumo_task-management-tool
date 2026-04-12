@@ -1,10 +1,13 @@
 import { SignIn } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
-import { ShieldX } from 'lucide-react';
+import { Eye, ShieldX } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { usePreviewMode, PREVIEW_ENABLED } from '../../hooks/usePreviewMode';
+import { Button } from '../../components/ui/Button';
 
 export function LoginPage() {
   const { isSignedIn, isLoaded } = useAuth();
+  const { loginAsPreview } = usePreviewMode();
   const accessDenied = sessionStorage.getItem('access-denied') === 'true';
 
   // 認証済みならダッシュボードへ（フラグもクリア）
@@ -37,6 +40,17 @@ export function LoginPage() {
             },
           }}
         />
+        {PREVIEW_ENABLED && (
+          <Button
+            variant="outline"
+            size="lg"
+            onPress={loginAsPreview}
+            className="w-full max-w-[400px] text-text-secondary"
+          >
+            <Eye size={16} />
+            プレビューモードでログイン
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@
 ## 前提条件
 
 - [Bun](https://bun.sh/) がインストールされていること
-- [Docker](https://www.docker.com/) がインストールされていること（ローカルDB用���
+- [Docker](https://www.docker.com/) がインストールされていること（ローカルDB用）
 - [gitleaks](https://github.com/gitleaks/gitleaks) がインストールされていること（機密情報チェック用）
 
 ## 1. 依存関係のインストール
@@ -58,7 +58,7 @@ brew install gitleaks
 
 ### lefthookの自動セットアップ
 
-`bun install` を実行すると、`prepare` スクリプトによ���自動的にlefthookがセットアップされます。
+`bun install` を実行すると、`prepare` スクリプトにより自動的にlefthookがセットアップされます。
 
 ### pre-commitで実行されるチェック
 
@@ -67,17 +67,62 @@ brew install gitleaks
 3. **tsc**: 型チェック（フロントエンド + バックエンド）
 4. **oxfmt**: コードフォーマット（自動修正あり）
 
-## 4. 開発サーバーの起動
+## 4. ローカルDBの起動とセットアップ
+
+ローカル開発には Docker で PostgreSQL を起動します。
 
 ```bash
-# フロントエンド + ��ックエンド同時起動
+# PostgreSQL コンテナを起動（初回は自動でイメージをダウンロード）
+docker compose up -d postgres
+
+# テーブル作成（Drizzle スキーマを直接反映）
+DATABASE_URL=postgresql://chumo:chumo_dev@localhost:5432/chumo_dev \
+  bunx drizzle-kit push --force
+```
+
+初回起動時にテスト用DB `chumo_test` も自動作成されます（`scripts/init-test-db.sh`）。
+
+### DBをリセットしたい場合
+
+ボリュームごと削除して初期状態に戻せます。
+
+```bash
+docker compose down -v        # コンテナ + ボリューム削除
+docker compose up -d postgres # 再作成（chumo_test DBも自動作成）
+# スキーマ再適用
+DATABASE_URL=postgresql://chumo:chumo_dev@localhost:5432/chumo_dev \
+  bunx drizzle-kit push --force
+```
+
+### シードデータの投入
+
+デモ用のユーザー・タスク・セッションなどを投入できます。
+
+```bash
+bun run db:seed              # ローカルDBに投入
+bun run db:seed:staging      # Neon staging DBに投入
+```
+
+### Neon（staging）からデータを同期
+
+本番に近いデータで開発したい場合:
+
+```bash
+# backend/.env.neon に DATABASE_URL=postgresql://... を記載してから
+bun run db:sync-from-neon
+```
+
+## 5. 開発サーバーの起動
+
+```bash
+# フロントエンド + バックエンド同時起動（DBも自動起動）
 bun run dev
 ```
 
 - フロントエンド: `http://localhost:3000`
 - バックエンド: `http://localhost:8787`
 
-## 5. GitHub CLIの設定
+## 6. GitHub CLIの設定
 
 PRやIssueの確認にGitHub CLIを使用します。
 
@@ -100,6 +145,9 @@ bun run test              # バックエンドテスト
 bun run backend:deploy    # バックエンドデプロイ
 bun run backend:db:generate  # Drizzle マイグレーション生成
 bun run backend:db:migrate   # Drizzle マイグレーション適用
+bun run db:seed              # デモデータ投入（ローカル）
+bun run db:seed:staging      # デモデータ投入（staging）
+bun run db:sync-from-neon    # Neonからデータ同期
 ```
 
 ## トラブルシューティング

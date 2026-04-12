@@ -82,6 +82,26 @@ app.get('/me', async (c) => {
     return c.json({ user: await resolveAvatarUrl(user, c.env) });
   }
 
+  // プレビューユーザーはClerk上に存在しないため、DB未登録ならモックデータを返す
+  if (userId === c.env.PREVIEW_USER_ID) {
+    return c.json({
+      user: {
+        id: userId,
+        email: 'preview@example.com',
+        displayName: 'プレビューユーザー',
+        role: 'member' as const,
+        isAllowed: true,
+        avatarUrl: null,
+        avatarColor: null,
+        githubUsername: null,
+        chatId: null,
+        googleOAuthUpdatedAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
   // Clerk IDで見つからない場合、Clerkからメールを取得してメールで検索
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });

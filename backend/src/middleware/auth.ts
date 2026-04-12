@@ -70,6 +70,19 @@ export const authMiddleware = createMiddleware<
     return await next();
   }
 
+  // プレビューアカウント認証（production以外で有効）
+  const previewToken = c.req.header('X-Preview-Token');
+  if (
+    previewToken &&
+    c.env.PREVIEW_ACCESS_TOKEN &&
+    c.env.PREVIEW_USER_ID &&
+    c.env.ENVIRONMENT !== 'production' &&
+    previewToken === c.env.PREVIEW_ACCESS_TOKEN
+  ) {
+    c.set('userId', c.env.PREVIEW_USER_ID);
+    return await next();
+  }
+
   // Clerk JWT認証
   const authHeader = c.req.header('Authorization');
 

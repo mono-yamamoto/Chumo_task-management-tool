@@ -17,6 +17,7 @@ import { Avatar } from '../ui/Avatar';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { usePreviewMode } from '../../hooks/usePreviewMode';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'ダッシュボード', icon: <LayoutDashboard size={20} /> },
@@ -34,6 +35,15 @@ export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const { user: clerkUser, logout } = useAuth();
   const { data: currentUser } = useCurrentUser();
+  const { isPreview } = usePreviewMode();
+
+  const displayName =
+    currentUser?.displayName ?? clerkUser?.fullName ?? (isPreview ? 'プレビューユーザー' : '');
+  const displayRole = currentUser?.role
+    ? (ROLE_LABELS[currentUser.role] ?? currentUser.role)
+    : isPreview
+      ? 'プレビュー'
+      : '';
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col bg-teal-950 border-r border-teal-800 px-4 py-6">
@@ -94,18 +104,14 @@ export function Sidebar() {
         <DialogTrigger>
           <AriaButton className="flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-teal-800/50 cursor-pointer">
             <Avatar
-              name={currentUser?.displayName ?? clerkUser?.fullName ?? '?'}
+              name={displayName || '?'}
               imageUrl={currentUser?.avatarUrl ?? undefined}
               colorName={currentUser?.avatarColor}
               size="md"
             />
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-white">
-                {currentUser?.displayName ?? clerkUser?.fullName ?? ''}
-              </p>
-              <p className="truncate text-xs text-teal-400">
-                {currentUser?.role ? (ROLE_LABELS[currentUser.role] ?? currentUser.role) : ''}
-              </p>
+              <p className="truncate text-sm font-medium text-white">{displayName}</p>
+              <p className="truncate text-xs text-teal-400">{displayRole}</p>
             </div>
           </AriaButton>
           <Popover

@@ -8,6 +8,8 @@ import { ContactFormDrawer } from './components/ContactFormDrawer';
 import type { ContactFormData } from './components/ContactFormDrawer';
 import { useContacts, useCreateContact, useUpdateContactStatus } from '../../hooks/useContacts';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { usePreviewMode } from '../../hooks/usePreviewMode';
+import { useToast } from '../../hooks/useToast';
 
 export function ContactPage() {
   const [showResolved, setShowResolved] = useState(false);
@@ -19,6 +21,8 @@ export function ContactPage() {
   const createContact = useCreateContact();
   const updateStatus = useUpdateContactStatus();
   const { data: currentUser } = useCurrentUser();
+  const { isPreview } = usePreviewMode();
+  const { addToast } = useToast();
 
   const handleStatusChange = useCallback(
     (contactId: string, newStatus: 'pending' | 'resolved') => {
@@ -71,7 +75,17 @@ export function ContactPage() {
           <CircleCheckBig size={16} />
           {showResolved ? '対応中を表示' : '解決済みを表示'}
         </Button>
-        <Button variant="primary" size="sm" onPress={() => setIsDrawerOpen(true)}>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={() => {
+            if (isPreview) {
+              addToast('プレビューモードではお問い合わせの作成はできません', 'warning');
+              return;
+            }
+            setIsDrawerOpen(true);
+          }}
+        >
           <Plus size={16} />
           新規作成
         </Button>
