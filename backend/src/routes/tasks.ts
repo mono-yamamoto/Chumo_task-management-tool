@@ -79,7 +79,8 @@ app.get('/', async (c) => {
   const db = c.get('db');
   const projectType = c.req.query('projectType');
   const excludeCompleted = c.req.query('excludeCompleted') === 'true';
-  const limitValue = parseInt(c.req.query('limit') ?? '50', 10);
+  const rawLimit = parseInt(c.req.query('limit') ?? '50', 10);
+  const limitValue = Number.isNaN(rawLimit) ? 50 : Math.min(Math.max(rawLimit, 1), 100);
   const offset = parseInt(c.req.query('offset') ?? '0', 10);
 
   const conditions = [];

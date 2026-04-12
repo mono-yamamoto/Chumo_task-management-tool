@@ -114,20 +114,25 @@ app.post('/', zValidator('json', createCommentSchema), async (c) => {
 
 /**
  * PUT /:id
- * コメント更新
+ * コメント更新（作成者のみ）
  */
 app.put('/:id', zValidator('json', updateCommentSchema), async (c) => {
   const db = c.get('db');
+  const userId = c.get('userId');
   const commentId = c.req.param('id');
   const data = c.req.valid('json');
 
   const [existing] = await db
-    .select({ id: taskComments.id })
+    .select({ id: taskComments.id, authorId: taskComments.authorId })
     .from(taskComments)
     .where(eq(taskComments.id, commentId));
 
   if (!existing) {
     return c.json({ error: 'Comment not found' }, 404);
+  }
+
+  if (existing.authorId !== userId) {
+    return c.json({ error: 'Forbidden' }, 403);
   }
 
   await db
@@ -144,19 +149,24 @@ app.put('/:id', zValidator('json', updateCommentSchema), async (c) => {
 
 /**
  * DELETE /:id
- * コメント削除
+ * コメント削除（作成者のみ）
  */
 app.delete('/:id', async (c) => {
   const db = c.get('db');
+  const userId = c.get('userId');
   const commentId = c.req.param('id');
 
   const [existing] = await db
-    .select({ id: taskComments.id })
+    .select({ id: taskComments.id, authorId: taskComments.authorId })
     .from(taskComments)
     .where(eq(taskComments.id, commentId));
 
   if (!existing) {
     return c.json({ error: 'Comment not found' }, 404);
+  }
+
+  if (existing.authorId !== userId) {
+    return c.json({ error: 'Forbidden' }, 403);
   }
 
   await db.delete(taskComments).where(eq(taskComments.id, commentId));

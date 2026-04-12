@@ -32,23 +32,15 @@ app.post('/', async (c) => {
     return c.json({ error: 'Invalid path' }, 400);
   }
 
-  // MIMEタイプ制限（画像のみ許可）
-  const ALLOWED_MIME_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml',
-  ];
+  // MIMEタイプ制限（ラスター画像のみ許可、SVGはスクリプト埋め込み可能なため除外）
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     return c.json({ error: `File type not allowed: ${file.type}` }, 400);
   }
 
-  // ファイル名をユニークにする
-  const timestamp = Date.now();
-  const randomStr = Math.random().toString(36).substring(2, 8);
+  // ファイル名をUUIDで推測困難にする
   const extension = file.name.split('.').pop() || 'png';
-  const fileName = `${timestamp}-${randomStr}.${extension}`;
+  const fileName = `${crypto.randomUUID()}.${extension}`;
   const key = `${pathPrefix}/${fileName}`;
 
   const bucket = c.env.UPLOAD_BUCKET;
@@ -61,11 +53,7 @@ app.post('/', async (c) => {
     httpMetadata: { contentType: file.type },
   });
 
-  // R2ファイル配信URL
-  const apiBase = c.env.APP_ORIGIN || 'http://localhost:8787';
-  const url = `${apiBase}/api/files/${key}`;
-
-  return c.json({ url, key });
+  return c.json({ key });
 });
 
 export default app;

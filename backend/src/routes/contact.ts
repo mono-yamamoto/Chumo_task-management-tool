@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, desc } from 'drizzle-orm';
-import { contacts } from '../db/schema';
+import { contacts, users } from '../db/schema';
 import { generateId } from '../lib/id';
 import type { Env } from '../index';
 import type { Database } from '../db';
@@ -44,6 +44,16 @@ function getContactTypeLabel(type: string): string {
   }
 }
 
+/** Markdownインジェクション防止: ユーザー入力をGitHub Issue本文に埋め込む前にエスケープ */
+function escapeMarkdown(text: string): string {
+  return text.replace(/([\\`*_{}[\]()#+\-.!|~>])/g, '\\$1');
+}
+
+async function requireAdmin(db: Database, userId: string): Promise<boolean> {
+  const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId));
+  return !!user && user.role === 'admin';
+}
+
 function getContactTypeLabelForGitHub(type: string): string {
   switch (type) {
     case 'error':
@@ -80,10 +90,14 @@ app.get('/', async (c) => {
 
 /**
  * PUT /:id
- * お問い合わせステータス更新
+ * お問い合わせステータス更新（admin専用）
  */
 app.put('/:id', async (c) => {
   const db = c.get('db');
+  if (!(await requireAdmin(db, c.get('userId')))) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
   const contactId = c.req.param('id');
   const { status } = await c.req.json<{ status: 'pending' | 'resolved' }>();
 
@@ -147,7 +161,12 @@ app.post('/', zValidator('json', createContactSchema), async (c) => {
   }
 
   const typeLabel = getContactTypeLabel(data.type);
-  const issueTitle = `[${typeLabel}] ${data.title}`;
+  const issueTitle = `[${typeLabel}] ${escapeMarkdown(data.title)}`;
+
+  // ユーザー入力をエスケープしてGitHub Issue本文を構築
+  const safeUserName = escapeMarkdown(data.userName);
+  const safeEmail = escapeMarkdown(data.userEmail);
+  const safeContent = data.content ? escapeMarkdown(data.content) : '';
 
   let issueBody: string;
   if (data.type === 'error' && data.errorReportDetails) {
@@ -155,57 +174,59 @@ app.post('/', zValidator('json', createContactSchema), async (c) => {
     const envLines = [`- デバイス: ${details.environment.device}`];
 
     if (details.environment.device === 'PC') {
-      envLines.push(`- OS: ${details.environment.os}`);
+      envLines.push(`- OS: ${escapeMarkdown(details.environment.os)}`);
       if (details.environment.osVersion) {
-        envLines.push(`- OSのバージョン: ${details.environment.osVersion}`);
+        envLines.push(`- OSのバージョン: ${escapeMarkdown(details.environment.osVersion)}`);
       }
     } else {
-      envLines.push(`- スマホの種類: ${details.environment.os}`);
+      envLines.push(`- スマホの種類: ${escapeMarkdown(details.environment.os)}`);
       if (details.environment.osVersion) {
-        envLines.push(`- スマホのバージョン: ${details.environment.osVersion}`);
+        envLines.push(`- スマホのバージョン: ${escapeMarkdown(details.environment.osVersion)}`);
       }
     }
 
-    envLines.push(`- ブラウザ: ${details.environment.browser}`);
+    envLines.push(`- ブラウザ: ${escapeMarkdown(details.environment.browser)}`);
     if (details.environment.browserVersion) {
-      envLines.push(`- ブラウザのバージョン: ${details.environment.browserVersion}`);
+      envLines.push(
+        `- ブラウザのバージョン: ${escapeMarkdown(details.environment.browserVersion)}`
+      );
     }
     if (details.screenshotUrl) {
-      envLines.push(`- スクリーンショット: ${details.screenshotUrl}`);
+      envLines.push(`- スクリーンショット: ${escapeMarkdown(details.screenshotUrl)}`);
     }
 
     issueBody = [
       `**お問い合わせの種類**: ${typeLabel}`,
-      `**送信者**: ${data.userName} (${data.userEmail})`,
+      `**送信者**: ${safeUserName} (${safeEmail})`,
       `**お問い合わせID**: ${contactId}`,
       '',
       '---',
       '',
       '## 事象',
-      details.issue,
+      escapeMarkdown(details.issue),
       '',
       '## 再現方法',
-      details.reproductionSteps,
+      escapeMarkdown(details.reproductionSteps),
       '',
       '## 環境',
       ...envLines,
       '',
       '---',
       '',
-      data.content ? `**その他の情報**:\n${data.content}` : '',
+      safeContent ? `**その他の情報**:\n${safeContent}` : '',
     ]
       .filter(Boolean)
       .join('\n');
   } else {
     issueBody = [
       `**お問い合わせの種類**: ${typeLabel}`,
-      `**送信者**: ${data.userName} (${data.userEmail})`,
+      `**送信者**: ${safeUserName} (${safeEmail})`,
       `**お問い合わせID**: ${contactId}`,
       '',
       '---',
       '',
       '**内容**:',
-      data.content || '',
+      safeContent,
     ]
       .filter(Boolean)
       .join('\n');

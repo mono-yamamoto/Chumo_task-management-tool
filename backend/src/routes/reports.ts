@@ -35,6 +35,20 @@ function isBRGREGProject(projectType: string): boolean {
   return projectType === 'BRGREG';
 }
 
+/** CSVインジェクション防止: 先頭が数式トリガー文字の場合にシングルクォートをプレフィクス */
+const CSV_FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+function sanitizeCsvCell(value: string): string {
+  return CSV_FORMULA_TRIGGER.test(value) ? `'${value}` : value;
+}
+
+interface TaskRow {
+  id: string;
+  title: string;
+  projectType: string;
+  over3Reason: string | null;
+  assigneeIds: string[];
+}
+
 interface ReportItem {
   title: string;
   durationSec: number;
@@ -79,7 +93,7 @@ async function fetchReportData(
     assigneeIds: tasks.assigneeIds,
   };
 
-  let targetTasks: Awaited<ReturnType<typeof db.select<typeof taskSelect>>>;
+  let targetTasks: TaskRow[];
   if (type === 'brg') {
     targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
   } else {
@@ -217,9 +231,9 @@ app.get('/time/csv', async (c) => {
   const csvRows = [
     ['title', 'durationSec', 'over3hours'],
     ...items.map((item) => [
-      `"${item.title.replace(/"/g, '""')}"`,
+      `"${sanitizeCsvCell(item.title).replace(/"/g, '""')}"`,
       item.durationSec.toString(),
-      item.over3hours ? `"${item.over3hours.replace(/"/g, '""')}"` : '',
+      item.over3hours ? `"${sanitizeCsvCell(item.over3hours).replace(/"/g, '""')}"` : '',
     ]),
   ];
 

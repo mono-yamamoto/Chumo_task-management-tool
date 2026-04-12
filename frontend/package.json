@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "type-check": "tsc -b --noEmit",
-    "lint": "eslint .",
-    "format": "oxlint --fix .",
-    "format:check": "oxlint ."
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "dependencies": {
     "@clerk/clerk-react": "^5",

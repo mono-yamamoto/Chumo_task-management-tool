@@ -82,11 +82,11 @@ export function ProfileTab() {
       });
 
       if (!res.ok) throw new Error('アップロードに失敗しました');
-      const { url } = (await res.json()) as { url: string };
+      const { key } = (await res.json()) as { key: string };
 
       updateUser.mutate({
         userId: currentUser.id,
-        data: { avatarUrl: url },
+        data: { avatarUrl: key },
       });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'アップロードに失敗しました');

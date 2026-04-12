@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc, sql, inArray } from 'drizzle-orm';
-import { notifications, tasks } from '../db/schema';
+import { notifications, tasks, users } from '../db/schema';
 import {
   createMentionNotifications,
   createSessionReminderNotifications,
@@ -100,6 +100,19 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
   const db = c.get('db');
   const userId = c.get('userId');
   const data = c.req.valid('json');
+
+  // 権限チェック: 送信者がタスクのアサイニーまたはadminであること
+  const [[task], [currentUser]] = await Promise.all([
+    db.select({ assigneeIds: tasks.assigneeIds }).from(tasks).where(eq(tasks.id, data.taskId)),
+    db.select({ role: users.role }).from(users).where(eq(users.id, userId)),
+  ]);
+  if (!task) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+  if (currentUser?.role !== 'admin' && !task.assigneeIds.includes(userId)) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
   const uniqueTargetUserIds = [...new Set(data.targetUserIds)];
 
   // 通知作成 + sessionReminders更新をトランザクションで実行

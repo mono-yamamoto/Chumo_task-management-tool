@@ -3,6 +3,9 @@ import { notifications, tasks, users } from '../db/schema';
 import { generateId } from './id';
 import type { Database } from '../db';
 
+/** Database | PgTransaction の両方を受け入れる型 */
+type DbOrTx = Pick<Database, 'select' | 'insert' | 'update' | 'delete'>;
+
 /**
  * HTMLタグを除去してプレーンテキストを取得
  */
@@ -30,7 +33,7 @@ interface MentionNotificationParams {
  * コメント投稿時にサーバーサイドで呼び出される
  */
 export async function createMentionNotifications(
-  db: Database,
+  db: DbOrTx,
   params: MentionNotificationParams
 ): Promise<number> {
   const { taskId, commentId, authorId, content, mentionedUserIds } = params;
@@ -80,7 +83,7 @@ interface SessionReminderParams {
  * セッション未記録通知を作成
  */
 export async function createSessionReminderNotifications(
-  db: Database,
+  db: DbOrTx,
   params: SessionReminderParams
 ): Promise<number> {
   const { taskId, targetUserIds, senderId } = params;

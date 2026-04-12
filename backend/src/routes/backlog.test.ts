@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll, afterEach } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createTestApp, db, client } from './test-app';
+import { createTestApp, db, client, TEST_ENV } from './test-app';
 import { cleanDatabase } from '../db/test-helpers';
 import * as schema from '../db/schema';
 
@@ -19,7 +19,10 @@ describe('Backlog API', () => {
     it('新規タスクを作成できる（content形式）', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'BRGREG' },
           content: {
@@ -56,7 +59,10 @@ describe('Backlog API', () => {
       // 1回目: 作成
       const res1 = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'REG2017' },
           content: { id: 100, key_id: 100, summary: '初回タイトル' },
@@ -68,7 +74,10 @@ describe('Backlog API', () => {
       // 2回目: 更新
       const res2 = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'REG2017' },
           content: { id: 100, key_id: 100, summary: '更新タイトル' },
@@ -87,7 +96,10 @@ describe('Backlog API', () => {
     it('issueKeyがないと400', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({ content: { summary: 'テスト' } }),
       });
       expect(res.status).toBe(400);
@@ -96,7 +108,10 @@ describe('Backlog API', () => {
     it('不明なプロジェクトタイプだと400', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'UNKNOWN' },
           content: { id: 1, key_id: 1, summary: 'テスト' },
@@ -108,7 +123,10 @@ describe('Backlog API', () => {
     it('titleがないと400', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'MONO' },
           content: { id: 1, key_id: 1 },
@@ -120,7 +138,10 @@ describe('Backlog API', () => {
     it('issue形式のペイロードでも処理できる', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           issue: {
             id: 500,
@@ -137,7 +158,10 @@ describe('Backlog API', () => {
     it('カスタムフィールドから日付を抽出できる', async () => {
       const res = await app.request('/api/backlog/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           project: { projectKey: 'REG2017' },
           content: {
@@ -165,7 +189,10 @@ describe('Backlog API', () => {
     it('新規タスクを同期できる', async () => {
       const res = await app.request('/api/backlog/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           issueKey: 'MONO-100',
           issueId: '100',
@@ -184,7 +211,10 @@ describe('Backlog API', () => {
       // 1回目
       await app.request('/api/backlog/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           issueKey: 'MONO-200',
           issueId: '200',
@@ -197,7 +227,10 @@ describe('Backlog API', () => {
       // 2回目（更新）
       const res2 = await app.request('/api/backlog/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           issueKey: 'MONO-200',
           issueId: '200',
@@ -213,7 +246,10 @@ describe('Backlog API', () => {
     it('必須フィールド不足で400', async () => {
       const res = await app.request('/api/backlog/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+        },
         body: JSON.stringify({
           issueKey: 'MONO-100',
         }),

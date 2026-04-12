@@ -2,26 +2,7 @@
 
 このファイルは、このプロジェクトでClaude Codeが作業を行う際のガイドラインを含んでいます。
 
-## 🔄 スタック移行状況（重要 - 必ず最初に読むこと）
-
-**現在このリポジトリには旧環境と新環境が共存しています。**
-
-### 旧環境（Next.js） — 参照用として残存
-
-既存実装の参考としてまだ残しているが、**新規開発は行わない**。
-
-| 項目            | 内容                                                                                |
-| --------------- | ----------------------------------------------------------------------------------- |
-| 配置            | ルート直下 (`app/`, `components/`, `hooks/`, `lib/`, `stores/`, `types/`, `utils/`) |
-| フレームワーク  | Next.js 16 (App Router)                                                             |
-| UI              | MUI v7 + Emotion                                                                    |
-| 認証            | Clerk (`@clerk/nextjs`)                                                             |
-| DB/バックエンド | Firebase (Firestore + Cloud Functions)                                              |
-| 状態管理        | Zustand + TanStack Query                                                            |
-| ビルド          | `npm run build` (next build)                                                        |
-| 開発サーバー    | `npm run dev` (next dev)                                                            |
-
-### 新環境 — アクティブな開発対象
+## テックスタック
 
 | 項目           | フロントエンド (`frontend/`)                            | バックエンド (`backend/`)   |
 | -------------- | ------------------------------------------------------- | --------------------------- |
@@ -35,65 +16,36 @@
 | 開発サーバー   | `bun run dev`（フロント+バック同時起動）                | —                           |
 | テスト         | —                                                       | `bun run test` (Vitest)     |
 
-### 開発時の注意事項
-
-- **新規の機能開発・バグ修正は `frontend/` と `backend/` に対して行う**
-- 旧環境のコード（ルート直下）は既存実装のロジックやUIパターンを参考にする目的で残している
-- 旧環境のファイルを修正・削除する場合は、ユーザーに確認を取ること
-- `frontend/` からバックエンドAPIへのプロキシは Vite の設定で `/api` → `localhost:8787` に転送される
-
 ## ディレクトリ構造
 
 ```
 /
-├── frontend/                 # 🆕 新フロントエンド（Vite + React 19）
+├── frontend/                 # フロントエンド（Vite + React 19）
 │   └── src/
 │       ├── components/
 │       │   ├── layout/       #   AppLayout, Header, Sidebar
 │       │   ├── shared/       #   TaskDrawer, ReportDrawer, ThemeToggle
 │       │   └── ui/           #   Avatar, Badge, Button, Input, Modal, Select, Tabs 等
 │       ├── hooks/            #   useDashboardStats, useTaskDrawer, useTheme, useViewMode
-│       ├── lib/              #   api, constants, mockData
+│       ├── lib/              #   api, constants
 │       ├── pages/            #   login, dashboard, tasks, reports, contacts, settings
 │       │   └── <page>/
 │       │       ├── <Page>.tsx       # ページ本体コンポーネント
 │       │       └── components/      # そのページ固有のコンポーネント
 │       └── types/
 │
-├── backend/                  # 🆕 新バックエンド（Hono + Cloudflare Workers）
+├── backend/                  # バックエンド（Hono + Cloudflare Workers）
 │   └── src/
 │       ├── db/               #   Drizzle schema, migrations
 │       ├── lib/              #   ビジネスロジック（backlog 等）
 │       ├── middleware/       #   auth, db
 │       └── routes/           #   tasks, reports, comments, timer, sessions, users 等
 │
-├── app/                      # 🔒 旧 Next.js App Router（参照用）
-│   ├── (auth)/login/
-│   └── (dashboard)/          #   dashboard, tasks, reports, settings, contact
-├── components/               # 🔒 旧 MUI コンポーネント（参照用）
-│   ├── ui/                   #   共通UIパーツ
-│   ├── tasks/                #   タスク関連
-│   ├── reports/              #   レポート関連
-│   ├── settings/             #   設定関連
-│   ├── Drawer/               #   ドロワー
-│   └── ...
-├── hooks/                    # 🔒 旧カスタムフック群（参照用）
-├── lib/                      # 🔒 旧ライブラリ（Firebase, API, presentation 等）
-├── stores/                   # 🔒 旧 Zustand ストア（参照用）
-├── types/                    # 🔒 旧型定義（参照用）
-├── utils/                    # 🔒 旧ユーティリティ（参照用）
-├── constants/                # 🔒 旧定数定義（参照用）
-├── functions/                # 🔒 旧 Cloud Functions（参照用）
-│
 ├── designs/                  # Pencil デザインファイル（.pen）
 ├── docs/                     # 設計ドキュメント、仕様書、運用手順
-├── scripts/                  # データ投入・マイグレーションスクリプト
-├── public/                   # 静的アセット（旧環境用）
+├── scripts/                  # DB同期スクリプト
 └── .claude/                  # Claude Code 設定・スキル・ルール
 ```
-
-- 🆕 = 新環境（アクティブに開発）
-- 🔒 = 旧環境（参照用として残存、新規開発禁止）
 
 ## ⚠️ Bash コマンド実行ルール
 
@@ -207,17 +159,6 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
 - 関連するコードスニペットのコンテキストバンドリング
 - ファイルとシンボルの検索機能
 
-#### Next.js DevTools MCP
-
-開発サーバー用のNext.jsランタイム統合。
-
-**主な機能**:
-
-- ランタイムエラーの検出
-- ルート情報と分析
-- 開発サーバーの診断
-- リアルタイムのビルド状況
-
 ## コードスタイル
 
 - **TypeScript**: strict mode enabled
@@ -225,9 +166,6 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
   - Components: PascalCase
   - Functions and variables: camelCase
   - Constants: UPPER_SNAKE_CASE
-
-### 新環境 (`frontend/` / `backend/`)
-
 - **Linter**: oxlint (`bun run frontend:format`)
 - **CSS**: Tailwind CSS v4 のユーティリティクラスを使用
 - **コンポーネント**: React Aria Components ベース（`frontend/src/components/ui/`）
@@ -238,11 +176,6 @@ bun run lint          # フロントエンド lint
 bun run type-check    # フロントエンド型チェック
 bun run test          # バックエンドテスト
 ```
-
-### 旧環境（ルート直下）— 参照のみ
-
-- **Formatter**: `oxfmt` (`npm run format`)
-- **Linter**: `next lint` (`npm run lint`)
 
 ## Claude Codeでの開発ワークフロー
 
@@ -290,8 +223,6 @@ bun run test          # バックエンドテスト
 
 ## テスト手順
 
-### 新環境
-
 ```bash
 # バックエンドテスト（Vitest）
 bun run test
@@ -300,15 +231,7 @@ bun run backend:test:coverage
 
 フロントエンドのテストスイートは未整備。機能追加時に適切なテストを追加すること。
 
-### 旧環境（参照のみ）
-
-```bash
-bun run test          # ルートのVitest
-```
-
 ## ビルドコマンド
-
-### 新環境
 
 ```bash
 # フロントエンドビルド
@@ -318,16 +241,7 @@ bun run build
 bun run backend:deploy
 ```
 
-### 旧環境（参照のみ）
-
-```bash
-npm run build              # Next.js ビルド
-npm run functions:build    # Cloud Functions ビルド
-```
-
 ## デプロイコマンド
-
-### 新環境
 
 ```bash
 # バックエンドAPI（Cloudflare Workers）
@@ -340,30 +254,17 @@ bun run backend:db:generate
 bun run backend:db:migrate
 ```
 
-### 旧環境（参照のみ）
-
-```bash
-firebase deploy --only firestore:rules,firestore:indexes
-npm run functions:deploy
-```
-
 ## 重要事項
 
 ### 手動で必要なステップ
 
 **⚠️ 重要: これらのステップはエージェントが自動で実行できません。ユーザーに日本語で伝えてください。**
 
-**ユーザーに日本語で伝える**: 以下の手順は、エージェントが自動で実行できません。ユーザーに指示を出してください：
-
 1. **環境変数設定**: `.env.local`ファイルの作成と設定値の入力（既存の開発者から取得）
 2. **Git Hooks設定**: gitleaksのインストールとpre-commit hookの設定（機密情報の誤コミット防止）
 
 ### トラブルシューティング
 
-**トラブルシューティングガイダンスを提供する際は、ユーザーに日本語で伝える**:
-
-- **Firebase CLIエラー**: `firebase login`を再実行してください
-- **デプロイエラー**: `firebase use --add`でプロジェクトを再選択してください
 - **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認してください
 - **gitleaksエラー**: `gitleaks version`でインストールを確認し、`.git/hooks/pre-commit`に実行権限があるか確認してください（`chmod +x .git/hooks/pre-commit`）
 
@@ -377,8 +278,6 @@ npm run functions:deploy
 
 **初回セットアップについては [SETUP.md](./SETUP.md) を参照してください。**
 
-### 新環境のセットアップ
-
 ```bash
 # 依存関係インストール（frontend/ と backend/ それぞれ）
 cd frontend && bun install
@@ -387,11 +286,3 @@ cd backend && bun install
 # 開発サーバー起動（フロント+バック同時起動）
 bun run dev   # → frontend: http://localhost:3000, backend: http://localhost:8787
 ```
-
-### 旧環境のセットアップ（参照用）
-
-- 依存関係のインストール
-- 環境変数の設定
-- Firebase CLIの設定
-- Git Hooksの設定
-- Serena MCPオンボーディング（AIエージェント用）

@@ -14,8 +14,11 @@ import {
   labels,
   projects,
 } from '../db/schema';
+import { importHmacKey, generateSignedFileUrl } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
+
+type SignEnv = Pick<Env['Bindings'], 'APP_ORIGIN' | 'INTERNAL_API_KEY'>;
 
 type UserEnv = Env & { Variables: { db: Database; userId: string } };
 
@@ -37,6 +40,20 @@ const safeUserColumns = {
   updatedAt: users.updatedAt,
 };
 
+/** avatarUrl（R2キー）を署名付きURLに変換する */
+async function resolveAvatarUrl<T extends { avatarUrl: string | null }>(
+  user: T,
+  env: SignEnv,
+  cryptoKey?: CryptoKey
+): Promise<T> {
+  if (!user.avatarUrl) return user;
+  const baseUrl = env.APP_ORIGIN || 'http://localhost:8787';
+  const signedUrl = await generateSignedFileUrl(baseUrl, user.avatarUrl, env.INTERNAL_API_KEY, {
+    cryptoKey,
+  });
+  return { ...user, avatarUrl: signedUrl };
+}
+
 /**
  * GET /
  * ユーザー一覧（認証済みユーザーのみ、機密情報は除外）
@@ -44,7 +61,8 @@ const safeUserColumns = {
 app.get('/', async (c) => {
   const db = c.get('db');
   const result = await db.select(safeUserColumns).from(users);
-  return c.json({ users: result });
+  const key = await importHmacKey(c.env.INTERNAL_API_KEY, 'sign');
+  return c.json({ users: await Promise.all(result.map((u) => resolveAvatarUrl(u, c.env, key))) });
 });
 
 /**
@@ -57,11 +75,11 @@ app.get('/me', async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
 
-  // まずClerk IDで検索
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  // まずClerk IDで検索（機密情報を除外）
+  const [user] = await db.select(safeUserColumns).from(users).where(eq(users.id, userId));
 
   if (user) {
-    return c.json({ user });
+    return c.json({ user: await resolveAvatarUrl(user, c.env) });
   }
 
   // Clerk IDで見つからない場合、Clerkからメールを取得してメールで検索
@@ -76,7 +94,10 @@ app.get('/me', async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+    const [existingUser] = await db
+      .select(safeUserColumns)
+      .from(users)
+      .where(eq(users.email, email));
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -88,8 +109,8 @@ app.get('/me', async (c) => {
 
     await migrateUserId(db, oldId, newId);
 
-    const [updatedUser] = await db.select().from(users).where(eq(users.id, newId));
-    return c.json({ user: updatedUser });
+    const [updatedUser] = await db.select(safeUserColumns).from(users).where(eq(users.id, newId));
+    return c.json({ user: await resolveAvatarUrl(updatedUser, c.env) });
   } catch (e) {
     console.error('User ID migration failed:', e);
     return c.json({ error: 'User not found' }, 404);
@@ -110,7 +131,7 @@ app.get('/:id', async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  return c.json({ user });
+  return c.json({ user: await resolveAvatarUrl(user, c.env) });
 });
 
 const updateUserSchema = z.object({
@@ -168,7 +189,7 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    return c.json({ user: updated });
+    return c.json({ user: await resolveAvatarUrl(updated, c.env) });
   }
 
   // 自分自身の更新（isAllowed, role は自己変更不可 — admin専用）
@@ -196,7 +217,7 @@ app.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  return c.json({ user: updated });
+  return c.json({ user: await resolveAvatarUrl(updated, c.env) });
 });
 
 const inviteSchema = z.object({
