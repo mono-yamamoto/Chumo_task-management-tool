@@ -63,8 +63,9 @@ brew install gitleaks
 ### pre-commitで実行されるチェック
 
 1. **gitleaks**: 機密情報の検出
-2. **ESLint**: TypeScript/JavaScriptのリント（自動修正あり）
-3. **oxfmt**: コードフォーマット（自動修正あり）
+2. **oxlint**: TypeScript/JavaScriptのリント（フロントエンドのみ、自動修正あり）
+3. **tsc**: 型チェック（フロントエンド + バックエンド）
+4. **oxfmt**: コードフォーマット（自動修正あり）
 
 ## 4. 開発サーバーの起動
 
