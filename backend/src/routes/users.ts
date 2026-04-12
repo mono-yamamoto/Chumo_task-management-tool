@@ -57,8 +57,8 @@ app.get('/me', async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
 
-  // まずClerk IDで検索
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  // まずClerk IDで検索（機密情報を除外）
+  const [user] = await db.select(safeUserColumns).from(users).where(eq(users.id, userId));
 
   if (user) {
     return c.json({ user });
@@ -76,7 +76,10 @@ app.get('/me', async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+    const [existingUser] = await db
+      .select(safeUserColumns)
+      .from(users)
+      .where(eq(users.email, email));
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -88,7 +91,7 @@ app.get('/me', async (c) => {
 
     await migrateUserId(db, oldId, newId);
 
-    const [updatedUser] = await db.select().from(users).where(eq(users.id, newId));
+    const [updatedUser] = await db.select(safeUserColumns).from(users).where(eq(users.id, newId));
     return c.json({ user: updatedUser });
   } catch (e) {
     console.error('User ID migration failed:', e);
