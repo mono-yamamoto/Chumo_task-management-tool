@@ -17,7 +17,7 @@ import driveRoute from './routes/drive';
 import notificationsRoute from './routes/notifications';
 import uploadRoute from './routes/upload';
 import taskPinsRoute from './routes/task-pins';
-import { hmacSign } from './lib/crypto';
+import { verifyHmac } from './lib/crypto';
 
 export type Env = {
   Bindings: {
@@ -81,11 +81,11 @@ app.get('/api/files/*', async (c) => {
   if (!token || !exp) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
-  if (Date.now() > Number(exp)) {
+  const expMs = Number(exp);
+  if (!Number.isFinite(expMs) || Date.now() > expMs) {
     return c.json({ error: 'URL expired' }, 401);
   }
-  const expected = await hmacSign(c.env.INTERNAL_API_KEY, raw + exp);
-  if (token !== expected) {
+  if (!(await verifyHmac(c.env.INTERNAL_API_KEY, raw + exp, token))) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
