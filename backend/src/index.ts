@@ -17,6 +17,7 @@ import driveRoute from './routes/drive';
 import notificationsRoute from './routes/notifications';
 import uploadRoute from './routes/upload';
 import taskPinsRoute from './routes/task-pins';
+import { hmacSign } from './lib/crypto';
 
 export type Env = {
   Bindings: {
@@ -52,30 +53,40 @@ app.use(
       return allowed.includes(origin) ? origin : allowed[0];
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key', 'X-Internal-User-Id'],
+    allowHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// エラーハンドリング
+// エラーハンドリング（スタックトレースはサーバーログのみ、レスポンスには含めない）
 app.onError((err, c) => {
   console.error('API Error:', err.message, err.stack);
-  const isDev = c.env.ENVIRONMENT === 'development';
-  return c.json(
-    { error: isDev ? err.message : 'Internal Server Error', ...(isDev && { stack: err.stack }) },
-    500
-  );
+  return c.json({ error: 'Internal Server Error' }, 500);
 });
 
 // Health check (認証不要)
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
-// ファイル配信（認証不要、DB不要）
+// ファイル配信（署名付きトークンで検証）
 app.get('/api/files/*', async (c) => {
   const raw = c.req.path.replace('/api/files/', '');
 
   // パストラバーサル防止
   if (raw.includes('..') || raw.startsWith('/') || raw.includes('\0') || raw.includes('\\')) {
     return c.json({ error: 'Invalid path' }, 400);
+  }
+
+  // 署名付きトークン検証
+  const token = c.req.query('token');
+  const exp = c.req.query('exp');
+  if (!token || !exp) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  if (Date.now() > Number(exp)) {
+    return c.json({ error: 'URL expired' }, 401);
+  }
+  const expected = await hmacSign(c.env.INTERNAL_API_KEY, raw + exp);
+  if (token !== expected) {
+    return c.json({ error: 'Unauthorized' }, 401);
   }
 
   const bucket = c.env.UPLOAD_BUCKET;

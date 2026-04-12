@@ -12,6 +12,7 @@ import {
   sheetsUpdateCell,
   sheetsGetSheetName,
 } from '../lib/google-api';
+import { hmacSign, verifyHmac } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -21,43 +22,9 @@ type DriveEnv = Env & {
 
 const app = new Hono<DriveEnv>();
 
-// --- OAuth HMAC署名ヘルパー（Web Crypto API） ---
+// --- OAuth state パラメータ ---
 
 const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10分
-
-async function hmacSign(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
-  return btoa(String.fromCharCode(...new Uint8Array(sig)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
-async function verifyHmac(secret: string, data: string, signatureB64: string): Promise<boolean> {
-  try {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-    const sigBytes = Uint8Array.from(
-      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')),
-      (c) => c.charCodeAt(0)
-    );
-    return await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
-  } catch {
-    return false;
-  }
-}
 
 function buildOAuthState(userId: string, ts: number, sig: string): string {
   return btoa(JSON.stringify({ userId, ts, sig }))
