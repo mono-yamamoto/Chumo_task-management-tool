@@ -22,34 +22,19 @@ pre-commit:
       glob: '**/*.{ts,tsx,js,jsx}'
       exclude:
         - 'node_modules/**'
-        - '.next/**'
-        - 'functions/**'
         - '*.config.js'
         - '*.config.mjs'
       run: npx eslint --fix {staged_files}
       stage_fixed: true
       skip_empty: true
 
-    # 3. ESLint (functions)
-    eslint-functions:
-      root: functions/
-      glob: 'functions/src/**/*.ts'
-      run: npx eslint --fix {staged_files}
-      stage_fixed: true
-      skip_empty: true
-
-    # 4. oxfmt (全体)
+    # 3. oxfmt (全体)
     oxfmt:
       glob: '**/*.{ts,tsx,js,jsx,json,md,css,scss,yaml,yml}'
       exclude:
         - 'node_modules/**'
-        - 'functions/node_modules/**'
-        - 'functions/lib/**'
-        - '.next/**'
         - '*.config.js'
         - '*.config.mjs'
-        - 'package-lock.json'
-        - 'functions/package-lock.json'
         - 'bun.lock'
       run: npx oxfmt {staged_files}
       stage_fixed: true
