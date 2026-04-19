@@ -3,6 +3,7 @@ import { TaskDetailHeader } from './components/TaskDetailHeader';
 import { TaskDetailActionBar } from './components/TaskDetailActionBar';
 import { TaskBasicInfo } from './components/TaskBasicInfo';
 import { TaskSessionHistory } from './components/TaskSessionHistory';
+import { TaskOver3Reason } from './components/TaskOver3Reason';
 import { TaskUnrecordedMembers } from './components/TaskUnrecordedMembers';
 import { TaskDetailComments } from './components/TaskDetailComments';
 import { Spinner } from '../../components/ui/Spinner';
@@ -51,11 +52,8 @@ export function TaskDetailPage() {
 
         {/* 右カラム 45% */}
         <div className="flex basis-[45%] flex-col gap-5 overflow-y-auto">
-          <TaskSessionHistory
-            taskId={task.id}
-            projectType={task.projectType}
-            over3Reason={task.over3Reason}
-          />
+          <TaskSessionHistory taskId={task.id} projectType={task.projectType} />
+          <TaskOver3Reason task={task} />
           <TaskUnrecordedMembers task={task} />
           <div className="h-px bg-border-default" />
           <TaskDetailComments taskId={task.id} projectType={task.projectType} />

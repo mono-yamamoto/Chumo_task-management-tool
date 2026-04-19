@@ -15,10 +15,9 @@ import type { TaskSession } from '../../../types';
 interface TaskSessionHistoryProps {
   taskId: string;
   projectType: string;
-  over3Reason?: string;
 }
 
-export function TaskSessionHistory({ taskId, projectType, over3Reason }: TaskSessionHistoryProps) {
+export function TaskSessionHistory({ taskId, projectType }: TaskSessionHistoryProps) {
   const { data: sessions, isLoading } = useTaskSessions(taskId, projectType);
   const { getUserName, getUserById } = useUsers();
   const { userId } = useAuth();
@@ -64,16 +63,6 @@ export function TaskSessionHistory({ taskId, projectType, over3Reason }: TaskSes
         </div>
       ) : (
         <p className="text-sm text-text-tertiary">セッション履歴はありません</p>
-      )}
-
-      {/* 3時間超過理由 */}
-      {over3Reason && (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-text-secondary">3時間超過理由</span>
-          <div className="h-20 overflow-y-auto rounded-sm border border-border-default bg-bg-secondary p-3">
-            <p className="whitespace-pre-wrap text-sm text-text-primary">{over3Reason}</p>
-          </div>
-        </div>
       )}
 
       {/* セッション編集モーダル */}
