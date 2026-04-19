@@ -7,7 +7,8 @@
  * - backend/src/db/migrations が Neon に適用済み
  *
  * 実行:
- *   npx tsx scripts/migrate-firestore-to-neon.ts
+ *   bun run backend:migrate:firestore         # プロジェクトルートから
+ *   cd backend && bun run migrate:firestore   # backend/ から
  *
  * 環境変数:
  *   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
@@ -27,10 +28,10 @@ import postgres from 'postgres';
 import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import { sql } from 'drizzle-orm';
 
-// .env.local を読み込む
+// .env.local を読み込む（backend/scripts/ からプロジェクトルートへ）
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-config({ path: resolve(__dirname, '../.env.local') });
+config({ path: resolve(__dirname, '../../.env.local') });
 
 // --- Config ---
 
@@ -65,15 +66,20 @@ const PROJECT_TYPES: ProjectType[] = [
 
 // --- ユーティリティ ---
 
-/** Firestore Timestamp → Date 変換（null安全） */
+/** Date が有効（Invalid Date でない）か */
+function validDate(date: Date): Date | null {
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Firestore Timestamp → Date 変換（null安全 / Invalid Date は null 扱い） */
 function toDate(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Timestamp) return value.toDate();
-  if (value instanceof Date) return value;
-  if (typeof value === 'string') return new Date(value);
+  if (value instanceof Date) return validDate(value);
+  if (typeof value === 'string') return validDate(new Date(value));
   if (typeof value === 'object' && value !== null && '_seconds' in value) {
     const ts = value as { _seconds: number; _nanoseconds: number };
-    return new Date(ts._seconds * 1000 + ts._nanoseconds / 1e6);
+    return validDate(new Date(ts._seconds * 1000 + ts._nanoseconds / 1e6));
   }
   return null;
 }
@@ -188,7 +194,7 @@ async function migrateUsers(fsDb: Firestore, db: ReturnType<typeof initNeon>) {
       const values = batch
         .map(
           (r) =>
-            `(${esc(r.id)}, ${esc(r.email)}, ${esc(r.display_name)}, ${esc(r.role)}::user_role, ${r.is_allowed}, ${escNull(r.github_username)}, ${escNull(r.google_refresh_token)}, ${escTs(r.google_oauth_updated_at)}, ${escNull(r.chat_id)}, ${escArr(r.fcm_tokens)}, ${escTs(r.created_at)}, ${escTs(r.updated_at)})`
+            `(${esc(r.id)}, ${esc(r.email)}, ${esc(r.display_name)}, ${esc(r.role)}::user_role, ${escBool(r.is_allowed)}, ${escNull(r.github_username)}, ${escNull(r.google_refresh_token)}, ${escTs(r.google_oauth_updated_at)}, ${escNull(r.chat_id)}, ${escArr(r.fcm_tokens)}, ${escTs(r.created_at)}, ${escTs(r.updated_at)})`
         )
         .join(',\n');
 
@@ -344,10 +350,12 @@ async function migrateTasks(
         fire_issue_url: d.fireIssueUrl || null,
         google_chat_thread_url: d.googleChatThreadUrl || null,
         backlog_url: d.backlogUrl || null,
+        pet_issue_url: d.petIssueUrl || null,
         due_date: toDate(d.dueDate),
         priority: d.priority || null,
         order: d.order ?? 0,
         over3_reason: d.over3Reason || null,
+        session_reminders: d.sessionReminders ? JSON.stringify(d.sessionReminders) : null,
         created_by: d.createdBy || '',
         created_at: toDateRequired(d.createdAt),
         updated_at: toDateRequired(d.updatedAt),
@@ -381,13 +389,13 @@ async function migrateTasks(
       const values = batch
         .map(
           (r) =>
-            `(${esc(r.id as string)}, ${esc(r.project_type as string)}::project_type, ${esc(r.title as string)}, ${escNull(r.description as string | null)}, ${esc(r.flow_status as string)}::flow_status, ${escEnumNull(r.progress_status as string | null, 'progress_status')}, ${escArr(r.assignee_ids as string[])}, ${escTs(r.it_up_date as Date | null)}, ${escTs(r.release_date as Date | null)}, ${esc(r.kubun_label_id as string)}, ${escNull(r.google_drive_url as string | null)}, ${escNull(r.fire_issue_url as string | null)}, ${escNull(r.google_chat_thread_url as string | null)}, ${escNull(r.backlog_url as string | null)}, ${escTs(r.due_date as Date | null)}, ${escEnumNull(r.priority as string | null, 'priority')}, ${r.order}, ${escNull(r.over3_reason as string | null)}, ${esc(r.created_by as string)}, ${escTs(r.created_at as Date | null)}, ${escTs(r.updated_at as Date | null)}, ${escTs(r.completed_at as Date | null)})`
+            `(${esc(r.id as string)}, ${esc(r.project_type as string)}::project_type, ${esc(r.title as string)}, ${escNull(r.description as string | null)}, ${esc(r.flow_status as string)}::flow_status, ${escEnumNull(r.progress_status as string | null, 'progress_status')}, ${escArr(r.assignee_ids as string[])}, ${escTs(r.it_up_date as Date | null)}, ${escTs(r.release_date as Date | null)}, ${esc(r.kubun_label_id as string)}, ${escNull(r.google_drive_url as string | null)}, ${escNull(r.fire_issue_url as string | null)}, ${escNull(r.google_chat_thread_url as string | null)}, ${escNull(r.backlog_url as string | null)}, ${escNull(r.pet_issue_url as string | null)}, ${escTs(r.due_date as Date | null)}, ${escEnumNull(r.priority as string | null, 'priority')}, ${escNum(r.order)}, ${escNull(r.over3_reason as string | null)}, ${escJsonb(r.session_reminders as string | null)}, ${esc(r.created_by as string)}, ${escTs(r.created_at as Date | null)}, ${escTs(r.updated_at as Date | null)}, ${escTs(r.completed_at as Date | null)})`
         )
         .join(',\n');
 
       await db.execute(
         sql.raw(`
-        INSERT INTO tasks (id, project_type, title, description, flow_status, progress_status, assignee_ids, it_up_date, release_date, kubun_label_id, google_drive_url, fire_issue_url, google_chat_thread_url, backlog_url, due_date, priority, "order", over3_reason, created_by, created_at, updated_at, completed_at)
+        INSERT INTO tasks (id, project_type, title, description, flow_status, progress_status, assignee_ids, it_up_date, release_date, kubun_label_id, google_drive_url, fire_issue_url, google_chat_thread_url, backlog_url, pet_issue_url, due_date, priority, "order", over3_reason, session_reminders, created_by, created_at, updated_at, completed_at)
         VALUES ${values}
         ON CONFLICT (id) DO NOTHING
       `)
@@ -471,7 +479,7 @@ async function migrateTaskSessions(
       const values = batch
         .map(
           (r) =>
-            `(${esc(r.id as string)}, ${esc(r.task_id as string)}, ${esc(r.project_type as string)}::project_type, ${esc(r.user_id as string)}, ${escTs(r.started_at as Date | null)}, ${escTs(r.ended_at as Date | null)}, ${r.duration_sec}, ${escNull(r.note as string | null)})`
+            `(${esc(r.id as string)}, ${esc(r.task_id as string)}, ${esc(r.project_type as string)}::project_type, ${esc(r.user_id as string)}, ${escTs(r.started_at as Date | null)}, ${escTs(r.ended_at as Date | null)}, ${escInt(r.duration_sec)}, ${escNull(r.note as string | null)})`
         )
         .join(',\n');
 
@@ -721,6 +729,23 @@ function escJsonb(value: string | null): string {
 function escEnumNull(value: string | null, enumName: string): string {
   if (!value) return 'NULL';
   return `${esc(value)}::${enumName}`;
+}
+
+/** boolean 型の SQL リテラル化（truthy/falsy を厳密な bool に正規化） */
+function escBool(value: unknown): string {
+  return value === true || value === 'true' ? 'TRUE' : 'FALSE';
+}
+
+/** 整数の SQL リテラル化（数値以外は 0 にフォールバック） */
+function escInt(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? String(Math.trunc(num)) : '0';
+}
+
+/** 実数の SQL リテラル化（数値以外は 0 にフォールバック） */
+function escNum(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? String(num) : '0';
 }
 
 // --- メイン ---
