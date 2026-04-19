@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useEffect, useRef } from 'react';
+import { type ReactNode, useCallback, useState, useEffect } from 'react';
 import { Plus, Check, Pencil } from 'lucide-react';
 import type { Task, FlowStatus, ProgressStatus, TaskSession } from '../../../types';
 import { Avatar } from '../../ui/Avatar';
@@ -12,6 +12,7 @@ import { useUsers } from '../../../hooks/useUsers';
 import { useLabels } from '../../../hooks/useLabels';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTaskSessions } from '../../../hooks/useTimer';
+import { useAssigneePopover } from '../../../hooks/useAssigneePopover';
 import { formatDuration } from '../../../lib/taskUtils';
 import {
   FLOW_STATUS_OPTIONS,
@@ -30,42 +31,39 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
   const { data: labels = [] } = useLabels();
 
   const [description, setDescription] = useState(task.description ?? '');
-  const [showAssigneePopover, setShowAssigneePopover] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDescription(task.description ?? '');
   }, [task.description]);
 
-  // クリック外でポップオーバーを閉じる
-  useEffect(() => {
-    if (!showAssigneePopover) return;
-    const handleClick = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setShowAssigneePopover(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showAssigneePopover]);
+  const handleUpdate = useCallback(
+    (data: Record<string, unknown>) => {
+      updateTask.mutate({ taskId: task.id, data });
+    },
+    [updateTask, task.id]
+  );
 
-  const handleUpdate = (data: Record<string, unknown>) => {
-    updateTask.mutate({ taskId: task.id, data });
-  };
+  const commitAssignees = useCallback(
+    (ids: string[]) => handleUpdate({ assigneeIds: ids }),
+    [handleUpdate]
+  );
+
+  const {
+    isOpen: showAssigneePopover,
+    draftIds: draftAssigneeIds,
+    popoverRef,
+    toggle: toggleAssigneePopover,
+    toggleId: toggleAssignee,
+  } = useAssigneePopover({
+    initialIds: task.assigneeIds,
+    onCommit: commitAssignees,
+  });
 
   const kubunOptions = labels.map((l) => ({ value: l.id, label: l.name }));
 
-  const assignees = task.assigneeIds
+  const assignees = draftAssigneeIds
     .map((id) => getUserById(id))
     .filter((u): u is NonNullable<typeof u> => u != null);
-
-  const toggleAssignee = (userId: string) => {
-    const current = task.assigneeIds;
-    const next = current.includes(userId)
-      ? current.filter((id) => id !== userId)
-      : [...current, userId];
-    handleUpdate({ assigneeIds: next });
-  };
 
   const handleDescriptionBlur = () => {
     if (description !== (task.description ?? '')) {
@@ -164,14 +162,14 @@ export function TaskDetailTab({ task }: TaskDetailTabProps) {
               aria-label="アサインを追加"
               size="sm"
               className="rounded-full border border-border-default text-text-tertiary"
-              onPress={() => setShowAssigneePopover((prev) => !prev)}
+              onPress={toggleAssigneePopover}
             >
               <Plus size={16} />
             </IconButton>
             {showAssigneePopover && (
               <div className="absolute left-0 top-full z-10 mt-1 max-h-60 w-56 overflow-y-auto rounded-md border border-border-default bg-bg-primary p-1 shadow-lg">
                 {users.map((user) => {
-                  const isAssigned = task.assigneeIds.includes(user.id);
+                  const isAssigned = draftAssigneeIds.includes(user.id);
                   return (
                     <button
                       key={user.id}

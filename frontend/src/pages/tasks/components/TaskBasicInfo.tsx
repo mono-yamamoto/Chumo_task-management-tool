@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Check } from 'lucide-react';
 import { Avatar } from '../../../components/ui/Avatar';
 import { IconButton } from '../../../components/ui/IconButton';
@@ -6,6 +6,7 @@ import { Select } from '../../../components/ui/Select';
 import { useUpdateTask } from '../../../hooks/useTaskMutations';
 import { useLabels } from '../../../hooks/useLabels';
 import { useUsers } from '../../../hooks/useUsers';
+import { useAssigneePopover } from '../../../hooks/useAssigneePopover';
 import {
   FLOW_STATUS_OPTIONS,
   PROGRESS_STATUS_OPTIONS,
@@ -23,24 +24,10 @@ export function TaskBasicInfo({ task }: TaskBasicInfoProps) {
   const { data: users = [] } = useUsers();
 
   const [description, setDescription] = useState(task.description ?? '');
-  const [showAssigneePopover, setShowAssigneePopover] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDescription(task.description ?? '');
   }, [task.description]);
-
-  // クリック外でポップオーバーを閉じる
-  useEffect(() => {
-    if (!showAssigneePopover) return;
-    const handleClick = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setShowAssigneePopover(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showAssigneePopover]);
 
   const handleUpdate = useCallback(
     (data: Record<string, unknown>) => {
@@ -49,18 +36,26 @@ export function TaskBasicInfo({ task }: TaskBasicInfoProps) {
     [updateTask, task.id]
   );
 
+  const commitAssignees = useCallback(
+    (ids: string[]) => handleUpdate({ assigneeIds: ids }),
+    [handleUpdate]
+  );
+
+  const {
+    isOpen: showAssigneePopover,
+    draftIds: draftAssigneeIds,
+    popoverRef,
+    toggle: toggleAssigneePopover,
+    toggleId: toggleAssignee,
+  } = useAssigneePopover({
+    initialIds: task.assigneeIds,
+    onCommit: commitAssignees,
+  });
+
   const kubunOptions = labels.map((l) => ({
     value: l.id,
     label: l.name,
   }));
-
-  const toggleAssignee = (userId: string) => {
-    const current = task.assigneeIds;
-    const next = current.includes(userId)
-      ? current.filter((id) => id !== userId)
-      : [...current, userId];
-    handleUpdate({ assigneeIds: next });
-  };
 
   const handleDescriptionBlur = () => {
     if (description !== (task.description ?? '')) {
@@ -119,7 +114,7 @@ export function TaskBasicInfo({ task }: TaskBasicInfoProps) {
       <div className="flex h-10 items-center">
         <span className="w-[120px] shrink-0 text-sm text-text-secondary">担当</span>
         <div className="relative flex flex-1 items-center gap-1">
-          {task.assigneeIds.map((id) => {
+          {draftAssigneeIds.map((id) => {
             const user = users.find((u) => u.id === id);
             return <Avatar key={id} name={user?.displayName ?? id} size="md" />;
           })}
@@ -128,14 +123,14 @@ export function TaskBasicInfo({ task }: TaskBasicInfoProps) {
               aria-label="担当を追加"
               size="sm"
               className="rounded-full border border-border-default text-text-tertiary"
-              onPress={() => setShowAssigneePopover((prev) => !prev)}
+              onPress={toggleAssigneePopover}
             >
               <Plus size={16} />
             </IconButton>
             {showAssigneePopover && (
               <div className="absolute left-0 top-full z-10 mt-1 max-h-60 w-64 overflow-y-auto rounded-md border border-border-default bg-bg-primary p-1 shadow-lg">
                 {users.map((user) => {
-                  const isAssigned = task.assigneeIds.includes(user.id);
+                  const isAssigned = draftAssigneeIds.includes(user.id);
                   return (
                     <button
                       key={user.id}
