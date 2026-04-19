@@ -44,8 +44,9 @@ export function useTasks(options: UseTasksOptions = {}) {
 }
 
 /**
- * 自分にアサインされた未完了タスクを取得（ダッシュボード用）
- * GET /api/tasks/assigned
+ * 自分にアサインされたタスク一覧を取得（ダッシュボード用・完了含む）
+ * KPIカードで完了件数を集計するため includeCompleted=true で全件取得する
+ * GET /api/tasks/assigned?includeCompleted=true
  */
 export function useAssignedTasks() {
   const { getToken, isSignedIn, userId } = useAuth();
@@ -53,9 +54,9 @@ export function useAssignedTasks() {
   return useQuery({
     queryKey: queryKeys.assignedTasks(userId ?? undefined),
     queryFn: () =>
-      apiClient<AssignedTasksResponse>('/api/tasks/assigned', { getToken }).then(
-        (res) => res.tasks
-      ),
+      apiClient<AssignedTasksResponse>('/api/tasks/assigned?includeCompleted=true', {
+        getToken,
+      }).then((res) => res.tasks),
     enabled: isSignedIn,
   });
 }
