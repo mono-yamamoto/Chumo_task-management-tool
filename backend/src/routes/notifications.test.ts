@@ -321,5 +321,29 @@ describe('Notifications API', () => {
       expect(reminders['mentioned-user'].sentBy).toBe('test-user');
       expect(reminders['author-user']).toBeDefined();
     });
+
+    it('対象ユーザーがタスクのアサイニーでない場合は400を返す', async () => {
+      await seedNotificationData();
+
+      const res = await app.request('/api/notifications/session-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: 'task-notify',
+          targetUserIds: ['mentioned-user', 'non-assignee-user'],
+        }),
+      });
+
+      expect(res.status).toBe(400);
+
+      // 通知レコードも sessionReminders も更新されていないこと
+      const notifications = await db.select().from(schema.notifications);
+      expect(notifications).toHaveLength(0);
+      const [task] = await db
+        .select({ sessionReminders: schema.tasks.sessionReminders })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.id, 'task-notify'));
+      expect(task!.sessionReminders).toBeNull();
+    });
   });
 });

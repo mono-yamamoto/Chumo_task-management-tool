@@ -115,7 +115,13 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
     return c.json({ error: 'Forbidden' }, 403);
   }
 
+  // targetUserIds はタスクのアサイニーに限定（タスク外ユーザーへの通知送信・sessionReminders 汚染を防ぐ）
+  const assigneeIdSet = new Set(task.assigneeIds);
   const uniqueTargetUserIds = [...new Set(data.targetUserIds)];
+  if (uniqueTargetUserIds.some((id) => !assigneeIdSet.has(id))) {
+    return c.json({ error: 'Target users must be task assignees' }, 400);
+  }
+
   const rows = uniqueTargetUserIds.map((recipientId) => ({
     id: generateId(),
     recipientId,
