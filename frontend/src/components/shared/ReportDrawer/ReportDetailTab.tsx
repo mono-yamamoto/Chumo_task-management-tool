@@ -1,13 +1,16 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Pencil } from 'lucide-react';
-import { Button } from '../../ui/Button';
 import { IconButton } from '../../ui/IconButton';
 import { Avatar } from '../../ui/Avatar';
 import { Spinner } from '../../ui/Spinner';
 import { UnrecordedMembersSection } from '../UnrecordedMembersSection';
 import type { ReportEntry, TaskSession } from '../../../types';
 import { formatDuration } from '../../../lib/taskUtils';
-import { formatDateTime as fmtDateTime, formatTime as fmtTime } from '../../../lib/constants';
+import {
+  formatDateTime as fmtDateTime,
+  formatTime as fmtTime,
+  OVER_3_HOURS_THRESHOLD_SEC,
+} from '../../../lib/constants';
 import { useUpdateTask } from '../../../hooks/useTaskMutations';
 import { useTask } from '../../../hooks/useTask';
 import { useUsers } from '../../../hooks/useUsers';
@@ -35,7 +38,25 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
     setReason(entry.over3Reason ?? '');
   }, [entry]);
 
+  // オーバーレイクリックで即アンマウントするため onBlur が発火しない場合がある。
+  // cleanup で最新値を保存する。
+  const reasonRef = useRef(reason);
+  reasonRef.current = reason;
+  const propsRef = useRef({ taskId: entry.taskId, initial: entry.over3Reason ?? '' });
+  propsRef.current = { taskId: entry.taskId, initial: entry.over3Reason ?? '' };
+  const mutateRef = useRef(updateTask.mutate);
+  mutateRef.current = updateTask.mutate;
+  useEffect(() => {
+    return () => {
+      const { taskId, initial } = propsRef.current;
+      if (reasonRef.current !== initial) {
+        mutateRef.current({ taskId, data: { over3Reason: reasonRef.current } });
+      }
+    };
+  }, []);
+
   const totalSec = sessions.reduce((sum, s) => sum + s.durationSec, 0);
+  const isOver3Hours = entry.totalDurationSec > OVER_3_HOURS_THRESHOLD_SEC;
 
   const recordedUserIds = useMemo(() => new Set(sessions.map((s) => s.userId)), [sessions]);
 
@@ -51,29 +72,24 @@ export function ReportDetailTab({ entry, onEditSession }: ReportDetailTabProps) 
         <label htmlFor="over3Reason" className="text-xs font-medium text-text-tertiary">
           3時間超過理由
         </label>
-        <textarea
-          id="over3Reason"
-          aria-describedby="over3ReasonHelp"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="3時間を超過した場合は理由を記入してください"
-          className="h-[100px] w-full resize-none rounded-lg border border-border-default bg-bg-secondary px-3 py-3 text-sm leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
-        />
-        <p id="over3ReasonHelp" className="text-xs text-text-tertiary">
-          3時間を超過した場合は理由を記入してください
-        </p>
-        <div className="flex justify-end">
-          <Button
-            variant="primary"
-            size="sm"
-            isDisabled={reason === (entry.over3Reason ?? '') || updateTask.isPending}
-            onPress={() =>
-              updateTask.mutate({ taskId: entry.taskId, data: { over3Reason: reason } })
-            }
-          >
-            {updateTask.isPending ? '保存中...' : '保存'}
-          </Button>
-        </div>
+        {isOver3Hours ? (
+          <textarea
+            id="over3Reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            onBlur={() => {
+              if (reason !== (entry.over3Reason ?? '')) {
+                updateTask.mutate({ taskId: entry.taskId, data: { over3Reason: reason } });
+              }
+            }}
+            placeholder="3時間を超過した理由を記入してください"
+            className="h-[100px] w-full resize-none rounded-lg border border-border-default bg-bg-secondary px-3 py-3 text-sm leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
+          />
+        ) : (
+          <p className="text-xs text-text-tertiary">
+            合計作業時間が3時間を超えると入力欄が表示されます。
+          </p>
+        )}
       </div>
 
       {/* セッション履歴 */}

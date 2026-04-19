@@ -18,6 +18,9 @@ export const NEW_TASK_THRESHOLD_DAYS = 7;
  */
 export const FLOW_STATUS_COMPLETED: FlowStatus = '完了';
 
+/** 3時間超過理由の入力対象判定に使う閾値（秒） */
+export const OVER_3_HOURS_THRESHOLD_SEC = 10800;
+
 /**
  * カードビューのFlowStatusカラム表示順序
  */
