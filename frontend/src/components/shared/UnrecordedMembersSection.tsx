@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUsers } from '@/hooks/useUsers';
 import { useSendSessionReminder } from '@/hooks/useSessionReminders';
+import { useToast } from '@/hooks/useToast';
+import { HttpError } from '@/lib/api';
+
+function reminderErrorMessage(error: Error): string {
+  if (error instanceof HttpError && error.status === 403) {
+    return '通知を送信する権限がありません（タスクのアサイニーまたは管理者のみ送信可能）';
+  }
+  return error.message || '通知の送信に失敗しました';
+}
 
 interface UnrecordedMembersSectionProps {
   taskId: string;
@@ -18,6 +27,7 @@ export function UnrecordedMembersSection({
 }: UnrecordedMembersSectionProps) {
   const { getUserName, getUserById } = useUsers();
   const sendReminder = useSendSessionReminder();
+  const { addToast } = useToast();
   const [resendIds, setResendIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -33,19 +43,31 @@ export function UnrecordedMembersSection({
 
   const handleNotifyAll = useCallback(() => {
     if (unnotifiedIds.length === 0) return;
-    sendReminder.mutate({ taskId, targetUserIds: unnotifiedIds });
-  }, [taskId, unnotifiedIds, sendReminder]);
+    sendReminder.mutate(
+      { taskId, targetUserIds: unnotifiedIds },
+      {
+        onSuccess: ({ sentCount }) => addToast(`${sentCount}件の通知を送信しました`, 'success'),
+        onError: (error) => addToast(reminderErrorMessage(error), 'error'),
+      }
+    );
+  }, [taskId, unnotifiedIds, sendReminder, addToast]);
 
   const handleNotifySingle = useCallback(
     (userId: string) => {
-      sendReminder.mutate({ taskId, targetUserIds: [userId] });
+      sendReminder.mutate(
+        { taskId, targetUserIds: [userId] },
+        {
+          onSuccess: () => addToast('通知を送信しました', 'success'),
+          onError: (error) => addToast(reminderErrorMessage(error), 'error'),
+        }
+      );
       setResendIds((prev) => {
         const next = new Set(prev);
         next.delete(userId);
         return next;
       });
     },
-    [taskId, sendReminder]
+    [taskId, sendReminder, addToast]
   );
 
   const handleToggleResend = useCallback((userId: string) => {
