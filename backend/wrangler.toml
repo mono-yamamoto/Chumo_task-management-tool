@@ -1,0 +1,37 @@
+name = "chumo-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
+
+[[r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"
+
+# --- Staging ---
+[env.staging]
+name = "chumo-api-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
+PREVIEW_USER_ID = "preview-user"
+# PREVIEW_ACCESS_TOKEN は wrangler secret で設定
+[[env.staging.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads-staging"
+
+# --- Production ---
+[env.production]
+name = "chumo-api-production"
+[env.production.vars]
+ENVIRONMENT = "production"
+REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
+REPORT_TEMPLATE_ID = "1Z7SJbouRw7lq99_CVUuKa0Sckcz1PPFB"
+[[env.production.r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "chumo-uploads"

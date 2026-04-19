@@ -2,6 +2,70 @@
 
 このファイルは、このプロジェクトでClaude Codeが作業を行う際のガイドラインを含んでいます。
 
+## テックスタック
+
+| 項目           | フロントエンド (`frontend/`)                            | バックエンド (`backend/`)   |
+| -------------- | ------------------------------------------------------- | --------------------------- |
+| フレームワーク | Vite + React 19                                         | Hono on Cloudflare Workers  |
+| UI/スタイル    | Tailwind CSS v4 + React Aria Components + Framer Motion | —                           |
+| 認証           | Clerk (`@clerk/clerk-react`)                            | Clerk (`@clerk/backend`)    |
+| DB             | —                                                       | Neon Postgres + Drizzle ORM |
+| ストレージ     | —                                                       | Cloudflare R2               |
+| ルーティング   | react-router-dom v7                                     | Hono Router                 |
+| ビルド         | `bun run build`                                         | `bun run backend:deploy`    |
+| 開発サーバー   | `bun run dev`（フロント+バック同時起動）                | —                           |
+| テスト         | —                                                       | `bun run test` (Vitest)     |
+
+## ディレクトリ構造
+
+```
+/
+├── frontend/                 # フロントエンド（Vite + React 19）
+│   └── src/
+│       ├── components/
+│       │   ├── layout/       #   AppLayout, Header, Sidebar
+│       │   ├── shared/       #   TaskDrawer, ReportDrawer, ThemeToggle
+│       │   └── ui/           #   Avatar, Badge, Button, Input, Modal, Select, Tabs 等
+│       ├── hooks/            #   useDashboardStats, useTaskDrawer, useTheme, useViewMode
+│       ├── lib/              #   api, constants
+│       ├── pages/            #   login, dashboard, tasks, reports, contacts, settings
+│       │   └── <page>/
+│       │       ├── <Page>.tsx       # ページ本体コンポーネント
+│       │       └── components/      # そのページ固有のコンポーネント
+│       └── types/
+│
+├── backend/                  # バックエンド（Hono + Cloudflare Workers）
+│   └── src/
+│       ├── db/               #   Drizzle schema, migrations
+│       ├── lib/              #   ビジネスロジック（backlog 等）
+│       ├── middleware/       #   auth, db
+│       └── routes/           #   tasks, reports, comments, timer, sessions, users 等
+│
+├── designs/                  # Pencil デザインファイル（.pen）
+├── docs/                     # 設計ドキュメント、仕様書、運用手順
+├── scripts/                  # DB同期スクリプト
+└── .claude/                  # Claude Code 設定・スキル・ルール
+```
+
+## ⚠️ Bash コマンド実行ルール
+
+- **`cd` を使わない**。ルート `package.json` にフロント・バック両方のコマンドが定義済みなので、プロジェクトルートから直接実行する
+- `git` コマンドも `cd` なしで直接実行する（cwd は常にプロジェクトルート）
+
+```bash
+# ✅ ルートの package.json 経由で実行
+bun run test              # → backend テスト
+bun run lint              # → frontend + backend lint
+bun run type-check        # → frontend + backend 型チェック
+bun run build             # → frontend ビルド
+bun run backend:db:generate  # → Drizzle マイグレーション生成
+bun run backend:db:migrate   # → Drizzle マイグレーション適用
+
+# ❌ cd を使わない
+cd frontend && bun run test
+cd /absolute/path && git status
+```
+
 ## ⚠️ 重要: プロジェクトルールとガイドライン
 
 **ユーザーリクエストを実行する前に、常に以下のプロジェクトガイドラインに従ってください:**
@@ -15,6 +79,7 @@
 - 利用可能な場合はMCPツール（Serena、Kiri、Chrome DevTools等）を使用
 - 完了前に徹底的なテストと検証を実行
 - プロジェクト固有のコーディング規約とパターンに従う
+- **フロントエンド実装時は `frontend/src/components/ui/` の共通コンポーネント（Button, Avatar, Modal, Select 等）を最初に調査し、既存コンポーネントが使える場合は必ずそれを使うこと。独自にスタイルを書く前にまず共通UIを確認する。**
 
 ### ⚠️ 必須: タスク計画と進捗追跡
 
@@ -94,41 +159,22 @@ Claude Codeは開発効率を向上させるために、いくつかのMCPツー
 - 関連するコードスニペットのコンテキストバンドリング
 - ファイルとシンボルの検索機能
 
-#### Next.js DevTools MCP
-
-開発サーバー用のNext.jsランタイム統合。
-
-**主な機能**:
-
-- ランタイムエラーの検出
-- ルート情報と分析
-- 開発サーバーの診断
-- リアルタイムのビルド状況
-
 ## コードスタイル
 
 - **TypeScript**: strict mode enabled
-- **Formatter**: Use `oxfmt`
-- **Linter**: Use `next lint`
 - **Naming conventions**:
   - Components: PascalCase
   - Functions and variables: camelCase
   - Constants: UPPER_SNAKE_CASE
-
-### Code Formatting
-
-```bash
-# Format code
-npm run format
-
-# Check formatting
-npm run format:check
-```
-
-### Lint
+- **Linter**: oxlint (`bun run frontend:format`)
+- **CSS**: Tailwind CSS v4 のユーティリティクラスを使用
+- **コンポーネント**: React Aria Components ベース（`frontend/src/components/ui/`）
 
 ```bash
-npm run lint
+# すべてプロジェクトルートから実行
+bun run lint          # フロントエンド + バックエンド lint
+bun run type-check    # フロントエンド + バックエンド型チェック
+bun run test          # バックエンドテスト
 ```
 
 ## Claude Codeでの開発ワークフロー
@@ -155,16 +201,16 @@ npm run lint
 
 **4. テストと検証フェーズ**
 
-- 型チェックを実行: `bun run type-check`
-- リントを実行: `bun run lint`
-- テストを実行: `bun run test`
+- フロントエンド型チェック: `bun run type-check`
+- フロントエンドリント: `bun run lint`
+- バックエンドテスト: `bun run test`
 - 必要に応じてブラウザ検証にChrome DevTools MCPを使用
 
 **5. コミットとデプロイフェーズ**
 
 - `git status`と`git diff`で変更を確認
 - コミットメッセージ規約に従って論理的なコミットを作成
-- ビルドをテスト: `bun run build`
+- フロントエンドビルドテスト: `bun run build`
 - PR/Issue関連の操作にはGitHub CLIを使用: `gh pr list`, `gh issue view`
 
 ### タスク管理のベストプラクティス
@@ -177,31 +223,35 @@ npm run lint
 
 ## テスト手順
 
-現在、テストスイートは実装されていません。機能を追加する際は、適切なテストを追加してください。
+```bash
+# バックエンドテスト（Vitest）
+bun run test
+bun run backend:test:coverage
+```
+
+フロントエンドのテストスイートは未整備。機能追加時に適切なテストを追加すること。
 
 ## ビルドコマンド
 
 ```bash
 # フロントエンドビルド
-npm run build
+bun run build
 
-# Cloud Functionsビルド
-npm run functions:build
+# バックエンドデプロイ（Cloudflare Workers）
+bun run backend:deploy
 ```
 
 ## デプロイコマンド
 
 ```bash
-# Firestoreルールとインデックスをデプロイ
-firebase deploy --only firestore:rules,firestore:indexes
+# バックエンドAPI（Cloudflare Workers）
+bun run backend:deploy                           # development（デフォルト）
+cd backend && wrangler deploy --env staging      # staging（ルートスクリプト未定義）
+cd backend && wrangler deploy --env production   # production（ルートスクリプト未定義）
 
-# Cloud Functionsをデプロイ
-npm run functions:deploy
-
-# 個別デプロイ
-npm run functions:deploy:timer
-npm run functions:deploy:drive
-npm run functions:deploy:github
+# DBマイグレーション
+bun run backend:db:generate
+bun run backend:db:migrate
 ```
 
 ## 重要事項
@@ -210,17 +260,11 @@ npm run functions:deploy:github
 
 **⚠️ 重要: これらのステップはエージェントが自動で実行できません。ユーザーに日本語で伝えてください。**
 
-**ユーザーに日本語で伝える**: 以下の手順は、エージェントが自動で実行できません。ユーザーに指示を出してください：
-
 1. **環境変数設定**: `.env.local`ファイルの作成と設定値の入力（既存の開発者から取得）
 2. **Git Hooks設定**: gitleaksのインストールとpre-commit hookの設定（機密情報の誤コミット防止）
 
 ### トラブルシューティング
 
-**トラブルシューティングガイダンスを提供する際は、ユーザーに日本語で伝える**:
-
-- **Firebase CLIエラー**: `firebase login`を再実行してください
-- **デプロイエラー**: `firebase use --add`でプロジェクトを再選択してください
 - **環境変数エラー**: `.env.local`ファイルが正しく設定されているか確認してください
 - **gitleaksエラー**: `gitleaks version`でインストールを確認し、`.git/hooks/pre-commit`に実行権限があるか確認してください（`chmod +x .git/hooks/pre-commit`）
 
@@ -234,11 +278,11 @@ npm run functions:deploy:github
 
 **初回セットアップについては [SETUP.md](./SETUP.md) を参照してください。**
 
-セットアップには以下が含まれます：
+```bash
+# 依存関係インストール（frontend/ と backend/ それぞれ）
+cd frontend && bun install
+cd backend && bun install
 
-- 依存関係のインストール
-- 環境変数の設定
-- Firebase CLIの設定
-- Git Hooksの設定
-- 開発サーバーの起動
-- Serena MCPオンボーディング（AIエージェント用）
+# 開発サーバー起動（フロント+バック同時起動）
+bun run dev   # → frontend: http://localhost:3000, backend: http://localhost:8787
+```

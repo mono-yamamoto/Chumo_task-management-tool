@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr:*)",
+      "Bash(gh release:*)",
+      "Bash(gh api:*)",
+      "Bash(zed --version)",
+      "WebFetch(domain:zed.dev)"
+    ]
+  }
+}

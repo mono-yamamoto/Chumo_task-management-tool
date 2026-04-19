@@ -17,39 +17,39 @@ pre-commit:
         fi
         gitleaks protect --staged
 
-    # 2. ESLint (メインプロジェクト)
-    eslint:
-      glob: '**/*.{ts,tsx,js,jsx}'
-      exclude:
-        - 'node_modules/**'
-        - '.next/**'
-        - 'functions/**'
-        - '*.config.js'
-        - '*.config.mjs'
-      run: npx eslint --fix {staged_files}
+    # 2. oxlint (フロントエンド)
+    oxlint-frontend:
+      glob: 'frontend/src/**/*.{ts,tsx}'
+      run: npx oxlint --fix -c frontend/.oxlintrc.json {staged_files}
       stage_fixed: true
       skip_empty: true
 
-    # 3. ESLint (functions)
-    eslint-functions:
-      root: functions/
-      glob: 'functions/src/**/*.ts'
-      run: npx eslint --fix {staged_files}
+    # 3. oxlint (バックエンド)
+    oxlint-backend:
+      glob: 'backend/src/**/*.ts'
+      run: npx oxlint --fix -c backend/.oxlintrc.json {staged_files}
       stage_fixed: true
       skip_empty: true
 
-    # 4. oxfmt (全体)
+    # 4. tsc (フロントエンド型チェック)
+    tsc-frontend:
+      glob: 'frontend/src/**/*.{ts,tsx}'
+      run: bun run frontend:type-check
+      skip_empty: true
+
+    # 5. tsc (バックエンド型チェック)
+    tsc-backend:
+      glob: 'backend/src/**/*.ts'
+      run: bun run backend:type-check
+      skip_empty: true
+
+    # 6. oxfmt (全体)
     oxfmt:
       glob: '**/*.{ts,tsx,js,jsx,json,md,css,scss,yaml,yml}'
       exclude:
         - 'node_modules/**'
-        - 'functions/node_modules/**'
-        - 'functions/lib/**'
-        - '.next/**'
         - '*.config.js'
         - '*.config.mjs'
-        - 'package-lock.json'
-        - 'functions/package-lock.json'
         - 'bun.lock'
       run: npx oxfmt {staged_files}
       stage_fixed: true

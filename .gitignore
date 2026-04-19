@@ -1,16 +1,12 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.js
 
 # testing
 /coverage
-
-# next.js
-/.next/
-/out/
 
 # production
 /build
@@ -26,20 +22,21 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.dev.vars
+.env.neon
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
-# functions
-functions/lib
-functions/node_modules
+# Wrangler (Cloudflare Workers local dev)
+.wrangler/
 
 # Kiri MCP index database
 .kiri/
 
 .claude/settings.local.json
 .claude/tmp
+.db-backups/

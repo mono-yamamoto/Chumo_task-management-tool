@@ -1,0 +1,322 @@
+@import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design Tokens — Pencil (designs/design.pen) から抽出
+ * 9パレット94色 + 24セマンティック + spacing/text/leading/font-weight/radius
+ */
+
+/* ---------- Primitive Colors ---------- */
+@theme {
+  /* Brand - Teal (11) */
+  --color-teal-50: #eefbfb;
+  --color-teal-100: #c5f2f1;
+  --color-teal-200: #8de5e4;
+  --color-teal-300: #55d5d4;
+  --color-teal-400: #27c2c1;
+  --color-teal-500: #00a8a7;
+  --color-teal-600: #008b8a;
+  --color-teal-700: #007170;
+  --color-teal-800: #005857;
+  --color-teal-900: #003f3e;
+  --color-teal-950: #002625;
+
+  /* Neutral (12) */
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-450: #8e96a4;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+  --color-neutral-950: #030712;
+
+  /* Red (10) */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+
+  /* Green (10) */
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-800: #166534;
+  --color-green-900: #14532d;
+
+  /* Blue (10) */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+
+  /* Amber (10) */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+
+  /* Cyan (10) */
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
+  --color-cyan-800: #155e75;
+  --color-cyan-900: #164e63;
+
+  /* Pink (10) */
+  --color-pink-50: #fdf2f8;
+  --color-pink-100: #fce7f3;
+  --color-pink-200: #fbcfe8;
+  --color-pink-300: #f9a8d4;
+  --color-pink-400: #f472b6;
+  --color-pink-500: #ec4899;
+  --color-pink-600: #db2777;
+  --color-pink-700: #be185d;
+  --color-pink-800: #9d174d;
+  --color-pink-900: #831843;
+
+  /* Purple (10) */
+  --color-purple-50: #f5f3ff;
+  --color-purple-100: #ede9fe;
+  --color-purple-200: #ddd6fe;
+  --color-purple-300: #c4b5fd;
+  --color-purple-400: #a78bfa;
+  --color-purple-500: #8b5cf6;
+  --color-purple-600: #7c3aed;
+  --color-purple-700: #6d28d9;
+  --color-purple-800: #5b21b6;
+  --color-purple-900: #4c1d95;
+
+  /* White */
+  --color-white: #ffffff;
+}
+
+/* ---------- Spacing / Text / Leading / Font Weight / Radius ---------- */
+@theme {
+  /* Spacing (7) */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 40px;
+  --spacing-xxl: 64px;
+
+  /* Font Size (7) — namespace: --text-* → text-{name} */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* Line Height (4) — namespace: --leading-* → leading-{name} */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  --leading-loose: 2;
+
+  /* Font Weight (3) */
+  --font-weight-regular: normal;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Border Radius (6) */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+/* ---------- Semantic Tokens (Light) ---------- */
+@theme {
+  /* Background */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-bg-brand-subtle: #eefbfb;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-disabled: #d1d5db;
+  --color-text-inverse: #ffffff;
+  --color-text-link: #007170;
+
+  /* Border */
+  --color-border-default: #e5e7eb;
+  --color-border-focus: #00a8a7;
+  --color-border-strong: #9ca3af;
+
+  /* Primary */
+  --color-primary-default: #008b8a;
+  --color-primary-hover: #007170;
+  --color-primary-active: #005857;
+
+  /* Status */
+  --color-error-bg: #fef2f2;
+  --color-error-text: #b91c1c;
+  --color-warning-bg: #fffbeb;
+  --color-warning-text: #b45309;
+  --color-success-bg: #f0fdf4;
+  --color-success-text: #15803d;
+  --color-info-bg: #eff6ff;
+  --color-info-text: #1d4ed8;
+}
+
+/* ---------- Semantic Tokens (Dark) ---------- */
+.dark {
+  /* Background */
+  --color-bg-primary: #030712;
+  --color-bg-secondary: #111827;
+  --color-bg-tertiary: #1f2937;
+  --color-bg-brand-subtle: #002625;
+
+  /* Text */
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-disabled: #4b5563;
+  --color-text-inverse: #ffffff;
+  --color-text-link: #27c2c1;
+
+  /* Border */
+  --color-border-default: #374151;
+  --color-border-focus: #27c2c1;
+  --color-border-strong: #6b7280;
+
+  /* Primary */
+  --color-primary-default: #008b8a;
+  --color-primary-hover: #00a8a7;
+  --color-primary-active: #007170;
+
+  /* Status */
+  --color-error-bg: #2d1b1b;
+  --color-error-text: #f87171;
+  --color-warning-bg: #2d2a1b;
+  --color-warning-text: #fbbf24;
+  --color-success-bg: #1b2d1e;
+  --color-success-text: #4ade80;
+  --color-info-bg: #1b1f2d;
+  --color-info-text: #60a5fa;
+}
+
+/* ---------- Base Styles ---------- */
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- Comment Editor & Content ---------- */
+.comment-html-content p {
+  margin: 0;
+}
+
+.comment-html-content a,
+.comment-html-content .comment-link {
+  color: var(--color-teal-600);
+  text-decoration: none;
+  word-break: break-all;
+}
+.comment-html-content a:hover,
+.comment-html-content .comment-link:hover {
+  text-decoration: underline;
+}
+
+.comment-html-content .comment-mention {
+  background-color: var(--color-teal-100);
+  color: var(--color-teal-700);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 500;
+}
+
+.comment-html-content .comment-mention-self {
+  background-color: var(--color-green-100);
+  color: var(--color-green-700);
+}
+
+.comment-html-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+/* TipTap editor area */
+.comment-editor-content {
+  outline: none;
+  min-height: 48px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.comment-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-neutral-400);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.comment-editor-content p {
+  margin: 0;
+}
+
+.comment-editor-content .comment-mention {
+  background-color: var(--color-teal-100);
+  color: var(--color-teal-700);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 500;
+}
+
+.comment-editor-content .comment-link {
+  color: var(--color-teal-600);
+  text-decoration: none;
+}
+.comment-editor-content .comment-link:hover {
+  text-decoration: underline;
+}
