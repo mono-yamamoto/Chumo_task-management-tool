@@ -27,7 +27,7 @@ bucket_name = "chumo-uploads-staging"
 
 # --- Production ---
 [env.production]
-name = "chumo-api-production"
+name = "chumo-api"
 [env.production.vars]
 ENVIRONMENT = "production"
 REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
