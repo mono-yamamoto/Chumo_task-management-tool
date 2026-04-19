@@ -49,6 +49,7 @@ export function useUpdateTask() {
       queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: queryKeys.assignedTasks() });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
     },
   });
 }
