@@ -57,15 +57,19 @@ export function UnrecordedMembersSection({
       sendReminder.mutate(
         { taskId, targetUserIds: [userId] },
         {
-          onSuccess: () => addToast('通知を送信しました', 'success'),
+          onSuccess: () => {
+            addToast('通知を送信しました', 'success');
+            // 再送モード解除は成功時のみ。失敗時はユーザーが再試行できるよう維持する。
+            setResendIds((prev) => {
+              if (!prev.has(userId)) return prev;
+              const next = new Set(prev);
+              next.delete(userId);
+              return next;
+            });
+          },
           onError: (error) => addToast(reminderErrorMessage(error), 'error'),
         }
       );
-      setResendIds((prev) => {
-        const next = new Set(prev);
-        next.delete(userId);
-        return next;
-      });
     },
     [taskId, sendReminder, addToast]
   );
