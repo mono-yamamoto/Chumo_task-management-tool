@@ -37,6 +37,7 @@
     "firebase-admin": "^13.8.0",
     "oxfmt": "^0.27.0",
     "oxlint": "^1.59.0",
+    "postgres": "^3.4.9",
     "typescript": "^5.3.0"
   }
 }

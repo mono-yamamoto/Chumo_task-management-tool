@@ -23,6 +23,8 @@ import { initializeApp, cert, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore, Timestamp } from 'firebase-admin/firestore';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import postgres from 'postgres';
+import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import { sql } from 'drizzle-orm';
 
 // .env.local を読み込む
@@ -129,10 +131,19 @@ function initFirebase(): Firestore {
 
 // --- Neon 初期化 ---
 
+// postgres-js 使用時のクライアント参照（終了時に明示 close する用）
+let postgresClient: ReturnType<typeof postgres> | null = null;
+
 function initNeon() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error('Missing DATABASE_URL in .env.local');
+  }
+
+  // localhost はNeon HTTP APIに到達できないのでpostgres-js(TCP)に切り替える
+  if (databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) {
+    postgresClient = postgres(databaseUrl);
+    return drizzlePg(postgresClient);
   }
 
   const queryFn = neon(databaseUrl);
@@ -771,7 +782,13 @@ async function main() {
   console.info('移行完了！');
 }
 
-main().catch((error) => {
-  console.error('移行エラー:', error);
-  process.exit(1);
-});
+main()
+  .then(async () => {
+    // postgres-js の接続は明示 close しないとプロセスが終了しない
+    if (postgresClient) await postgresClient.end();
+  })
+  .catch(async (error) => {
+    console.error('移行エラー:', error);
+    if (postgresClient) await postgresClient.end();
+    process.exit(1);
+  });
