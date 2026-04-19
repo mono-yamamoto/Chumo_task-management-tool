@@ -72,36 +72,3 @@ export async function createMentionNotifications(
   await db.insert(notifications).values(rows);
   return rows.length;
 }
-
-interface SessionReminderParams {
-  taskId: string;
-  targetUserIds: string[];
-  senderId: string;
-}
-
-/**
- * セッション未記録通知を作成
- */
-export async function createSessionReminderNotifications(
-  db: DbOrTx,
-  params: SessionReminderParams
-): Promise<number> {
-  const { taskId, targetUserIds, senderId } = params;
-  if (targetUserIds.length === 0) return 0;
-
-  const [task] = await db.select({ title: tasks.title }).from(tasks).where(eq(tasks.id, taskId));
-  const taskTitle = task?.title || 'タスク';
-
-  const rows = targetUserIds.map((recipientId) => ({
-    id: generateId(),
-    recipientId,
-    type: 'session_reminder' as const,
-    title: 'セッション未記録のお知らせ',
-    body: `タスク『${taskTitle}』のセッションが未記録です`,
-    taskId,
-    actorId: senderId,
-  }));
-
-  await db.insert(notifications).values(rows);
-  return rows.length;
-}
