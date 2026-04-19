@@ -7,6 +7,10 @@ on:
     paths:
       - 'backend/**'
 
+concurrency:
+  group: deploy-production-backend
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
