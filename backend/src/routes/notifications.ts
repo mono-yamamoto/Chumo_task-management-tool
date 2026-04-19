@@ -3,10 +3,8 @@ import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import { notifications, tasks, users } from '../db/schema';
-import {
-  createMentionNotifications,
-  createSessionReminderNotifications,
-} from '../lib/notifications';
+import { createMentionNotifications } from '../lib/notifications';
+import { generateId } from '../lib/id';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -102,8 +100,12 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
   const data = c.req.valid('json');
 
   // 権限チェック: 送信者がタスクのアサイニーまたはadminであること
+  // title は後段の通知本文で使うので同時に取得
   const [[task], [currentUser]] = await Promise.all([
-    db.select({ assigneeIds: tasks.assigneeIds }).from(tasks).where(eq(tasks.id, data.taskId)),
+    db
+      .select({ assigneeIds: tasks.assigneeIds, title: tasks.title })
+      .from(tasks)
+      .where(eq(tasks.id, data.taskId)),
     db.select({ role: users.role }).from(users).where(eq(users.id, userId)),
   ]);
   if (!task) {
@@ -113,34 +115,52 @@ app.post('/session-reminder', zValidator('json', sessionReminderSchema), async (
     return c.json({ error: 'Forbidden' }, 403);
   }
 
+  // targetUserIds はタスクのアサイニーに限定（タスク外ユーザーへの通知送信・sessionReminders 汚染を防ぐ）
+  const assigneeIdSet = new Set(task.assigneeIds);
   const uniqueTargetUserIds = [...new Set(data.targetUserIds)];
+  if (uniqueTargetUserIds.some((id) => !assigneeIdSet.has(id))) {
+    return c.json({ error: 'Target users must be task assignees' }, 400);
+  }
 
-  // 通知作成 + sessionReminders更新をトランザクションで実行
-  const sentCount = await db.transaction(async (tx) => {
-    const count = await createSessionReminderNotifications(tx, {
-      taskId: data.taskId,
-      targetUserIds: uniqueTargetUserIds,
-      senderId: userId,
+  const rows = uniqueTargetUserIds.map((recipientId) => ({
+    id: generateId(),
+    recipientId,
+    type: 'session_reminder' as const,
+    title: 'セッション未記録のお知らせ',
+    body: `タスク『${task.title}』のセッションが未記録です`,
+    taskId: data.taskId,
+    actorId: userId,
+  }));
+
+  const now = new Date().toISOString();
+  const newReminders: Record<string, { sentAt: string; sentBy: string }> = {};
+  for (const uid of uniqueTargetUserIds) {
+    newReminders[uid] = { sentAt: now, sentBy: userId };
+  }
+
+  const remindersMergeSql = sql`COALESCE(${tasks.sessionReminders}, '{}'::jsonb) || ${JSON.stringify(newReminders)}::jsonb`;
+  const taskWhere = eq(tasks.id, data.taskId);
+
+  // neon-http は batch() のみ、postgres-js は transaction() のみ対応のため実行時分岐
+  if ('batch' in db && typeof db.batch === 'function') {
+    await db.batch([
+      db.insert(notifications).values(rows),
+      db
+        .update(tasks)
+        .set({ sessionReminders: remindersMergeSql, updatedAt: new Date() })
+        .where(taskWhere),
+    ]);
+  } else {
+    await db.transaction(async (tx) => {
+      await tx.insert(notifications).values(rows);
+      await tx
+        .update(tasks)
+        .set({ sessionReminders: remindersMergeSql, updatedAt: new Date() })
+        .where(taskWhere);
     });
+  }
 
-    const now = new Date().toISOString();
-    const newReminders: Record<string, { sentAt: string; sentBy: string }> = {};
-    for (const uid of uniqueTargetUserIds) {
-      newReminders[uid] = { sentAt: now, sentBy: userId };
-    }
-
-    await tx
-      .update(tasks)
-      .set({
-        sessionReminders: sql`COALESCE(${tasks.sessionReminders}, '{}'::jsonb) || ${JSON.stringify(newReminders)}::jsonb`,
-        updatedAt: new Date(),
-      })
-      .where(eq(tasks.id, data.taskId));
-
-    return count;
-  });
-
-  return c.json({ success: true, sentCount });
+  return c.json({ success: true, sentCount: rows.length });
 });
 
 /**
