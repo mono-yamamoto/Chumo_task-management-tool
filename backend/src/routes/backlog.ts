@@ -23,9 +23,18 @@ const app = new Hono<BacklogEnv>();
 // --- POST /webhook ---
 
 app.post('/webhook', async (c) => {
+  const ua = c.req.header('User-Agent') ?? '';
+  const hasSecretHeader = Boolean(c.req.header('X-Backlog-Webhook-Secret'));
+  const hasSecretQuery = Boolean(c.req.query('secret'));
+  console.info('[backlog/webhook] received', { ua, hasSecretHeader, hasSecretQuery });
+
   // Webhook認証: 共有シークレットで検証
   const secret = c.req.header('X-Backlog-Webhook-Secret') ?? c.req.query('secret');
   if (!secret || secret !== c.env.BACKLOG_WEBHOOK_SECRET) {
+    console.warn('[backlog/webhook] rejected: invalid secret', {
+      hasSecretHeader,
+      hasSecretQuery,
+    });
     return c.json({ error: 'Invalid webhook secret' }, 401);
   }
 
@@ -34,18 +43,28 @@ app.post('/webhook', async (c) => {
 
   // ペイロードから課題情報を抽出
   const { issueKey, issueId, title, description, customFields } = extractIssueFromPayload(body);
+  console.info('[backlog/webhook] parsed', {
+    issueKey,
+    issueId,
+    hasTitle: Boolean(title),
+    hasDescription: description !== undefined,
+    customFieldsCount: customFields?.length ?? 0,
+  });
 
   if (!issueKey) {
+    console.warn('[backlog/webhook] rejected: missing issueKey');
     return c.json({ error: 'Missing issueKey in webhook payload' }, 400);
   }
 
   // 課題番号からプロジェクトタイプを抽出
   const projectType = extractProjectTypeFromIssueKey(issueKey);
   if (!projectType) {
+    console.warn('[backlog/webhook] rejected: unknown projectType', { issueKey });
     return c.json({ error: `Could not extract project type from issueKey: ${issueKey}` }, 400);
   }
 
   if (!title) {
+    console.warn('[backlog/webhook] rejected: missing title', { issueKey });
     return c.json({ error: 'Missing title in webhook payload' }, 400);
   }
 
@@ -98,6 +117,12 @@ app.post('/webhook', async (c) => {
       })
       .where(eq(taskExternals.taskId, existingExternal.taskId));
 
+    console.info('[backlog/webhook] updated task', {
+      taskId: existingExternal.taskId,
+      issueKey,
+      projectType,
+    });
+
     return c.json({
       success: true,
       taskId: existingExternal.taskId,
@@ -138,6 +163,8 @@ app.post('/webhook', async (c) => {
     lastSyncedAt: now,
     syncStatus: 'ok',
   });
+
+  console.info('[backlog/webhook] created task', { taskId, issueKey, projectType });
 
   return c.json({ success: true, taskId, projectType, issueKey });
 });
