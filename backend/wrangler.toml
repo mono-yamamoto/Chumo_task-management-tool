@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 [vars]
 ENVIRONMENT = "development"
 REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
@@ -15,6 +19,9 @@ bucket_name = "chumo-uploads"
 # --- Staging ---
 [env.staging]
 name = "chumo-api-staging"
+[env.staging.observability]
+enabled = true
+head_sampling_rate = 1
 [env.staging.vars]
 ENVIRONMENT = "staging"
 REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
@@ -28,6 +35,9 @@ bucket_name = "chumo-uploads-staging"
 # --- Production ---
 [env.production]
 name = "chumo-api"
+[env.production.observability]
+enabled = true
+head_sampling_rate = 1
 [env.production.vars]
 ENVIRONMENT = "production"
 REPORT_DRIVE_PARENT_ID = "1fw86FpPA_5dWAo6WW7RKM8DuU0aD5YNH"
