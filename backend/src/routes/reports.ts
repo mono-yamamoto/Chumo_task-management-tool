@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, gte, lte, isNull, inArray } from 'drizzle-orm';
-import { tasks, taskSessions, labels, users } from '../db/schema';
+import { tasks, taskSessions, labels, users, projectTypeEnum } from '../db/schema';
 import {
   getAccessToken,
   driveSearchFiles,
@@ -22,20 +22,30 @@ const app = new Hono<ReportEnv>();
 /** レポート集計の種別 */
 type ReportFetchType = 'normal' | 'brg' | 'faq_imp';
 
+type ProjectTypeValue = (typeof projectTypeEnum.enumValues)[number];
+
 /** 独立してレポート集計するプロジェクトタイプ（集計種別 → projectType） */
-const STANDALONE_REPORT_PROJECT: Record<Exclude<ReportFetchType, 'normal'>, string> = {
+const STANDALONE_REPORT_PROJECT: Record<Exclude<ReportFetchType, 'normal'>, ProjectTypeValue> = {
   brg: 'BRGREG',
   faq_imp: 'FAQ_IMP',
 };
 
+const STANDALONE_PROJECT_TYPES = new Set<string>(Object.values(STANDALONE_REPORT_PROJECT));
+
 /** 独立集計タイプ（通常集計からは除外する） */
 function isStandaloneReportProject(projectType: string): boolean {
-  return Object.values(STANDALONE_REPORT_PROJECT).includes(projectType);
+  return STANDALONE_PROJECT_TYPES.has(projectType);
 }
 
 /** クエリの type パラメータを正規化（不正値は normal にフォールバック） */
 function normalizeReportType(value: string | undefined): ReportFetchType {
-  return value === 'brg' || value === 'faq_imp' ? value : 'normal';
+  return value && value in STANDALONE_REPORT_PROJECT ? (value as ReportFetchType) : 'normal';
+}
+
+/** 「運用」区分ラベルのIDを取得（無ければ null） */
+async function getUnyoLabelId(db: Database): Promise<string | null> {
+  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
+  return allLabels.find((l) => l.name === '運用')?.id ?? null;
 }
 
 /** CSVインジェクション防止: 先頭が数式トリガー文字の場合にシングルクォートをプレフィクス */
@@ -70,17 +80,15 @@ async function fetchReportData(
   fromDate: Date,
   toDate: Date,
   type: ReportFetchType,
+  unyoLabelId: string | null,
   userId?: string
 ): Promise<{ items: ReportItem[]; totalDurationSec: number }> {
-  // 1. 「運用」区分ラベルのIDを取得
-  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
-
-  const unyoLabel = allLabels.find((l) => l.name === '運用');
-  if (!unyoLabel) {
+  // 「運用」区分ラベルが無ければ集計対象なし
+  if (!unyoLabelId) {
     return { items: [], totalDurationSec: 0 };
   }
 
-  // 2. 対象タスクを取得
+  // 対象タスクを取得
   // 独立集計タイプ(BRG/FAQ_IMP): projectType一致の全タスク（kubunLabelId不問）
   // 通常タイプ: kubunLabelId=運用 のタスクのうち、独立集計タイプを除外
   const taskSelect = {
@@ -93,18 +101,15 @@ async function fetchReportData(
 
   let targetTasks: TaskRow[];
   if (type !== 'normal') {
-    const targetProjectType = STANDALONE_REPORT_PROJECT[type];
     targetTasks = await db
       .select(taskSelect)
       .from(tasks)
-      .where(
-        eq(tasks.projectType, targetProjectType as (typeof tasks.projectType.enumValues)[number])
-      );
+      .where(eq(tasks.projectType, STANDALONE_REPORT_PROJECT[type]));
   } else {
     const allTasks = await db
       .select(taskSelect)
       .from(tasks)
-      .where(eq(tasks.kubunLabelId, unyoLabel.id));
+      .where(eq(tasks.kubunLabelId, unyoLabelId));
     targetTasks = allTasks.filter((t) => !isStandaloneReportProject(t.projectType));
   }
 
@@ -198,7 +203,15 @@ app.get('/time', async (c) => {
   toDate.setHours(23, 59, 59, 999);
 
   const userId = c.get('userId');
-  const { items, totalDurationSec } = await fetchReportData(db, fromDate, toDate, type, userId);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items, totalDurationSec } = await fetchReportData(
+    db,
+    fromDate,
+    toDate,
+    type,
+    unyoLabelId,
+    userId
+  );
 
   return c.json({ items, totalDurationSec });
 });
@@ -226,7 +239,8 @@ app.get('/time/csv', async (c) => {
 
   toDate.setHours(23, 59, 59, 999);
 
-  const { items } = await fetchReportData(db, fromDate, toDate, type);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items } = await fetchReportData(db, fromDate, toDate, type, unyoLabelId);
 
   // CSV生成（UTF-8+BOM/CRLF）
   const BOM = '\uFEFF';
@@ -457,10 +471,11 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
   );
   toDate.setHours(23, 59, 59, 999);
 
+  const unyoLabelId = await getUnyoLabelId(db);
   const [normalData, brgData, faqImpData] = await Promise.all([
-    fetchReportData(db, fromDate, toDate, 'normal'),
-    fetchReportData(db, fromDate, toDate, 'brg'),
-    fetchReportData(db, fromDate, toDate, 'faq_imp'),
+    fetchReportData(db, fromDate, toDate, 'normal', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'brg', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'faq_imp', unyoLabelId),
   ]);
 
   // 「データ」シートにデータ書き込み

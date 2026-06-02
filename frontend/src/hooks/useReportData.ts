@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
 import { useAuth } from './useAuth';
+import type { ReportType } from '../types';
 
 interface ReportItem {
   title: string;
@@ -23,11 +24,7 @@ export type { ReportItem };
  * レポートデータを取得
  * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg|faq_imp
  */
-export function useReportData(
-  type: 'normal' | 'brg' | 'faq_imp',
-  fromDate: string,
-  toDate: string
-) {
+export function useReportData(type: ReportType, fromDate: string, toDate: string) {
   const { getToken, isSignedIn } = useAuth();
 
   return useQuery({
@@ -44,7 +41,7 @@ export function useReportData(
  * レポートCSVをダウンロード
  */
 export async function downloadReportCsv(
-  type: 'normal' | 'brg' | 'faq_imp',
+  type: ReportType,
   fromDate: string,
   toDate: string,
   getToken: () => Promise<string | null>
