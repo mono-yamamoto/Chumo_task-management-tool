@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, gte, lte, isNull, inArray } from 'drizzle-orm';
-import { tasks, taskSessions, labels, users } from '../db/schema';
+import { tasks, taskSessions, labels, users, projectTypeEnum } from '../db/schema';
 import {
   getAccessToken,
   driveSearchFiles,
@@ -19,20 +19,33 @@ type ReportEnv = Env & { Variables: { db: Database; userId: string } };
 
 const app = new Hono<ReportEnv>();
 
-const PROJECT_TYPES = [
-  'REG2017',
-  'BRGREG',
-  'MONO',
-  'MONO_ADMIN',
-  'DES_FIRE',
-  'DesignSystem',
-  'DMREG2',
-  'monosus',
-  'PRREG',
-] as const;
+/** レポート集計の種別 */
+type ReportFetchType = 'normal' | 'brg' | 'faq_imp';
 
-function isBRGREGProject(projectType: string): boolean {
-  return projectType === 'BRGREG';
+type ProjectTypeValue = (typeof projectTypeEnum.enumValues)[number];
+
+/** 独立してレポート集計するプロジェクトタイプ（集計種別 → projectType） */
+const STANDALONE_REPORT_PROJECT: Record<Exclude<ReportFetchType, 'normal'>, ProjectTypeValue> = {
+  brg: 'BRGREG',
+  faq_imp: 'FAQ_IMP',
+};
+
+const STANDALONE_PROJECT_TYPES = new Set<string>(Object.values(STANDALONE_REPORT_PROJECT));
+
+/** 独立集計タイプ（通常集計からは除外する） */
+function isStandaloneReportProject(projectType: string): boolean {
+  return STANDALONE_PROJECT_TYPES.has(projectType);
+}
+
+/** クエリの type パラメータを正規化（不正値は normal にフォールバック） */
+function normalizeReportType(value: string | undefined): ReportFetchType {
+  return value && value in STANDALONE_REPORT_PROJECT ? (value as ReportFetchType) : 'normal';
+}
+
+/** 「運用」区分ラベルのIDを取得（無ければ null） */
+async function getUnyoLabelId(db: Database): Promise<string | null> {
+  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
+  return allLabels.find((l) => l.name === '運用')?.id ?? null;
 }
 
 /** CSVインジェクション防止: 先頭が数式トリガー文字の場合にシングルクォートをプレフィクス */
@@ -66,25 +79,18 @@ async function fetchReportData(
   db: Database,
   fromDate: Date,
   toDate: Date,
-  type: 'normal' | 'brg',
+  type: ReportFetchType,
+  unyoLabelId: string | null,
   userId?: string
 ): Promise<{ items: ReportItem[]; totalDurationSec: number }> {
-  // 1. 「運用」区分ラベルのIDを取得
-  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
-
-  const unyoLabel = allLabels.find((l) => l.name === '運用');
-  if (!unyoLabel) {
+  // 「運用」区分ラベルが無ければ集計対象なし
+  if (!unyoLabelId) {
     return { items: [], totalDurationSec: 0 };
   }
 
-  // 2. 対象プロジェクトタイプをフィルタ
-  const targetTypes = PROJECT_TYPES.filter((pt) =>
-    type === 'brg' ? isBRGREGProject(pt) : !isBRGREGProject(pt)
-  );
-
-  // 3. 対象タスクを取得
-  // BRGタイプ: projectType=BRGREG の全タスク（kubunLabelId不問）
-  // 通常タイプ: kubunLabelId=運用 のタスクのみ
+  // 対象タスクを取得
+  // 独立集計タイプ(BRG/FAQ_IMP): projectType一致の全タスク（kubunLabelId不問）
+  // 通常タイプ: kubunLabelId=運用 のタスクのうち、独立集計タイプを除外
   const taskSelect = {
     id: tasks.id,
     title: tasks.title,
@@ -94,16 +100,17 @@ async function fetchReportData(
   };
 
   let targetTasks: TaskRow[];
-  if (type === 'brg') {
-    targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
+  if (type !== 'normal') {
+    targetTasks = await db
+      .select(taskSelect)
+      .from(tasks)
+      .where(eq(tasks.projectType, STANDALONE_REPORT_PROJECT[type]));
   } else {
     const allTasks = await db
       .select(taskSelect)
       .from(tasks)
-      .where(eq(tasks.kubunLabelId, unyoLabel.id));
-    targetTasks = allTasks.filter((t) =>
-      targetTypes.includes(t.projectType as (typeof PROJECT_TYPES)[number])
-    );
+      .where(eq(tasks.kubunLabelId, unyoLabelId));
+    targetTasks = allTasks.filter((t) => !isStandaloneReportProject(t.projectType));
   }
 
   if (targetTasks.length === 0) {
@@ -179,7 +186,7 @@ app.get('/time', async (c) => {
   const db = c.get('db');
   const from = c.req.query('from');
   const to = c.req.query('to');
-  const type = (c.req.query('type') ?? 'normal') as 'normal' | 'brg';
+  const type = normalizeReportType(c.req.query('type'));
 
   if (!from || !to) {
     return c.json({ error: 'Missing required parameters: from, to' }, 400);
@@ -196,7 +203,15 @@ app.get('/time', async (c) => {
   toDate.setHours(23, 59, 59, 999);
 
   const userId = c.get('userId');
-  const { items, totalDurationSec } = await fetchReportData(db, fromDate, toDate, type, userId);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items, totalDurationSec } = await fetchReportData(
+    db,
+    fromDate,
+    toDate,
+    type,
+    unyoLabelId,
+    userId
+  );
 
   return c.json({ items, totalDurationSec });
 });
@@ -209,7 +224,7 @@ app.get('/time/csv', async (c) => {
   const db = c.get('db');
   const from = c.req.query('from');
   const to = c.req.query('to');
-  const type = (c.req.query('type') ?? 'normal') as 'normal' | 'brg';
+  const type = normalizeReportType(c.req.query('type'));
 
   if (!from || !to) {
     return c.json({ error: 'Missing required parameters: from, to' }, 400);
@@ -224,7 +239,8 @@ app.get('/time/csv', async (c) => {
 
   toDate.setHours(23, 59, 59, 999);
 
-  const { items } = await fetchReportData(db, fromDate, toDate, type);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items } = await fetchReportData(db, fromDate, toDate, type, unyoLabelId);
 
   // CSV生成（UTF-8+BOM/CRLF）
   const BOM = '\uFEFF';
@@ -263,25 +279,31 @@ function formatDuration(sec: number): string {
  */
 function buildDataSheetRows(
   normalItems: ReportItem[],
-  brgItems: ReportItem[]
+  brgItems: ReportItem[],
+  faqImpItems: ReportItem[]
 ): (string | number)[][] {
   const rows: (string | number)[][] = [];
 
+  const pushSection = (heading: string, items: ReportItem[]) => {
+    rows.push([heading, '', '']);
+    rows.push(['案件名', '実績時間', '3時間超内容']);
+    for (const item of items) {
+      rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
+    }
+  };
+
   // 通常セクション
-  rows.push(['■通常■', '', '']);
-  rows.push(['案件名', '実績時間', '3時間超内容']);
-  for (const item of normalItems) {
-    rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
-  }
+  pushSection('■通常■', normalItems);
 
   rows.push(['', '', '']); // 空行
 
   // BRGセクション
-  rows.push(['■BRG■', '', '']);
-  rows.push(['案件名', '実績時間', '3時間超内容']);
-  for (const item of brgItems) {
-    rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
-  }
+  pushSection('■BRG■', brgItems);
+
+  rows.push(['', '', '']); // 空行
+
+  // FAQ_IMPセクション
+  pushSection('■FAQ_IMP■', faqImpItems);
 
   return rows;
 }
@@ -449,13 +471,15 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
   );
   toDate.setHours(23, 59, 59, 999);
 
-  const [normalData, brgData] = await Promise.all([
-    fetchReportData(db, fromDate, toDate, 'normal'),
-    fetchReportData(db, fromDate, toDate, 'brg'),
+  const unyoLabelId = await getUnyoLabelId(db);
+  const [normalData, brgData, faqImpData] = await Promise.all([
+    fetchReportData(db, fromDate, toDate, 'normal', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'brg', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'faq_imp', unyoLabelId),
   ]);
 
   // 「データ」シートにデータ書き込み
-  const rows = buildDataSheetRows(normalData.items, brgData.items);
+  const rows = buildDataSheetRows(normalData.items, brgData.items, faqImpData.items);
   const range = `データ!A1:C${rows.length}`;
   const written = await sheetsUpdateValues(accessToken, spreadsheetId, range, rows);
   if (!written) {

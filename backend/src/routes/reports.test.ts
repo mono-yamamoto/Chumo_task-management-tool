@@ -56,6 +56,26 @@ async function seedReportData() {
     createdBy: 'test-user',
   });
 
+  // タスク: FAQ_IMP + 運用（レポート対象 faq_imp、normalからは除外される）
+  await db.insert(schema.tasks).values({
+    id: 'task-faq-unyo',
+    projectType: 'FAQ_IMP',
+    title: 'FAQ_IMP運用タスク',
+    kubunLabelId: 'kubun-unyo',
+    order: 1,
+    createdBy: 'test-user',
+  });
+
+  // タスク: FAQ_IMP + 開発（区分不問で faq_imp に含まれることの検証用）
+  await db.insert(schema.tasks).values({
+    id: 'task-faq-dev',
+    projectType: 'FAQ_IMP',
+    title: 'FAQ_IMP開発タスク',
+    kubunLabelId: 'kubun-kaihatsu',
+    order: 2,
+    createdBy: 'test-user',
+  });
+
   // タスク: MONO + 開発（レポート対象外）
   await db.insert(schema.tasks).values({
     id: 'task-mono-dev',
@@ -134,6 +154,28 @@ async function seedReportData() {
     durationSec: 14400,
   });
 
+  // セッション: task-faq-unyo に 30分（1800秒）
+  await db.insert(schema.taskSessions).values({
+    id: 'session-faq-1',
+    taskId: 'task-faq-unyo',
+    projectType: 'FAQ_IMP',
+    userId: 'test-user',
+    startedAt: new Date(baseDate.getTime()),
+    endedAt: new Date(baseDate.getTime() + 1800 * 1000),
+    durationSec: 1800,
+  });
+
+  // セッション: task-faq-dev に 15分（900秒、区分=開発でも faq_imp に含まれる）
+  await db.insert(schema.taskSessions).values({
+    id: 'session-faq-2',
+    taskId: 'task-faq-dev',
+    projectType: 'FAQ_IMP',
+    userId: 'test-user',
+    startedAt: new Date(baseDate.getTime()),
+    endedAt: new Date(baseDate.getTime() + 900 * 1000),
+    durationSec: 900,
+  });
+
   // セッション: 対象期間外（レポートに含まれない）
   await db.insert(schema.taskSessions).values({
     id: 'session-out-of-range',
@@ -194,6 +236,31 @@ describe('Reports API', () => {
       expect(body.items).toHaveLength(1);
       expect(body.totalDurationSec).toBe(7200);
       expect(body.items[0].taskId).toBe('task-brg-1');
+    });
+
+    it('faq_impタイプは区分不問でFAQ_IMPの全タスクを集計する', async () => {
+      await seedReportData();
+
+      const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=faq_imp');
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as any;
+      // faq_imp = FAQ_IMP全タスク（区分不問）→ task-faq-unyo(1800) + task-faq-dev(900)
+      expect(body.items).toHaveLength(2);
+      expect(body.totalDurationSec).toBe(1800 + 900);
+
+      const taskIds = body.items.map((i: { taskId: string }) => i.taskId).sort();
+      expect(taskIds).toEqual(['task-faq-dev', 'task-faq-unyo']);
+    });
+
+    it('normalタイプはFAQ_IMP（運用区分）を含まない', async () => {
+      await seedReportData();
+
+      const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
+      const body = (await res.json()) as any;
+
+      const faqTask = body.items.find((i: { taskId: string }) => i.taskId === 'task-faq-unyo');
+      expect(faqTask).toBeUndefined();
     });
 
     it('開発区分のタスクはレポートに含まれない', async () => {

@@ -18,6 +18,12 @@ import { useToast } from '../../hooks/useToast';
 import { HttpError } from '../../lib/api';
 import type { ReportEntry, ReportType, TaskSession } from '../../types';
 
+const REPORT_TABS: { id: ReportType | 'all'; label: string }[] = [
+  { id: 'all', label: '通常' },
+  { id: 'brg', label: 'BRG' },
+  { id: 'faq_imp', label: 'FAQ_IMP' },
+];
+
 function getLastDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
@@ -220,8 +226,11 @@ export function ReportPage() {
 
         <Tabs selectedKey={activeTab} onSelectionChange={handleTabChange}>
           <TabList>
-            <Tab id="all">通常</Tab>
-            <Tab id="brg">BRG</Tab>
+            {REPORT_TABS.map((t) => (
+              <Tab key={t.id} id={t.id}>
+                {t.label}
+              </Tab>
+            ))}
           </TabList>
 
           <div className="mt-6 space-y-6">
@@ -244,14 +253,11 @@ export function ReportPage() {
                 レポートの取得に失敗しました: {error.message}
               </div>
             ) : (
-              <>
-                <TabPanel id="all">
+              REPORT_TABS.map((t) => (
+                <TabPanel key={t.id} id={t.id}>
                   <ReportTable entries={entries} onRowClick={handleRowClick} />
                 </TabPanel>
-                <TabPanel id="brg">
-                  <ReportTable entries={entries} onRowClick={handleRowClick} />
-                </TabPanel>
-              </>
+              ))
             )}
           </div>
         </Tabs>
