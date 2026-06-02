@@ -56,6 +56,7 @@ export const projectTypeEnum = pgEnum('project_type', [
   'DMREG2',
   'monosus',
   'PRREG',
+  'FAQ_IMP',
 ]);
 
 export const contactTypeEnum = pgEnum('contact_type', ['error', 'feature', 'other']);

@@ -29,6 +29,7 @@ const PROJECT_TYPES = [
   'DMREG2',
   'monosus',
   'PRREG',
+  'FAQ_IMP',
 ] as const;
 
 function isBRGREGProject(projectType: string): boolean {

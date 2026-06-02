@@ -50,6 +50,13 @@
       "when": 1775894757939,
       "tag": "0006_dazzling_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780367091692,
+      "tag": "0007_chemical_fixer",
+      "breakpoints": true
     }
   ]
 }

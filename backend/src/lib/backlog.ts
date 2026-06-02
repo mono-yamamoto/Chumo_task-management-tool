@@ -12,6 +12,7 @@ const PROJECT_TYPES = [
   'DMREG2',
   'monosus',
   'PRREG',
+  'FAQ_IMP',
 ] as const;
 
 type ProjectType = (typeof PROJECT_TYPES)[number];
@@ -33,6 +34,7 @@ const BACKLOG_CUSTOM_FIELDS: Record<ProjectType, BacklogCustomFieldConfig> = {
   DesignSystem: {},
   DMREG2: { itUpDate: 1073767877, releaseDate: 1073767878 },
   monosus: {},
+  FAQ_IMP: {},
 };
 
 export function getCustomFieldConfig(projectType: string): BacklogCustomFieldConfig {
