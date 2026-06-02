@@ -22,6 +22,10 @@ describe('Backlog ユーティリティ', () => {
       expect(extractProjectTypeFromIssueKey('MONO-100')).toBe('MONO');
     });
 
+    it('FAQ_IMP-10 → FAQ_IMP（アンダースコア入りキー）', () => {
+      expect(extractProjectTypeFromIssueKey('FAQ_IMP-10')).toBe('FAQ_IMP');
+    });
+
     it('不明なプロジェクトキー → null', () => {
       expect(extractProjectTypeFromIssueKey('UNKNOWN-100')).toBeNull();
     });
@@ -108,6 +112,11 @@ describe('Backlog ユーティリティ', () => {
     it('MONOは空オブジェクトを返す', () => {
       const config = getCustomFieldConfig('MONO');
       expect(config.itUpDate).toBeUndefined();
+    });
+
+    it('FAQ_IMPは空オブジェクトを返す', () => {
+      const config = getCustomFieldConfig('FAQ_IMP');
+      expect(config).toEqual({});
     });
 
     it('不明なプロジェクトは空オブジェクトを返す', () => {
