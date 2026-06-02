@@ -213,7 +213,7 @@ export interface AppNotification {
   createdAt: string;
 }
 
-export type ReportType = 'normal' | 'brg';
+export type ReportType = 'normal' | 'brg' | 'faq_imp';
 
 export interface ReportEntry {
   id: string;

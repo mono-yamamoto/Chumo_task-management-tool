@@ -21,9 +21,13 @@ export type { ReportItem };
 
 /**
  * レポートデータを取得
- * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg
+ * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg|faq_imp
  */
-export function useReportData(type: 'normal' | 'brg', fromDate: string, toDate: string) {
+export function useReportData(
+  type: 'normal' | 'brg' | 'faq_imp',
+  fromDate: string,
+  toDate: string
+) {
   const { getToken, isSignedIn } = useAuth();
 
   return useQuery({
@@ -40,7 +44,7 @@ export function useReportData(type: 'normal' | 'brg', fromDate: string, toDate: 
  * レポートCSVをダウンロード
  */
 export async function downloadReportCsv(
-  type: 'normal' | 'brg',
+  type: 'normal' | 'brg' | 'faq_imp',
   fromDate: string,
   toDate: string,
   getToken: () => Promise<string | null>

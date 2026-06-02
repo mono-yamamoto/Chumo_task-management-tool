@@ -222,6 +222,7 @@ export function ReportPage() {
           <TabList>
             <Tab id="all">通常</Tab>
             <Tab id="brg">BRG</Tab>
+            <Tab id="faq_imp">FAQ_IMP</Tab>
           </TabList>
 
           <div className="mt-6 space-y-6">
@@ -249,6 +250,9 @@ export function ReportPage() {
                   <ReportTable entries={entries} onRowClick={handleRowClick} />
                 </TabPanel>
                 <TabPanel id="brg">
+                  <ReportTable entries={entries} onRowClick={handleRowClick} />
+                </TabPanel>
+                <TabPanel id="faq_imp">
                   <ReportTable entries={entries} onRowClick={handleRowClick} />
                 </TabPanel>
               </>
