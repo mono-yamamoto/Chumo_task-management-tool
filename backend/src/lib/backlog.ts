@@ -2,20 +2,12 @@
  * Backlog連携ユーティリティ
  */
 
-const PROJECT_TYPES = [
-  'REG2017',
-  'BRGREG',
-  'MONO',
-  'MONO_ADMIN',
-  'DES_FIRE',
-  'DesignSystem',
-  'DMREG2',
-  'monosus',
-  'PRREG',
-  'FAQ_IMP',
-] as const;
+import { projectTypeEnum } from '../db/schema';
 
-type ProjectType = (typeof PROJECT_TYPES)[number];
+/** project_type enum を唯一のソースとして参照（重複定義しない） */
+const PROJECT_TYPES = projectTypeEnum.enumValues;
+
+type ProjectType = (typeof projectTypeEnum.enumValues)[number];
 
 // --- カスタムフィールド設定 ---
 
