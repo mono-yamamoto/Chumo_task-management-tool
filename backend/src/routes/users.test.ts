@@ -1,12 +1,39 @@
-import { describe, it, expect, afterAll, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll, afterEach, beforeEach, vi } from 'vitest';
+import { createClerkClient } from '@clerk/backend';
 import { createTestApp, db, client } from './test-app';
 import { cleanDatabase } from '../db/test-helpers';
 import * as schema from '../db/schema';
 import { eq } from 'drizzle-orm';
 
+// Clerk SDK 全体をモック化。
+// /me の Clerk fallback は getUser が reject されれば 404 に落ちるだけなので既存テストに無害。
+// /invite 系は各テスト内で createInvitation の挙動を上書きする。
+vi.mock('@clerk/backend', () => ({
+  createClerkClient: vi.fn(),
+}));
+
+const mockedCreateClerkClient = vi.mocked(createClerkClient);
+
+function setClerkMock(overrides: {
+  createInvitation?: ReturnType<typeof vi.fn>;
+  getUser?: ReturnType<typeof vi.fn>;
+}) {
+  mockedCreateClerkClient.mockReturnValue({
+    invitations: {
+      createInvitation: overrides.createInvitation ?? vi.fn().mockResolvedValue({ id: 'inv_mock' }),
+    },
+    users: {
+      getUser: overrides.getUser ?? vi.fn().mockRejectedValue(new Error('clerk mock not set')),
+    },
+  } as unknown as ReturnType<typeof createClerkClient>);
+}
+
 const app = createTestApp();
 
 beforeEach(async () => {
+  // 各テストの先頭で Clerk モックをデフォルト状態にリセット
+  setClerkMock({});
+
   await db.insert(schema.users).values({
     id: 'test-user',
     email: 'test@example.com',
@@ -243,6 +270,117 @@ describe('Users API', () => {
       expect(String(body.error)).toContain('APP_ORIGIN');
 
       // 早期 return なので DB にプレースホルダーは作られない
+      const [shouldNotExist] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'new@example.com'));
+      expect(shouldNotExist).toBeUndefined();
+    });
+
+    it('APP_ORIGIN が URL 形式不正なら 500 を返す', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      const res = await adminApp.request(
+        '/api/users/invite',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'new@example.com', role: 'member' }),
+        },
+        { APP_ORIGIN: 'localhost:3000' }
+      );
+
+      expect(res.status).toBe(500);
+      const body = (await res.json()) as any;
+      expect(String(body.error)).toContain('APP_ORIGIN');
+    });
+
+    it('Clerk が 4xx を返したら 400 で詳細メッセージを返す', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      const clerkErr = {
+        status: 422,
+        errors: [
+          {
+            long_message: 'redirect_url is not allowed for this instance',
+            code: 'redirect_url_not_allowed',
+          },
+        ],
+      };
+      setClerkMock({
+        createInvitation: vi.fn().mockRejectedValue(clerkErr),
+      });
+
+      const res = await adminApp.request(
+        '/api/users/invite',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'new@example.com', role: 'member' }),
+        },
+        { APP_ORIGIN: 'https://example.com' }
+      );
+
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as any;
+      expect(body.error).toContain('redirect_url is not allowed');
+
+      // DB プレースホルダーは補償削除されている
+      const [shouldNotExist] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'new@example.com'));
+      expect(shouldNotExist).toBeUndefined();
+    });
+
+    it('Clerk が 5xx / 例外なら 500 で汎用メッセージを返し内部エラーを露出しない', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      setClerkMock({
+        createInvitation: vi
+          .fn()
+          .mockRejectedValue(new Error('Internal Clerk error: secret_leak_xyz')),
+      });
+
+      const res = await adminApp.request(
+        '/api/users/invite',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'new@example.com', role: 'member' }),
+        },
+        { APP_ORIGIN: 'https://example.com' }
+      );
+
+      expect(res.status).toBe(500);
+      const body = (await res.json()) as any;
+      // 内部メッセージは漏らさない
+      expect(body.error).not.toContain('secret_leak_xyz');
+      // 汎用メッセージは返す
+      expect(body.error).toContain('招待の送信に失敗');
+
+      // 補償削除されている
       const [shouldNotExist] = await db
         .select()
         .from(schema.users)
