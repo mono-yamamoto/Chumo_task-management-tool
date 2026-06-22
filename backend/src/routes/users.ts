@@ -284,6 +284,16 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
     return c.json({ error: 'このメールアドレスは既に登録されています' }, 409);
   }
 
+  // APP_ORIGIN が未設定だと Clerk が redirectUrl を弾いて Bad Request になるため、事前に検知する
+  const appOrigin = c.env.APP_ORIGIN;
+  if (!appOrigin) {
+    console.error('[invite] APP_ORIGIN is not configured');
+    return c.json(
+      { error: 'サーバー設定エラー: APP_ORIGIN が未設定のため招待を送信できません' },
+      500
+    );
+  }
+
   // DBにプレースホルダーユーザーを先に作成（整合性確保）
   const invitedId = `invited_${crypto.randomUUID()}`;
   await db.insert(users).values({
@@ -296,7 +306,6 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
 
   // Clerk 招待送信（DB insert 成功後）
   const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
-  const appOrigin = c.env.APP_ORIGIN;
 
   try {
     await clerkClient.invitations.createInvitation({
@@ -309,7 +318,33 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       .delete(users)
       .where(eq(users.id, invitedId))
       .catch(() => {});
-    const message = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
+
+    // Clerk SDK の例外から詳細を取り出し、構造化ログに残す
+    const clerkErr = e as {
+      status?: number;
+      errors?: Array<{ message?: string; long_message?: string; code?: string }>;
+    };
+    const clerkErrors = Array.isArray(clerkErr.errors) ? clerkErr.errors : [];
+    console.error('[invite] Clerk invitation failed', {
+      email,
+      role,
+      redirectUrl: `${appOrigin}/login`,
+      status: clerkErr.status,
+      errors: clerkErrors,
+      raw: e instanceof Error ? e.message : String(e),
+    });
+
+    // 4xx は Clerk が返した詳細メッセージをそのまま返し、500 は汎用メッセージで返す
+    const detail = clerkErrors
+      .map((err) => err.long_message || err.message || '')
+      .filter(Boolean)
+      .join(' / ');
+    const fallback = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
+    const message = detail || fallback;
+    const status = clerkErr.status;
+    if (status && status >= 400 && status < 500) {
+      return c.json({ error: message }, 400);
+    }
     return c.json({ error: message }, 500);
   }
 
