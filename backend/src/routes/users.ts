@@ -293,11 +293,18 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       500
     );
   }
-  // APP_ORIGIN がプロトコル抜け等の不正 URL だと Clerk 側で 400 になるため、ここで弾く
+  // APP_ORIGIN がプロトコル抜け等の不正 URL だと Clerk 側で 400 になるため、ここで弾く。
+  // new URL('localhost:3000') は throw しない（'localhost:' をスキーマ扱いする）ので
+  // http(s) であることまで明示的に検証する。
+  let isValidHttpUrl = false;
   try {
-    new URL(appOrigin);
+    const parsed = new URL(appOrigin);
+    isValidHttpUrl = parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
-    console.error('[invite] APP_ORIGIN is not a valid URL', { appOrigin });
+    isValidHttpUrl = false;
+  }
+  if (!isValidHttpUrl) {
+    console.error('[invite] APP_ORIGIN is not a valid http(s) URL', { appOrigin });
     return c.json({ error: 'サーバー設定エラー: APP_ORIGIN の形式が不正です' }, 500);
   }
 
