@@ -293,6 +293,13 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       500
     );
   }
+  // APP_ORIGIN がプロトコル抜け等の不正 URL だと Clerk 側で 400 になるため、ここで弾く
+  try {
+    new URL(appOrigin);
+  } catch {
+    console.error('[invite] APP_ORIGIN is not a valid URL', { appOrigin });
+    return c.json({ error: 'サーバー設定エラー: APP_ORIGIN の形式が不正です' }, 500);
+  }
 
   // DBにプレースホルダーユーザーを先に作成（整合性確保）
   const invitedId = `invited_${crypto.randomUUID()}`;
@@ -325,8 +332,10 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       errors?: Array<{ message?: string; long_message?: string; code?: string }>;
     };
     const clerkErrors = Array.isArray(clerkErr.errors) ? clerkErr.errors : [];
+    // PII を生で残さないようメアドはマスクしてログ
+    const maskedEmail = email.replace(/(^.).*(@.*$)/, '$1***$2');
     console.error('[invite] Clerk invitation failed', {
-      email,
+      email: maskedEmail,
       role,
       redirectUrl: `${appOrigin}/login`,
       status: clerkErr.status,
@@ -334,18 +343,17 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
       raw: e instanceof Error ? e.message : String(e),
     });
 
-    // 4xx は Clerk が返した詳細メッセージをそのまま返し、500 は汎用メッセージで返す
-    const detail = clerkErrors
-      .map((err) => err.long_message || err.message || '')
-      .filter(Boolean)
-      .join(' / ');
-    const fallback = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
-    const message = detail || fallback;
+    // 4xx は Clerk が返した詳細メッセージをそのまま返す。5xx は内部情報露出を避けて固定文言
     const status = clerkErr.status;
     if (status && status >= 400 && status < 500) {
-      return c.json({ error: message }, 400);
+      const detail = clerkErrors
+        .map((err) => err.long_message || err.message || '')
+        .filter(Boolean)
+        .join(' / ');
+      const fallback = e instanceof Error ? e.message : 'Clerk招待に失敗しました';
+      return c.json({ error: detail || fallback }, 400);
     }
-    return c.json({ error: message }, 500);
+    return c.json({ error: '招待の送信に失敗しました。時間をおいて再試行してください。' }, 500);
   }
 
   return c.json({ success: true });
