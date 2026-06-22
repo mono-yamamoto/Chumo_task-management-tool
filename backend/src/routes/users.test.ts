@@ -156,6 +156,101 @@ describe('Users API', () => {
     });
   });
 
+  describe('POST /api/users/invite', () => {
+    it('管理者以外は403', async () => {
+      const res = await app.request('/api/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'new@example.com', role: 'member' }),
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('既存の有効なメールは409', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      const res = await adminApp.request('/api/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', role: 'member' }),
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('無効化されたユーザーは再有効化される', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      await db.insert(schema.users).values({
+        id: 'disabled-user',
+        email: 'disabled@example.com',
+        displayName: 'Disabled',
+        role: 'member',
+        isAllowed: false,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      const res = await adminApp.request('/api/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'disabled@example.com', role: 'admin' }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+      expect(body.restored).toBe(true);
+
+      const [restored] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'disabled-user'));
+      expect(restored.isAllowed).toBe(true);
+      expect(restored.role).toBe('admin');
+    });
+
+    it('APP_ORIGIN 未設定なら 500 で明示メッセージを返す', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        role: 'admin',
+        isAllowed: true,
+      });
+      const adminApp = createTestApp('admin-user');
+
+      // APP_ORIGIN が空のままリクエスト
+      const res = await adminApp.request('/api/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'new@example.com', role: 'member' }),
+      });
+
+      expect(res.status).toBe(500);
+      const body = (await res.json()) as any;
+      expect(String(body.error)).toContain('APP_ORIGIN');
+
+      // 早期 return なので DB にプレースホルダーは作られない
+      const [shouldNotExist] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'new@example.com'));
+      expect(shouldNotExist).toBeUndefined();
+    });
+  });
+
   describe('POST /api/users/me/fcm-tokens', () => {
     it('FCMトークンを追加できる', async () => {
       const res = await app.request('/api/users/me/fcm-tokens', {
