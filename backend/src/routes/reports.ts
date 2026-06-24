@@ -35,12 +35,35 @@ const STANDALONE_PROJECT_TYPES_ARRAY = Object.values(STANDALONE_REPORT_PROJECT);
 
 /** クエリの type パラメータを正規化（不正値は normal にフォールバック） */
 function normalizeReportType(value: string | undefined): ReportFetchType {
-  return value && value in STANDALONE_REPORT_PROJECT ? (value as ReportFetchType) : 'normal';
+  if (!value) return 'normal';
+  // `in` だと toString / constructor 等プロトタイプ上のキーも true になるため、自身プロパティだけ判定
+  return Object.prototype.hasOwnProperty.call(STANDALONE_REPORT_PROJECT, value)
+    ? (value as Exclude<ReportFetchType, 'normal'>)
+    : 'normal';
+}
+
+/**
+ * YYYY-MM-DD 形式の日付文字列を厳格にパース
+ * - new Date() の寛容仕様（'2025-02-30' → '2025-03-02' に自動補正）を防ぐため、
+ *   regex で形式を縛った上で「パース結果が元の数値と一致するか」も検証する
+ */
+function parseStrictYmd(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) {
+    return null;
+  }
+  return dt;
 }
 
 /**
  * レポート系API共通: from/to クエリのパース・検証
- * - 必須チェック、ISO日付検証、toDate を 23:59:59.999 まで含むよう調整
+ * - 必須チェック、YYYY-MM-DD 厳格検証、from <= to の順序検証、
+ *   toDate を 23:59:59.999 まで含むよう調整
  */
 function parseReportDateRange(
   from: string | undefined,
@@ -49,12 +72,16 @@ function parseReportDateRange(
   if (!from || !to) {
     return { error: 'Missing required parameters: from, to', status: 400 };
   }
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+  const fromDate = parseStrictYmd(from);
+  const toDate = parseStrictYmd(to);
+  if (!fromDate || !toDate) {
     return { error: 'Invalid date format', status: 400 };
   }
-  toDate.setHours(23, 59, 59, 999);
+  if (fromDate > toDate) {
+    return { error: '`from` must be earlier than or equal to `to`', status: 400 };
+  }
+  // 実行環境のタイムゾーン依存を避けるため UTC で末尾時刻を設定
+  toDate.setUTCHours(23, 59, 59, 999);
   return { fromDate, toDate };
 }
 
@@ -97,11 +124,12 @@ function computeSessionDurationInRangeSec(
   if (session.startedAt >= fromDate && session.endedAt <= toDate) return total;
 
   // 期間と重なる秒数 / セッション全体の秒数 で按分
+  // toDate は 23:59:59.999 まで含むため round で 1ms 誤差を吸収
   const overlapStart = session.startedAt > fromDate ? session.startedAt : fromDate;
   const overlapEnd = session.endedAt < toDate ? session.endedAt : toDate;
   const overlapSec = Math.max(
     0,
-    Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / 1000)
+    Math.round((overlapEnd.getTime() - overlapStart.getTime()) / 1000)
   );
   const sessionRealSec = Math.max(
     1,

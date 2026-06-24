@@ -5,7 +5,8 @@ import type { PartnerReportItem } from '../../../hooks/usePartnerReport';
 
 interface PartnerReportListProps {
   partners: PartnerReportItem[];
-  onTaskClick: (taskId: string) => void;
+  /** クリックされたパートナーIDとタスクIDを返す（同一taskIdが複数partnerに存在しうるため両方必要） */
+  onTaskClick: (partnerId: string, taskId: string) => void;
 }
 
 export function PartnerReportList({ partners, onTaskClick }: PartnerReportListProps) {
@@ -28,7 +29,7 @@ export function PartnerReportList({ partners, onTaskClick }: PartnerReportListPr
 
 interface PartnerSectionProps {
   partner: PartnerReportItem;
-  onTaskClick: (taskId: string) => void;
+  onTaskClick: (partnerId: string, taskId: string) => void;
 }
 
 function PartnerSection({ partner, onTaskClick }: PartnerSectionProps) {
@@ -61,7 +62,7 @@ function PartnerSection({ partner, onTaskClick }: PartnerSectionProps) {
           {i > 0 && <div className="h-px bg-border-default" />}
           <button
             type="button"
-            onClick={() => onTaskClick(task.taskId)}
+            onClick={() => onTaskClick(partner.userId, task.taskId)}
             className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-bg-secondary"
           >
             <span className="flex-1 truncate text-sm text-text-primary">{task.title}</span>

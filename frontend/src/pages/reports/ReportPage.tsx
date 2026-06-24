@@ -174,9 +174,10 @@ export function ReportPage() {
     setActiveTab(key as ReportTabId);
   };
 
-  const handlePartnerTaskClick = (taskId: string) => {
-    // partnerデータから該当タスクを引いてReportEntry形式に変換し、ReportDetailTabで詳細を出す
-    const task = partnerData?.partners.flatMap((p) => p.tasks).find((t) => t.taskId === taskId);
+  const handlePartnerTaskClick = (partnerId: string, taskId: string) => {
+    // 同一 taskId が複数 partner に存在しうるため、partnerId で対象を限定してから引く
+    const partner = partnerData?.partners.find((p) => p.userId === partnerId);
+    const task = partner?.tasks.find((t) => t.taskId === taskId);
     if (!task) return;
 
     setSelectedTask({

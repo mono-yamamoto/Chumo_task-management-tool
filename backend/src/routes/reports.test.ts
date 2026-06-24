@@ -616,5 +616,105 @@ describe('Reports API', () => {
       const res = await app.request('/api/reports/time/partners?from=invalid&to=2025-06-30');
       expect(res.status).toBe(400);
     });
+
+    it('存在しない日付（2025-02-30 等）は400を返す', async () => {
+      const res = await app.request('/api/reports/time/partners?from=2025-02-30&to=2025-06-30');
+      expect(res.status).toBe(400);
+    });
+
+    it('from > to は400を返す', async () => {
+      const res = await app.request('/api/reports/time/partners?from=2025-06-30&to=2025-06-01');
+      expect(res.status).toBe(400);
+    });
+
+    it('月またぎセッションは期間内の重なり時間で按分される', async () => {
+      // セットアップ: partner + task
+      await db.insert(schema.users).values({
+        id: 'partner-cross',
+        email: 'partner-cross@example.com',
+        displayName: '月またぎパートナー',
+        role: 'partner',
+        isAllowed: true,
+      });
+      await db.insert(schema.labels).values({
+        id: 'kubun-cross',
+        name: 'cross-kubun',
+        color: '#888888',
+        projectId: null,
+        ownerId: 'partner-cross',
+      });
+      await db.insert(schema.tasks).values({
+        id: 'cross-task',
+        projectType: 'MONO',
+        title: '月またぎタスク',
+        kubunLabelId: 'kubun-cross',
+        order: 1,
+        createdBy: 'partner-cross',
+      });
+      // 5/31 23:00 → 6/1 02:00（3時間 = 10800秒）
+      await db.insert(schema.taskSessions).values({
+        id: 'cross-session',
+        taskId: 'cross-task',
+        projectType: 'MONO',
+        userId: 'partner-cross',
+        startedAt: new Date('2025-05-31T23:00:00Z'),
+        endedAt: new Date('2025-06-01T02:00:00Z'),
+        durationSec: 10800,
+      });
+
+      // 6月レポートを取得（期間と重なるのは 6/1 00:00 ～ 6/1 02:00 = 7200秒）
+      const res = await app.request('/api/reports/time/partners?from=2025-06-01&to=2025-06-30');
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as any;
+      const partner = body.partners.find((p: { userId: string }) => p.userId === 'partner-cross');
+      expect(partner).toBeDefined();
+      expect(partner.totalDurationSec).toBe(7200);
+      expect(partner.tasks[0].durationSec).toBe(7200);
+
+      // 5月レポートを取得（期間と重なるのは 5/31 23:00 ～ 5/31 24:00 = 3600秒）
+      const res5 = await app.request('/api/reports/time/partners?from=2025-05-01&to=2025-05-31');
+      const body5 = (await res5.json()) as any;
+      const partner5 = body5.partners.find((p: { userId: string }) => p.userId === 'partner-cross');
+      expect(partner5).toBeDefined();
+      expect(partner5.totalDurationSec).toBe(3600);
+    });
+  });
+
+  describe('GET /api/reports/time (月またぎ按分)', () => {
+    it('月またぎセッションは normal レポートでも期間内の重なり時間で按分される', async () => {
+      await db.insert(schema.labels).values({
+        id: 'kubun-unyo',
+        name: '運用',
+        color: '#00897B',
+        projectId: null,
+        ownerId: 'test-user',
+      });
+      await db.insert(schema.tasks).values({
+        id: 'task-cross',
+        projectType: 'MONO',
+        title: 'normal月またぎタスク',
+        kubunLabelId: 'kubun-unyo',
+        order: 1,
+        createdBy: 'test-user',
+      });
+      // 5/31 22:00 → 6/1 02:00（4時間 = 14400秒）。6月の重なりは2時間 = 7200秒
+      await db.insert(schema.taskSessions).values({
+        id: 'cross-normal',
+        taskId: 'task-cross',
+        projectType: 'MONO',
+        userId: 'test-user',
+        startedAt: new Date('2025-05-31T22:00:00Z'),
+        endedAt: new Date('2025-06-01T02:00:00Z'),
+        durationSec: 14400,
+      });
+
+      const res = await app.request('/api/reports/time?from=2025-06-01&to=2025-06-30&type=normal');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+      const task = body.items.find((i: { taskId: string }) => i.taskId === 'task-cross');
+      expect(task).toBeDefined();
+      expect(task.durationSec).toBe(7200);
+    });
   });
 });
