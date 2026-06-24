@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
+import { ROLE_LABELS_EN, USER_ROLES } from '../../../lib/roleLabels';
+import type { UserRole } from '../../../types';
 
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (email: string, role: 'Admin' | 'Member') => void;
+  onAdd: (email: string, role: UserRole) => void;
 }
 
 export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'Admin' | 'Member'>('Member');
+  const [role, setRole] = useState<UserRole>('member');
   const [roleOpen, setRoleOpen] = useState(false);
 
   const handleAdd = () => {
@@ -20,12 +22,12 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) return;
     onAdd(trimmedEmail, role);
     setEmail('');
-    setRole('Member');
+    setRole('member');
   };
 
   const handleClose = () => {
     setEmail('');
-    setRole('Member');
+    setRole('member');
     setRoleOpen(false);
     onClose();
   };
@@ -77,7 +79,7 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
               aria-labelledby="member-role-label"
               className="flex h-10 w-full items-center justify-between rounded-md border border-border-default px-3 text-sm text-text-primary transition-colors hover:bg-bg-secondary"
             >
-              <span>{role}</span>
+              <span>{ROLE_LABELS_EN[role]}</span>
               <ChevronDown size={16} className="text-text-secondary" />
             </button>
             {roleOpen && (
@@ -88,7 +90,7 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
                   aria-labelledby="member-role-label"
                   className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-md border border-border-default bg-bg-primary shadow-lg"
                 >
-                  {(['Admin', 'Member'] as const).map((r) => (
+                  {USER_ROLES.map((r) => (
                     <button
                       key={r}
                       type="button"
@@ -100,7 +102,7 @@ export function AddMemberModal({ isOpen, onClose, onAdd }: AddMemberModalProps) 
                       }}
                       className="flex h-10 w-full items-center px-3 text-sm text-text-primary transition-colors hover:bg-bg-secondary"
                     >
-                      {r}
+                      {ROLE_LABELS_EN[r]}
                     </button>
                   ))}
                 </div>
