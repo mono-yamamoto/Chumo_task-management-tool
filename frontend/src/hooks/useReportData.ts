@@ -24,7 +24,7 @@ export type { ReportItem };
  * レポートデータを取得
  * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg|faq_imp
  */
-export function useReportData(type: ReportType, fromDate: string, toDate: string) {
+export function useReportData(type: ReportType, fromDate: string, toDate: string, enabled = true) {
   const { getToken, isSignedIn } = useAuth();
 
   return useQuery({
@@ -33,7 +33,7 @@ export function useReportData(type: ReportType, fromDate: string, toDate: string
       apiClient<ReportResponse>(`/api/reports/time?from=${fromDate}&to=${toDate}&type=${type}`, {
         getToken,
       }),
-    enabled: isSignedIn && !!fromDate && !!toDate,
+    enabled: enabled && isSignedIn && !!fromDate && !!toDate,
   });
 }
 
