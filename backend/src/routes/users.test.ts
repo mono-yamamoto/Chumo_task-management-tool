@@ -164,6 +164,27 @@ describe('Users API', () => {
       expect(body.user.role).toBe('admin');
     });
 
+    it('adminは他ユーザーのroleをpartnerに変更できる', async () => {
+      await db.insert(schema.users).values({
+        id: 'admin-user-2',
+        email: 'admin2@example.com',
+        displayName: 'Admin2',
+        role: 'admin',
+        isAllowed: true,
+      });
+
+      const adminApp = createTestApp('admin-user-2');
+      const res = await adminApp.request('/api/users/test-user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'partner' }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+      expect(body.user.role).toBe('partner');
+    });
+
     it('非adminが他ユーザーを更新しようとすると403', async () => {
       await db.insert(schema.users).values({
         id: 'other-user',
@@ -245,7 +266,8 @@ describe('Users API', () => {
         .from(schema.users)
         .where(eq(schema.users.id, 'disabled-user'));
       expect(restored.isAllowed).toBe(true);
-      expect(restored.role).toBe('admin');
+      // 再有効化では role は保持する（変更したい場合は PUT /:id で）
+      expect(restored.role).toBe('member');
     });
 
     it('APP_ORIGIN 未設定なら 500 で明示メッセージを返す', async () => {
