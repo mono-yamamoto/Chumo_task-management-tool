@@ -18,7 +18,7 @@ import { importHmacKey, generateSignedFileUrl } from '../lib/crypto';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
-type SignEnv = Pick<Env['Bindings'], 'APP_ORIGIN' | 'INTERNAL_API_KEY'>;
+export type SignEnv = Pick<Env['Bindings'], 'APP_ORIGIN' | 'INTERNAL_API_KEY'>;
 
 type UserEnv = Env & { Variables: { db: Database; userId: string } };
 
@@ -41,7 +41,7 @@ const safeUserColumns = {
 };
 
 /** avatarUrl（R2キー）を署名付きURLに変換する */
-async function resolveAvatarUrl<T extends { avatarUrl: string | null }>(
+export async function resolveAvatarUrl<T extends { avatarUrl: string | null }>(
   user: T,
   env: SignEnv,
   cryptoKey?: CryptoKey
@@ -273,11 +273,11 @@ app.post('/invite', zValidator('json', inviteSchema), async (c) => {
     .where(eq(users.email, email));
 
   if (existing) {
-    // 無効化されたユーザーなら再有効化
+    // 無効化されたユーザーなら再有効化（既存roleは保持。role変更が必要なら別途 PUT /:id で）
     if (!existing.isAllowed) {
       await db
         .update(users)
-        .set({ isAllowed: true, role, updatedAt: new Date() })
+        .set({ isAllowed: true, updatedAt: new Date() })
         .where(eq(users.id, existing.id));
       return c.json({ success: true, restored: true });
     }

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { Avatar } from '../../../components/ui/Avatar';
+import { UserSectionHeader } from '../../../components/shared/UserSectionHeader';
 import { CardSectionHeader } from './CardSectionHeader';
 import { TaskCard } from './TaskCard';
 import { FLOW_STATUS_ORDER, FLOW_STATUS_LABELS } from '../../../lib/constants';
+import { ROLE_LABELS_TASK_JA } from '../../../lib/roleLabels';
 import type { Task, User, FlowStatus } from '../../../types';
 
 interface MemberCardSectionProps {
@@ -12,8 +13,6 @@ interface MemberCardSectionProps {
 }
 
 export function MemberCardSection({ member, tasks, onTaskClick }: MemberCardSectionProps) {
-  const roleLabel = member.role === 'admin' ? 'リーダー' : 'メンバー';
-
   const columns = useMemo(() => {
     const grouped = new Map<FlowStatus, Task[]>();
     for (const status of FLOW_STATUS_ORDER) {
@@ -30,22 +29,13 @@ export function MemberCardSection({ member, tasks, onTaskClick }: MemberCardSect
 
   return (
     <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
-      {/* メンバーヘッダー */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <Avatar
-          name={member.displayName}
-          imageUrl={member.avatarUrl ?? undefined}
-          colorName={member.avatarColor}
-        />
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-text-primary">{member.displayName}</span>
-          <span className="text-xs text-text-tertiary">{roleLabel}</span>
-        </div>
-        <div className="flex-1" />
-        <span className="inline-flex items-center rounded-full bg-bg-brand-subtle px-2 py-0.5 text-xs font-medium text-primary-default">
-          {tasks.length}件
-        </span>
-      </div>
+      <UserSectionHeader
+        displayName={member.displayName}
+        roleLabel={ROLE_LABELS_TASK_JA[member.role]}
+        avatarUrl={member.avatarUrl}
+        avatarColor={member.avatarColor}
+        count={tasks.length}
+      />
 
       {/* カンバンカラム */}
       <div className="flex gap-3 px-4 pb-4 pt-3">

@@ -60,6 +60,20 @@ describe('schema: users', () => {
     expect(user.createdAt).toBeInstanceOf(Date);
   });
 
+  it('partner ロールを保存できる', async () => {
+    await db.insert(schema.users).values({
+      id: 'user-partner',
+      email: 'partner@example.com',
+      displayName: 'パートナーユーザー',
+      role: 'partner',
+      isAllowed: true,
+    });
+
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, 'user-partner'));
+
+    expect(user.role).toBe('partner');
+  });
+
   it('fcmTokens 配列を保存できる', async () => {
     await db.insert(schema.users).values({
       id: 'user-2',

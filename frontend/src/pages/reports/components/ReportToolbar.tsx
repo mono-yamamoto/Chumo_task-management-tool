@@ -16,6 +16,8 @@ interface ReportToolbarProps {
   isExporting?: boolean;
   showDateRange?: boolean;
   onToggleDateRange?: () => void;
+  /** 出力ボタンを無効化する（パートナータブはスプレッドシート未対応） */
+  isExportDisabled?: boolean;
 }
 
 export function ReportToolbar({
@@ -27,6 +29,7 @@ export function ReportToolbar({
   isExporting = false,
   showDateRange = false,
   onToggleDateRange,
+  isExportDisabled = false,
 }: ReportToolbarProps) {
   const { isPreview } = usePreviewMode();
   const { addToast } = useToast();
@@ -89,7 +92,7 @@ export function ReportToolbar({
           variant="primary"
           size="sm"
           onPress={isPreview ? handlePreviewBlock : onExport}
-          isDisabled={isExporting}
+          isDisabled={isExporting || isExportDisabled}
         >
           {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
           {isExporting ? '出力中...' : 'スプレッドシートに出力'}

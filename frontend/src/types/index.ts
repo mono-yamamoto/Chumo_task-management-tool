@@ -16,7 +16,7 @@ export const PROJECT_TYPES = [
 
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'admin' | 'member' | 'partner';
 
 export type FlowStatus =
   | '未着手'

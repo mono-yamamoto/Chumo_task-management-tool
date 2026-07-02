@@ -11,7 +11,8 @@ import { useUpdateUser } from '../../../hooks/useUpdateUser';
 import { useInviteUser } from '../../../hooks/useInviteUser';
 import { usePreviewMode } from '../../../hooks/usePreviewMode';
 import { useToast } from '../../../hooks/useToast';
-import type { User } from '../../../types';
+import { ROLE_LABELS_EN, USER_ROLES } from '../../../lib/roleLabels';
+import type { User, UserRole } from '../../../types';
 
 const TABLE_COLUMNS = [
   { label: 'メンバー', width: 'w-[230px]' },
@@ -22,14 +23,14 @@ const TABLE_COLUMNS = [
 ];
 
 interface RoleDropdownProps {
-  value: 'admin' | 'member';
-  onChange: (role: 'admin' | 'member') => void;
+  value: UserRole;
+  onChange: (role: UserRole) => void;
   disabled?: boolean;
 }
 
 function RoleDropdown({ value, onChange, disabled }: RoleDropdownProps) {
   const [open, setOpen] = useState(false);
-  const displayValue = value === 'admin' ? 'Admin' : 'Member';
+  const displayValue = ROLE_LABELS_EN[value];
 
   return (
     <div className="relative">
@@ -50,8 +51,8 @@ function RoleDropdown({ value, onChange, disabled }: RoleDropdownProps) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-20 mt-1 w-[120px] overflow-hidden rounded-md border border-border-default bg-bg-primary shadow-lg">
-            {(['admin', 'member'] as const).map((role) => {
-              const label = role === 'admin' ? 'Admin' : 'Member';
+            {USER_ROLES.map((role) => {
+              const label = ROLE_LABELS_EN[role];
               return (
                 <button
                   key={role}
@@ -93,14 +94,14 @@ export function AdminTab() {
     text: string;
   } | null>(null);
 
-  const handleRoleChange = (userId: string, role: 'admin' | 'member') => {
+  const handleRoleChange = (userId: string, role: UserRole) => {
     if (userId === currentUser?.id) return;
     updateUser.mutate({ userId, data: { role } });
   };
 
-  const handleAddMember = (email: string, role: 'Admin' | 'Member') => {
+  const handleAddMember = (email: string, role: UserRole) => {
     inviteUser.mutate(
-      { email, role: role.toLowerCase() as 'admin' | 'member' },
+      { email, role },
       {
         onSuccess: (data) => {
           setAddModalOpen(false);

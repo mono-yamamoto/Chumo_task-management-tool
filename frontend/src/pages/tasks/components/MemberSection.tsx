@@ -1,6 +1,7 @@
-import { Avatar } from '../../../components/ui/Avatar';
+import { UserSectionHeader } from '../../../components/shared/UserSectionHeader';
 import { TaskTableHeader } from './TaskTableHeader';
 import { TaskTableRow } from './TaskTableRow';
+import { ROLE_LABELS_TASK_JA } from '../../../lib/roleLabels';
 import type { Task, User } from '../../../types';
 
 interface MemberSectionProps {
@@ -10,26 +11,15 @@ interface MemberSectionProps {
 }
 
 export function MemberSection({ member, tasks, onTaskClick }: MemberSectionProps) {
-  const roleLabel = member.role === 'admin' ? 'リーダー' : 'メンバー';
-
   return (
     <div className="overflow-hidden rounded-lg border border-border-default bg-bg-primary">
-      {/* メンバーヘッダー */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <Avatar
-          name={member.displayName}
-          imageUrl={member.avatarUrl ?? undefined}
-          colorName={member.avatarColor}
-        />
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-text-primary">{member.displayName}</span>
-          <span className="text-xs text-text-tertiary">{roleLabel}</span>
-        </div>
-        <div className="flex-1" />
-        <span className="inline-flex items-center rounded-full bg-bg-brand-subtle px-2 py-0.5 text-xs font-medium text-primary-default">
-          {tasks.length}件
-        </span>
-      </div>
+      <UserSectionHeader
+        displayName={member.displayName}
+        roleLabel={ROLE_LABELS_TASK_JA[member.role]}
+        avatarUrl={member.avatarUrl}
+        avatarColor={member.avatarColor}
+        count={tasks.length}
+      />
 
       {/* テーブル */}
       <TaskTableHeader />
