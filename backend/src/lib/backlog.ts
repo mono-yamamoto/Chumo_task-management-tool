@@ -33,6 +33,14 @@ export function getCustomFieldConfig(projectType: string): BacklogCustomFieldCon
   return BACKLOG_CUSTOM_FIELDS[projectType as ProjectType] ?? {};
 }
 
+/**
+ * 課題更新 Webhook の changes 配列でカスタムフィールドを特定するための属性名。
+ * Backlog の changes は field をカスタム属性名で表す場合と
+ * `customField_<ID>` / ID 文字列で表す場合があるため、名前候補も併せて照合する。
+ */
+export const IT_UP_DATE_FIELD_NAMES = ['ＩＴ予定日', 'IT予定日'] as const;
+export const RELEASE_DATE_FIELD_NAMES = ['本番リリース予定日', 'リリース予定日'] as const;
+
 // --- Webhook ペイロード型 ---
 
 export interface BacklogCustomField {
@@ -40,6 +48,14 @@ export interface BacklogCustomField {
   field?: string;
   value: string | { name?: string; value?: string } | null;
   fieldTypeId: number;
+}
+
+/** 課題更新 Webhook の content.changes の1エントリ */
+export interface BacklogChange {
+  field?: string;
+  new_value?: string | null;
+  old_value?: string | null;
+  type?: string;
 }
 
 export interface BacklogWebhookPayload {
@@ -52,6 +68,7 @@ export interface BacklogWebhookPayload {
     title?: string;
     description?: string;
     customFields?: BacklogCustomField[];
+    changes?: BacklogChange[];
   };
   project?: {
     projectKey?: string;
@@ -153,6 +170,52 @@ export function getCustomFieldValue(
 }
 
 /**
+ * 課題更新 Webhook の changes 配列からカスタムフィールドの変更後の値を取得する
+ *
+ * @returns 対象フィールドの変更エントリが無い場合は undefined（＝情報なし）、
+ *          変更がある場合は new_value（クリア時は空文字 or null）
+ */
+export function getChangedCustomFieldValue(
+  changes: BacklogChange[] | undefined,
+  fieldId: number,
+  fieldNames: readonly string[]
+): string | null | undefined {
+  if (!changes || !Array.isArray(changes)) return undefined;
+
+  const candidates = new Set<string>([`customField_${fieldId}`, String(fieldId), ...fieldNames]);
+  const change = changes.find((c) => typeof c.field === 'string' && candidates.has(c.field.trim()));
+  if (!change) return undefined;
+
+  return typeof change.new_value === 'string' ? change.new_value : null;
+}
+
+/**
+ * Webhook ペイロードから日付カスタムフィールドの更新値を解決する
+ *
+ * 課題追加イベントは customFields に全フィールドが入るが、
+ * 課題更新イベントは changes に変更差分しか入らない。
+ *
+ * @returns undefined = ペイロードに情報なし（既存値を維持すべき）、
+ *          null = クリアされた、Date = 設定された
+ */
+export function resolveCustomDateField(
+  customFields: BacklogCustomField[] | undefined,
+  changes: BacklogChange[] | undefined,
+  fieldId: number | undefined,
+  fieldNames: readonly string[]
+): Date | null | undefined {
+  if (!fieldId) return undefined;
+
+  if (Array.isArray(customFields) && customFields.some((f) => f.id === fieldId)) {
+    return parseDateString(getCustomFieldValue(customFields, fieldId));
+  }
+
+  const changedValue = getChangedCustomFieldValue(changes, fieldId, fieldNames);
+  if (changedValue === undefined) return undefined;
+  return parseDateString(changedValue);
+}
+
+/**
  * Webhook ペイロードから課題情報を抽出する
  */
 export function extractIssueFromPayload(body: BacklogWebhookPayload): {
@@ -161,6 +224,7 @@ export function extractIssueFromPayload(body: BacklogWebhookPayload): {
   title: string | null;
   description: string | undefined;
   customFields: BacklogCustomField[] | undefined;
+  changes: BacklogChange[] | undefined;
 } {
   if (body.content) {
     let issueKey: string | null = null;
@@ -175,6 +239,7 @@ export function extractIssueFromPayload(body: BacklogWebhookPayload): {
       title: body.content.summary || body.content.title || null,
       description: body.content.description || undefined,
       customFields: body.content.customFields,
+      changes: body.content.changes,
     };
   }
 
@@ -185,6 +250,7 @@ export function extractIssueFromPayload(body: BacklogWebhookPayload): {
       title: body.issue.summary || body.issue.title || null,
       description: body.issue.description || undefined,
       customFields: body.issue.customFields,
+      changes: undefined,
     };
   }
 
@@ -194,5 +260,6 @@ export function extractIssueFromPayload(body: BacklogWebhookPayload): {
     title: body.summary || body.title || null,
     description: body.description || undefined,
     customFields: undefined,
+    changes: undefined,
   };
 }

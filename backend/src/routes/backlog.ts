@@ -9,8 +9,9 @@ import {
   extractProjectTypeFromIssueKey,
   generateBacklogUrl,
   getCustomFieldConfig,
-  getCustomFieldValue,
-  parseDateString,
+  resolveCustomDateField,
+  IT_UP_DATE_FIELD_NAMES,
+  RELEASE_DATE_FIELD_NAMES,
 } from '../lib/backlog';
 import type { BacklogWebhookPayload } from '../lib/backlog';
 import type { Env } from '../index';
@@ -42,13 +43,15 @@ app.post('/webhook', async (c) => {
   const body = (await c.req.json()) as BacklogWebhookPayload;
 
   // ペイロードから課題情報を抽出
-  const { issueKey, issueId, title, description, customFields } = extractIssueFromPayload(body);
+  const { issueKey, issueId, title, description, customFields, changes } =
+    extractIssueFromPayload(body);
   console.info('[backlog/webhook] parsed', {
     issueKey,
     issueId,
     hasTitle: Boolean(title),
     hasDescription: description !== undefined,
     customFieldsCount: customFields?.length ?? 0,
+    changesCount: changes?.length ?? 0,
   });
 
   if (!issueKey) {
@@ -71,16 +74,29 @@ app.post('/webhook', async (c) => {
   const url = generateBacklogUrl(issueKey);
   const finalIssueId = issueId || issueKey;
 
-  // カスタムフィールドから日付を抽出
+  // カスタムフィールド（追加イベント）または changes（更新イベント）から日付を解決
+  // undefined = ペイロードに情報なし（更新時は既存値を維持する）
   const fieldConfig = getCustomFieldConfig(projectType);
-  const itUpDateValue = fieldConfig.itUpDate
-    ? getCustomFieldValue(customFields, fieldConfig.itUpDate)
-    : null;
-  const releaseDateValue = fieldConfig.releaseDate
-    ? getCustomFieldValue(customFields, fieldConfig.releaseDate)
-    : null;
-  const itUpDate = parseDateString(itUpDateValue);
-  const releaseDate = parseDateString(releaseDateValue);
+  const itUpDate = resolveCustomDateField(
+    customFields,
+    changes,
+    fieldConfig.itUpDate,
+    IT_UP_DATE_FIELD_NAMES
+  );
+  const releaseDate = resolveCustomDateField(
+    customFields,
+    changes,
+    fieldConfig.releaseDate,
+    RELEASE_DATE_FIELD_NAMES
+  );
+
+  // changes の field 表記が想定と違う場合の調査用ログ
+  if ((changes?.length ?? 0) > 0 && itUpDate === undefined && releaseDate === undefined) {
+    console.info('[backlog/webhook] no date fields matched in changes', {
+      issueKey,
+      changeFields: changes?.map((ch) => ch.field),
+    });
+  }
 
   // タイトルに課題番号を接頭辞として追加
   const formattedTitle = `${issueKey} ${title}`;
@@ -101,8 +117,8 @@ app.post('/webhook', async (c) => {
         title: formattedTitle,
         ...(description !== undefined && { description }),
         projectType: projectType as (typeof tasks.projectType.enumValues)[number],
-        itUpDate,
-        releaseDate,
+        ...(itUpDate !== undefined && { itUpDate }),
+        ...(releaseDate !== undefined && { releaseDate }),
         updatedAt: now,
       })
       .where(eq(tasks.id, existingExternal.taskId));
@@ -143,8 +159,8 @@ app.post('/webhook', async (c) => {
     ...(description !== undefined && { description }),
     flowStatus: '未着手',
     assigneeIds: [],
-    itUpDate,
-    releaseDate,
+    itUpDate: itUpDate ?? null,
+    releaseDate: releaseDate ?? null,
     kubunLabelId: '',
     backlogUrl: url,
     order: Date.now(),
