@@ -3,7 +3,6 @@ import {
   extractProjectTypeFromIssueKey,
   generateBacklogUrl,
   parseDateString,
-  getCustomFieldValue,
   getChangedCustomFieldValue,
   resolveCustomDateField,
   extractIssueFromPayload,
@@ -79,32 +78,6 @@ describe('Backlog ユーティリティ', () => {
     });
   });
 
-  describe('getCustomFieldValue', () => {
-    it('文字列値を取得', () => {
-      expect(getCustomFieldValue([{ id: 1, value: '2025/07/15', fieldTypeId: 4 }], 1)).toBe(
-        '2025/07/15'
-      );
-    });
-
-    it('オブジェクト値（name）を取得', () => {
-      expect(
-        getCustomFieldValue([{ id: 1, value: { name: '2025/08/01' }, fieldTypeId: 4 }], 1)
-      ).toBe('2025/08/01');
-    });
-
-    it('存在しないフィールド → null', () => {
-      expect(getCustomFieldValue([{ id: 1, value: 'test', fieldTypeId: 4 }], 99)).toBeNull();
-    });
-
-    it('null値 → null', () => {
-      expect(getCustomFieldValue([{ id: 1, value: null, fieldTypeId: 4 }], 1)).toBeNull();
-    });
-
-    it('undefined配列 → null', () => {
-      expect(getCustomFieldValue(undefined, 1)).toBeNull();
-    });
-  });
-
   describe('getChangedCustomFieldValue', () => {
     it('カスタム属性名でマッチする（全角ＩＴ予定日）', () => {
       const changes = [
@@ -151,6 +124,29 @@ describe('Backlog ユーティリティ', () => {
     it('changesがundefined → undefined', () => {
       expect(
         getChangedCustomFieldValue(undefined, 1073783169, IT_UP_DATE_FIELD_NAMES)
+      ).toBeUndefined();
+    });
+
+    it('fieldが数値でもマッチする（外部JSONの型ゆらぎ対策）', () => {
+      const changes = [
+        { field: 1073783169 as unknown as string, new_value: '2026/07/15', old_value: '' },
+      ];
+      expect(getChangedCustomFieldValue(changes, 1073783169, IT_UP_DATE_FIELD_NAMES)).toBe(
+        '2026/07/15'
+      );
+    });
+
+    it('new_valueがnull → 空文字（クリア扱い）', () => {
+      const changes = [
+        { field: 'ＩＴ予定日', new_value: null, old_value: '2026/07/15', type: 'custom' },
+      ];
+      expect(getChangedCustomFieldValue(changes, 1073783169, IT_UP_DATE_FIELD_NAMES)).toBe('');
+    });
+
+    it('new_valueキー欠落 → undefined（情報なし扱い）', () => {
+      const changes = [{ field: 'ＩＴ予定日', old_value: '2026/07/15', type: 'custom' }];
+      expect(
+        getChangedCustomFieldValue(changes, 1073783169, IT_UP_DATE_FIELD_NAMES)
       ).toBeUndefined();
     });
   });
@@ -202,6 +198,27 @@ describe('Backlog ユーティリティ', () => {
     it('fieldIdが未設定のプロジェクトはundefined', () => {
       expect(
         resolveCustomDateField([], undefined, undefined, IT_UP_DATE_FIELD_NAMES)
+      ).toBeUndefined();
+    });
+
+    it('changesの値がパース不能ならundefined（既存値を消さない）', () => {
+      const changes = [
+        {
+          field: 'ＩＴ予定日',
+          new_value: '2026-07-15T00:00:00Z',
+          old_value: '',
+          type: 'custom',
+        },
+      ];
+      expect(
+        resolveCustomDateField(undefined, changes, 1073783169, IT_UP_DATE_FIELD_NAMES)
+      ).toBeUndefined();
+    });
+
+    it('customFieldsの値がパース不能ならundefined（既存値を消さない）', () => {
+      const customFields = [{ id: 1073783169, value: '2026年7月15日', fieldTypeId: 4 }];
+      expect(
+        resolveCustomDateField(customFields, undefined, 1073783169, IT_UP_DATE_FIELD_NAMES)
       ).toBeUndefined();
     });
   });

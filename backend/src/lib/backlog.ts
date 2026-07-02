@@ -144,6 +144,18 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   return date;
 }
 
+/**
+ * Webhook から取れた日付文字列を3値に解決する
+ *
+ * 空値（null / 空文字）はクリア（null）を意味する。
+ * パース不能な非空文字列は形式不明の情報として信用せず undefined（既存値維持）にする
+ * （更新イベントで想定外の日付形式が来た場合に既存日付を消さないため）
+ */
+function parseDateValue(value: string | null): Date | null | undefined {
+  if (value == null || value === '') return null;
+  return parseDateString(value) ?? undefined;
+}
+
 /** カスタムフィールド1件から値を取り出す */
 function extractCustomFieldValue(field: BacklogCustomField): string | null {
   const value = field.value;
@@ -160,23 +172,10 @@ function extractCustomFieldValue(field: BacklogCustomField): string | null {
 }
 
 /**
- * カスタムフィールドから値を取得
- */
-export function getCustomFieldValue(
-  customFields: BacklogCustomField[] | undefined,
-  fieldId: number
-): string | null {
-  if (!Array.isArray(customFields)) return null;
-
-  const field = customFields.find((f) => f.id === fieldId);
-  return field ? extractCustomFieldValue(field) : null;
-}
-
-/**
  * 課題更新 Webhook の changes 配列からカスタムフィールドの変更後の値を取得する
  *
- * @returns 対象フィールドの変更エントリが無い場合は undefined（＝情報なし）、
- *          変更がある場合は new_value（クリア時は空文字 or null）
+ * @returns 対象フィールドの変更エントリが無い（または new_value が欠落している）場合は
+ *          undefined（＝情報なし）、変更がある場合は new_value（クリア時は空文字）
  */
 export function getChangedCustomFieldValue(
   changes: BacklogChange[] | undefined,
@@ -187,10 +186,12 @@ export function getChangedCustomFieldValue(
 
   // TODO: 実ペイロードで field の表記が確定したら候補を絞る（route側の unmatched ログで確認可能）
   const candidates = new Set<string>([`customField_${fieldId}`, String(fieldId), ...fieldNames]);
-  const change = changes.find((c) => typeof c.field === 'string' && candidates.has(c.field.trim()));
+  const change = changes.find((c) => c.field != null && candidates.has(String(c.field).trim()));
   if (!change) return undefined;
 
-  return typeof change.new_value === 'string' ? change.new_value : null;
+  if (typeof change.new_value === 'string') return change.new_value;
+  // new_value: null は明示的なクリア、キー自体の欠落は情報なし扱い
+  return change.new_value === null ? '' : undefined;
 }
 
 /**
@@ -199,7 +200,7 @@ export function getChangedCustomFieldValue(
  * 課題追加イベントは customFields に全フィールドが入るが、
  * 課題更新イベントは changes に変更差分しか入らない。
  *
- * @returns undefined = ペイロードに情報なし（既存値を維持すべき）、
+ * @returns undefined = ペイロードに情報なし or パース不能（既存値を維持すべき）、
  *          null = クリアされた、Date = 設定された
  */
 export function resolveCustomDateField(
@@ -212,12 +213,12 @@ export function resolveCustomDateField(
 
   if (Array.isArray(customFields)) {
     const field = customFields.find((f) => f.id === fieldId);
-    if (field) return parseDateString(extractCustomFieldValue(field));
+    if (field) return parseDateValue(extractCustomFieldValue(field));
   }
 
   const changedValue = getChangedCustomFieldValue(changes, fieldId, fieldNames);
   if (changedValue === undefined) return undefined;
-  return parseDateString(changedValue);
+  return parseDateValue(changedValue);
 }
 
 /**

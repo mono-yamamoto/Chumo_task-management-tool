@@ -91,7 +91,14 @@ app.post('/webhook', async (c) => {
   );
 
   // changes の field 表記が想定と違う場合の調査用ログ
-  if ((changes?.length ?? 0) > 0 && itUpDate === undefined && releaseDate === undefined) {
+  // （日付フィールド未設定のプロジェクトや日付以外の変更で埋もれないよう対象を限定）
+  const hasDateFieldConfig = Boolean(fieldConfig.itUpDate || fieldConfig.releaseDate);
+  if (
+    hasDateFieldConfig &&
+    (changes?.length ?? 0) > 0 &&
+    itUpDate === undefined &&
+    releaseDate === undefined
+  ) {
     console.info('[backlog/webhook] no date fields matched in changes', {
       issueKey,
       changeFields: changes?.map((ch) => ch.field),
