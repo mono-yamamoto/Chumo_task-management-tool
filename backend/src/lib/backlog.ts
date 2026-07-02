@@ -144,18 +144,8 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   return date;
 }
 
-/**
- * カスタムフィールドから値を取得
- */
-export function getCustomFieldValue(
-  customFields: BacklogCustomField[] | undefined,
-  fieldId: number
-): string | null {
-  if (!customFields || !Array.isArray(customFields)) return null;
-
-  const field = customFields.find((f) => f.id === fieldId);
-  if (!field) return null;
-
+/** カスタムフィールド1件から値を取り出す */
+function extractCustomFieldValue(field: BacklogCustomField): string | null {
   const value = field.value;
   if (value == null) return null;
   if (typeof value === 'string') return value;
@@ -170,6 +160,19 @@ export function getCustomFieldValue(
 }
 
 /**
+ * カスタムフィールドから値を取得
+ */
+export function getCustomFieldValue(
+  customFields: BacklogCustomField[] | undefined,
+  fieldId: number
+): string | null {
+  if (!Array.isArray(customFields)) return null;
+
+  const field = customFields.find((f) => f.id === fieldId);
+  return field ? extractCustomFieldValue(field) : null;
+}
+
+/**
  * 課題更新 Webhook の changes 配列からカスタムフィールドの変更後の値を取得する
  *
  * @returns 対象フィールドの変更エントリが無い場合は undefined（＝情報なし）、
@@ -180,8 +183,9 @@ export function getChangedCustomFieldValue(
   fieldId: number,
   fieldNames: readonly string[]
 ): string | null | undefined {
-  if (!changes || !Array.isArray(changes)) return undefined;
+  if (!Array.isArray(changes)) return undefined;
 
+  // TODO: 実ペイロードで field の表記が確定したら候補を絞る（route側の unmatched ログで確認可能）
   const candidates = new Set<string>([`customField_${fieldId}`, String(fieldId), ...fieldNames]);
   const change = changes.find((c) => typeof c.field === 'string' && candidates.has(c.field.trim()));
   if (!change) return undefined;
@@ -206,8 +210,9 @@ export function resolveCustomDateField(
 ): Date | null | undefined {
   if (!fieldId) return undefined;
 
-  if (Array.isArray(customFields) && customFields.some((f) => f.id === fieldId)) {
-    return parseDateString(getCustomFieldValue(customFields, fieldId));
+  if (Array.isArray(customFields)) {
+    const field = customFields.find((f) => f.id === fieldId);
+    if (field) return parseDateString(extractCustomFieldValue(field));
   }
 
   const changedValue = getChangedCustomFieldValue(changes, fieldId, fieldNames);

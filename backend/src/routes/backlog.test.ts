@@ -6,6 +6,16 @@ import * as schema from '../db/schema';
 
 const app = createTestApp();
 
+const postWebhook = (payload: unknown) =>
+  app.request('/api/backlog/webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+    },
+    body: JSON.stringify(payload),
+  });
+
 afterEach(async () => {
   await cleanDatabase(db);
 });
@@ -186,45 +196,31 @@ describe('Backlog API', () => {
 
     it('更新イベント（customFieldsなし）でも既存の日付を消さない', async () => {
       // 作成: 日付あり
-      const res1 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res1 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 300,
+          key_id: 300,
+          summary: '日付保持テスト',
+          customFields: [
+            { id: 1073783169, value: '2026/07/15', fieldTypeId: 4 },
+            { id: 1073783170, value: '2026/08/01', fieldTypeId: 4 },
+          ],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: {
-            id: 300,
-            key_id: 300,
-            summary: '日付保持テスト',
-            customFields: [
-              { id: 1073783169, value: '2026/07/15', fieldTypeId: 4 },
-              { id: 1073783170, value: '2026/08/01', fieldTypeId: 4 },
-            ],
-          },
-        }),
       });
       const body1 = (await res1.json()) as any;
 
       // 更新イベント: customFieldsなし・日付以外の変更のみ
-      const res2 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res2 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 300,
+          key_id: 300,
+          summary: '日付保持テスト（更新後）',
+          changes: [
+            { field: 'status', new_value: '処理中', old_value: '未対応', type: 'standard' },
+          ],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: {
-            id: 300,
-            key_id: 300,
-            summary: '日付保持テスト（更新後）',
-            changes: [
-              { field: 'status', new_value: '処理中', old_value: '未対応', type: 'standard' },
-            ],
-          },
-        }),
       });
       expect(res2.status).toBe(200);
 
@@ -236,43 +232,29 @@ describe('Backlog API', () => {
 
     it('更新イベントのchangesから日付を反映できる', async () => {
       // 作成: 日付なし
-      const res1 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
-        },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: { id: 301, key_id: 301, summary: '日付追加テスト' },
-        }),
+      const res1 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: { id: 301, key_id: 301, summary: '日付追加テスト' },
       });
       const body1 = (await res1.json()) as any;
 
       // 更新イベント: changesでＩＴ予定日・本番リリース予定日を設定
-      const res2 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res2 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 301,
+          key_id: 301,
+          summary: '日付追加テスト',
+          changes: [
+            { field: 'ＩＴ予定日', new_value: '2026/07/22', old_value: '', type: 'custom' },
+            {
+              field: '本番リリース予定日',
+              new_value: '2026/07/30',
+              old_value: '',
+              type: 'custom',
+            },
+          ],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: {
-            id: 301,
-            key_id: 301,
-            summary: '日付追加テスト',
-            changes: [
-              { field: 'ＩＴ予定日', new_value: '2026/07/22', old_value: '', type: 'custom' },
-              {
-                field: '本番リリース予定日',
-                new_value: '2026/07/30',
-                old_value: '',
-                type: 'custom',
-              },
-            ],
-          },
-        }),
       });
       expect(res2.status).toBe(200);
 
@@ -282,41 +264,27 @@ describe('Backlog API', () => {
     });
 
     it('更新イベントのchanges（customField_<ID>形式）でも日付を反映できる', async () => {
-      const res1 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
-        },
-        body: JSON.stringify({
-          project: { projectKey: 'BRGREG' },
-          content: { id: 302, key_id: 302, summary: 'ID形式テスト' },
-        }),
+      const res1 = await postWebhook({
+        project: { projectKey: 'BRGREG' },
+        content: { id: 302, key_id: 302, summary: 'ID形式テスト' },
       });
       const body1 = (await res1.json()) as any;
 
-      const res2 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res2 = await postWebhook({
+        project: { projectKey: 'BRGREG' },
+        content: {
+          id: 302,
+          key_id: 302,
+          summary: 'ID形式テスト',
+          changes: [
+            {
+              field: 'customField_1073754985',
+              new_value: '2026/07/22',
+              old_value: '',
+              type: 'custom',
+            },
+          ],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'BRGREG' },
-          content: {
-            id: 302,
-            key_id: 302,
-            summary: 'ID形式テスト',
-            changes: [
-              {
-                field: 'customField_1073754985',
-                new_value: '2026/07/22',
-                old_value: '',
-                type: 'custom',
-              },
-            ],
-          },
-        }),
       });
       expect(res2.status).toBe(200);
 
@@ -327,41 +295,27 @@ describe('Backlog API', () => {
     });
 
     it('更新イベントで日付がクリアされたらnullにする', async () => {
-      const res1 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res1 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 303,
+          key_id: 303,
+          summary: '日付クリアテスト',
+          customFields: [{ id: 1073783169, value: '2026/07/15', fieldTypeId: 4 }],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: {
-            id: 303,
-            key_id: 303,
-            summary: '日付クリアテスト',
-            customFields: [{ id: 1073783169, value: '2026/07/15', fieldTypeId: 4 }],
-          },
-        }),
       });
       const body1 = (await res1.json()) as any;
 
-      const res2 = await app.request('/api/backlog/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Backlog-Webhook-Secret': TEST_ENV.BACKLOG_WEBHOOK_SECRET,
+      const res2 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 303,
+          key_id: 303,
+          summary: '日付クリアテスト',
+          changes: [
+            { field: 'ＩＴ予定日', new_value: '', old_value: '2026/07/15', type: 'custom' },
+          ],
         },
-        body: JSON.stringify({
-          project: { projectKey: 'REG2017' },
-          content: {
-            id: 303,
-            key_id: 303,
-            summary: '日付クリアテスト',
-            changes: [
-              { field: 'ＩＴ予定日', new_value: '', old_value: '2026/07/15', type: 'custom' },
-            ],
-          },
-        }),
       });
       expect(res2.status).toBe(200);
 
