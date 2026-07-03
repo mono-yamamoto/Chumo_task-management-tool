@@ -11,11 +11,12 @@ export const PROJECT_TYPES = [
   'DMREG2',
   'monosus',
   'PRREG',
+  'FAQ_IMP',
 ] as const;
 
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'admin' | 'member' | 'partner';
 
 export type FlowStatus =
   | '未着手'
@@ -212,7 +213,7 @@ export interface AppNotification {
   createdAt: string;
 }
 
-export type ReportType = 'normal' | 'brg';
+export type ReportType = 'normal' | 'brg' | 'faq_imp';
 
 export interface ReportEntry {
   id: string;

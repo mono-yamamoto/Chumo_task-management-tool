@@ -14,7 +14,7 @@ import { sql } from 'drizzle-orm';
 
 // --- Enums ---
 
-export const userRoleEnum = pgEnum('user_role', ['admin', 'member']);
+export const userRoleEnum = pgEnum('user_role', ['admin', 'member', 'partner']);
 
 export const flowStatusEnum = pgEnum('flow_status', [
   '未着手',
@@ -56,6 +56,7 @@ export const projectTypeEnum = pgEnum('project_type', [
   'DMREG2',
   'monosus',
   'PRREG',
+  'FAQ_IMP',
 ]);
 
 export const contactTypeEnum = pgEnum('contact_type', ['error', 'feature', 'other']);

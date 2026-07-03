@@ -1,9 +1,36 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { createTestDb, cleanDatabase } from './test-helpers';
 import * as schema from './schema';
+import { projectTypeEnum } from './schema';
 
 const { db, client } = createTestDb();
+
+/**
+ * ドリフト検知: frontend の PROJECT_TYPES は手動メンテのため、
+ * DB enum (project_type) と値がズレていないかをここで保証する。
+ * frontend↔backend は別パッケージで定数を共有できないため、ソースを読んで突き合わせる。
+ */
+describe('schema: project_type enum とフロントの同期', () => {
+  it('frontend の PROJECT_TYPES が project_type enum と一致する', () => {
+    const frontendTypesPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../../frontend/src/types/index.ts'
+    );
+    const src = readFileSync(frontendTypesPath, 'utf-8');
+
+    const block = src.match(/export const PROJECT_TYPES = \[([\s\S]*?)\] as const;/);
+    expect(block, 'frontend に PROJECT_TYPES 定義が見つからない').not.toBeNull();
+
+    const frontendValues = [...block![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+
+    // 値の集合が一致すること（表示順の差異は許容するため sort で比較）
+    expect([...frontendValues].sort()).toEqual([...projectTypeEnum.enumValues].sort());
+  });
+});
 
 afterEach(async () => {
   await cleanDatabase(db);
@@ -31,6 +58,20 @@ describe('schema: users', () => {
     expect(user.role).toBe('member');
     expect(user.isAllowed).toBe(true);
     expect(user.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('partner ロールを保存できる', async () => {
+    await db.insert(schema.users).values({
+      id: 'user-partner',
+      email: 'partner@example.com',
+      displayName: 'パートナーユーザー',
+      role: 'partner',
+      isAllowed: true,
+    });
+
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, 'user-partner'));
+
+    expect(user.role).toBe('partner');
   });
 
   it('fcmTokens 配列を保存できる', async () => {

@@ -11,12 +11,23 @@ import { ReportToolbar } from './components/ReportToolbar';
 import { DateRangeRow } from './components/DateRangeRow';
 import { SummaryRow } from './components/SummaryRow';
 import { ReportTable } from './components/ReportTable';
+import { PartnerReportList } from './components/PartnerReportList';
 import { SessionEditModalContent } from './components/SessionEditModalContent';
 import { useReportData } from '../../hooks/useReportData';
+import { usePartnerReport } from '../../hooks/usePartnerReport';
 import { useExportToSheets } from '../../hooks/useExportToSheets';
 import { useToast } from '../../hooks/useToast';
 import { HttpError } from '../../lib/api';
 import type { ReportEntry, ReportType, TaskSession } from '../../types';
+
+type ReportTabId = ReportType | 'all' | 'partner';
+
+const REPORT_TABS: { id: ReportTabId; label: string }[] = [
+  { id: 'all', label: '通常' },
+  { id: 'brg', label: 'BRG' },
+  { id: 'faq_imp', label: 'FAQ_IMP' },
+  { id: 'partner', label: 'パートナー' },
+];
 
 function getLastDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
@@ -41,7 +52,8 @@ export function ReportPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
 
   // タブ状態
-  const [activeTab, setActiveTab] = useState<ReportType | 'all'>('all');
+  const [activeTab, setActiveTab] = useState<ReportTabId>('all');
+  const isPartnerTab = activeTab === 'partner';
 
   // 上書き確認モーダル
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
@@ -56,18 +68,40 @@ export function ReportPage() {
     session: TaskSession;
   } | null>(null);
 
-  // ドロワー状態
-  const [selectedEntry, setSelectedEntry] = useState<ReportEntry | null>(null);
+  // ドロワー状態（kind は今後の編集権限制御等の拡張用に保持）
+  const [selectedTask, setSelectedTask] = useState<{
+    kind: 'report' | 'partner';
+    entry: ReportEntry;
+  } | null>(null);
+
+  const selectedEntry = selectedTask?.entry ?? null;
+  const selectedTaskId = selectedEntry?.taskId ?? null;
 
   // API用の日付
   const fromDate = formatDateISO(year, month, 1);
   const toDate = formatDateISO(year, month, getLastDayOfMonth(year, month));
 
-  // レポートデータ取得
-  const reportType = activeTab === 'all' ? 'normal' : activeTab;
-  const { data, isLoading, error } = useReportData(reportType, fromDate, toDate);
+  // レポートデータ取得（パートナータブ以外）
+  const reportType: ReportType =
+    activeTab === 'partner' || activeTab === 'all' ? 'normal' : activeTab;
+  const {
+    data,
+    isLoading: isTaskReportLoading,
+    error: taskReportError,
+  } = useReportData(reportType, fromDate, toDate, !isPartnerTab);
 
-  const totalDurationSec = data?.totalDurationSec ?? 0;
+  // パートナー稼働時間レポート取得
+  const {
+    data: partnerData,
+    isLoading: isPartnerLoading,
+    error: partnerError,
+  } = usePartnerReport(fromDate, toDate, isPartnerTab);
+
+  const isLoading = isPartnerTab ? isPartnerLoading : isTaskReportLoading;
+  const error = isPartnerTab ? partnerError : taskReportError;
+  const totalDurationSec = isPartnerTab
+    ? (partnerData?.grandTotalDurationSec ?? 0)
+    : (data?.totalDurationSec ?? 0);
 
   // API ReportItem → フロント ReportEntry にマッピング（メモ化）
   const entries = useMemo<ReportEntry[]>(
@@ -129,7 +163,7 @@ export function ReportPage() {
   }, []);
 
   const handleRowClick = (entry: ReportEntry) => {
-    setSelectedEntry(entry);
+    setSelectedTask({ kind: 'report', entry });
   };
 
   const handleEditSession = (entry: ReportEntry, session: TaskSession) => {
@@ -137,7 +171,29 @@ export function ReportPage() {
   };
 
   const handleTabChange = (key: React.Key) => {
-    setActiveTab(key as ReportType | 'all');
+    setActiveTab(key as ReportTabId);
+  };
+
+  const handlePartnerTaskClick = (partnerId: string, taskId: string) => {
+    // 同一 taskId が複数 partner に存在しうるため、partnerId で対象を限定してから引く
+    const partner = partnerData?.partners.find((p) => p.userId === partnerId);
+    const task = partner?.tasks.find((t) => t.taskId === taskId);
+    if (!task) return;
+
+    setSelectedTask({
+      kind: 'partner',
+      entry: {
+        id: taskId,
+        taskId,
+        title: task.title,
+        type: 'normal',
+        projectType: task.projectType,
+        totalDurationSec: task.durationSec,
+        sessions: [],
+        date: new Date(year, month - 1, 1),
+        currentUserUnrecorded: false,
+      },
+    });
   };
 
   const handleExportError = useCallback(
@@ -207,6 +263,7 @@ export function ReportPage() {
           isExporting={isProcessing}
           showDateRange={showDateRange}
           onToggleDateRange={() => setShowDateRange((v) => !v)}
+          isExportDisabled={isPartnerTab}
         />
 
         {showDateRange && (
@@ -220,14 +277,21 @@ export function ReportPage() {
 
         <Tabs selectedKey={activeTab} onSelectionChange={handleTabChange}>
           <TabList>
-            <Tab id="all">通常</Tab>
-            <Tab id="brg">BRG</Tab>
+            {REPORT_TABS.map((t) => (
+              <Tab key={t.id} id={t.id}>
+                {t.label}
+              </Tab>
+            ))}
           </TabList>
 
           <div className="mt-6 space-y-6">
-            <SummaryRow totalDurationSec={totalDurationSec} entryCount={entries.length} />
+            <SummaryRow
+              totalDurationSec={totalDurationSec}
+              entryCount={isPartnerTab ? (partnerData?.partners.length ?? 0) : entries.length}
+              countUnit={isPartnerTab ? '人' : '件'}
+            />
 
-            {entries.some((e) => e.currentUserUnrecorded) && (
+            {!isPartnerTab && entries.some((e) => e.currentUserUnrecorded) && (
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center rounded-full bg-error-bg px-3 py-1 text-xs font-medium text-error-text">
                   セッション未記録
@@ -244,28 +308,32 @@ export function ReportPage() {
                 レポートの取得に失敗しました: {error.message}
               </div>
             ) : (
-              <>
-                <TabPanel id="all">
-                  <ReportTable entries={entries} onRowClick={handleRowClick} />
+              REPORT_TABS.map((t) => (
+                <TabPanel key={t.id} id={t.id}>
+                  {t.id === 'partner' ? (
+                    <PartnerReportList
+                      partners={partnerData?.partners ?? []}
+                      onTaskClick={handlePartnerTaskClick}
+                    />
+                  ) : (
+                    <ReportTable entries={entries} onRowClick={handleRowClick} />
+                  )}
                 </TabPanel>
-                <TabPanel id="brg">
-                  <ReportTable entries={entries} onRowClick={handleRowClick} />
-                </TabPanel>
-              </>
+              ))
             )}
           </div>
         </Tabs>
       </div>
 
       <TaskDrawer
-        taskId={selectedEntry?.taskId ?? null}
-        onClose={() => setSelectedEntry(null)}
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTask(null)}
         detailTabLabel="レポート詳細"
         detailPadding={false}
         detailContent={
           selectedEntry ? (
             <ReportDetailTab entry={selectedEntry} onEditSession={handleEditSession} />
-          ) : null
+          ) : undefined
         }
       />
 

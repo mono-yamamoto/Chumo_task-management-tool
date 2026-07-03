@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
 import { useAuth } from './useAuth';
+import type { ReportType } from '../types';
 
 interface ReportItem {
   title: string;
@@ -21,9 +22,9 @@ export type { ReportItem };
 
 /**
  * レポートデータを取得
- * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg
+ * GET /api/reports/time?from=YYYY-MM-DD&to=YYYY-MM-DD&type=normal|brg|faq_imp
  */
-export function useReportData(type: 'normal' | 'brg', fromDate: string, toDate: string) {
+export function useReportData(type: ReportType, fromDate: string, toDate: string, enabled = true) {
   const { getToken, isSignedIn } = useAuth();
 
   return useQuery({
@@ -32,7 +33,7 @@ export function useReportData(type: 'normal' | 'brg', fromDate: string, toDate: 
       apiClient<ReportResponse>(`/api/reports/time?from=${fromDate}&to=${toDate}&type=${type}`, {
         getToken,
       }),
-    enabled: isSignedIn && !!fromDate && !!toDate,
+    enabled: enabled && isSignedIn && !!fromDate && !!toDate,
   });
 }
 
@@ -40,7 +41,7 @@ export function useReportData(type: 'normal' | 'brg', fromDate: string, toDate: 
  * レポートCSVをダウンロード
  */
 export async function downloadReportCsv(
-  type: 'normal' | 'brg',
+  type: ReportType,
   fromDate: string,
   toDate: string,
   getToken: () => Promise<string | null>

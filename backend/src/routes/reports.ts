@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, gte, lte, isNull, inArray } from 'drizzle-orm';
-import { tasks, taskSessions, labels, users } from '../db/schema';
+import { eq, and, gte, lte, isNull, inArray, notInArray } from 'drizzle-orm';
+import { tasks, taskSessions, labels, users, projectTypeEnum } from '../db/schema';
 import {
   getAccessToken,
   driveSearchFiles,
@@ -12,6 +12,7 @@ import {
   sheetsUpdateValues,
   sheetsClearValues,
 } from '../lib/google-api';
+import { resolveAvatarUrl, type SignEnv } from './users';
 import type { Env } from '../index';
 import type { Database } from '../db';
 
@@ -19,20 +20,129 @@ type ReportEnv = Env & { Variables: { db: Database; userId: string } };
 
 const app = new Hono<ReportEnv>();
 
-const PROJECT_TYPES = [
-  'REG2017',
-  'BRGREG',
-  'MONO',
-  'MONO_ADMIN',
-  'DES_FIRE',
-  'DesignSystem',
-  'DMREG2',
-  'monosus',
-  'PRREG',
-] as const;
+/** レポート集計の種別 */
+type ReportFetchType = 'normal' | 'brg' | 'faq_imp';
 
-function isBRGREGProject(projectType: string): boolean {
-  return projectType === 'BRGREG';
+type ProjectTypeValue = (typeof projectTypeEnum.enumValues)[number];
+
+/** 独立してレポート集計するプロジェクトタイプ（集計種別 → projectType） */
+const STANDALONE_REPORT_PROJECT: Record<Exclude<ReportFetchType, 'normal'>, ProjectTypeValue> = {
+  brg: 'BRGREG',
+  faq_imp: 'FAQ_IMP',
+};
+
+const STANDALONE_PROJECT_TYPES_ARRAY = Object.values(STANDALONE_REPORT_PROJECT);
+
+/** クエリの type パラメータを正規化（不正値は normal にフォールバック） */
+function normalizeReportType(value: string | undefined): ReportFetchType {
+  if (!value) return 'normal';
+  // `in` だと toString / constructor 等プロトタイプ上のキーも true になるため、自身プロパティだけ判定
+  return Object.prototype.hasOwnProperty.call(STANDALONE_REPORT_PROJECT, value)
+    ? (value as Exclude<ReportFetchType, 'normal'>)
+    : 'normal';
+}
+
+/**
+ * YYYY-MM-DD 形式の日付文字列を厳格にパース
+ * - new Date() の寛容仕様（'2025-02-30' → '2025-03-02' に自動補正）を防ぐため、
+ *   regex で形式を縛った上で「パース結果が元の数値と一致するか」も検証する
+ */
+function parseStrictYmd(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) {
+    return null;
+  }
+  return dt;
+}
+
+/**
+ * レポート系API共通: from/to クエリのパース・検証
+ * - 必須チェック、YYYY-MM-DD 厳格検証、from <= to の順序検証、
+ *   toDate を 23:59:59.999 まで含むよう調整
+ */
+function parseReportDateRange(
+  from: string | undefined,
+  to: string | undefined
+): { fromDate: Date; toDate: Date } | { error: string; status: 400 } {
+  if (!from || !to) {
+    return { error: 'Missing required parameters: from, to', status: 400 };
+  }
+  const fromDate = parseStrictYmd(from);
+  const toDate = parseStrictYmd(to);
+  if (!fromDate || !toDate) {
+    return { error: 'Invalid date format', status: 400 };
+  }
+  if (fromDate > toDate) {
+    return { error: '`from` must be earlier than or equal to `to`', status: 400 };
+  }
+  // 実行環境のタイムゾーン依存を避けるため UTC で末尾時刻を設定
+  toDate.setUTCHours(23, 59, 59, 999);
+  return { fromDate, toDate };
+}
+
+/**
+ * セッションの実稼働秒数を返す（未完了は null）
+ * - durationSec > 0 ならそれを採用
+ * - 0 以下なら endedAt - startedAt で再計算（過去データの互換）
+ */
+function computeSessionDurationSec(session: {
+  startedAt: Date;
+  endedAt: Date | null;
+  durationSec: number;
+}): number | null {
+  if (!session.endedAt) return null;
+  const duration =
+    session.durationSec > 0
+      ? session.durationSec
+      : Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000);
+  return duration > 0 ? duration : null;
+}
+
+/**
+ * セッションの実稼働秒数のうち、指定期間と重なる分だけを返す
+ * - 期間と完全に重ならない: 0
+ * - 期間内に完全に収まる: 全durationSec
+ * - 部分的に重なる: overlap時間 / セッション全体時間 で按分
+ */
+function computeSessionDurationInRangeSec(
+  session: { startedAt: Date; endedAt: Date | null; durationSec: number },
+  fromDate: Date,
+  toDate: Date
+): number {
+  if (!session.endedAt) return 0;
+  if (session.endedAt < fromDate || session.startedAt > toDate) return 0;
+
+  const total = computeSessionDurationSec(session);
+  if (total === null) return 0;
+
+  // 完全に範囲内ならそのまま
+  if (session.startedAt >= fromDate && session.endedAt <= toDate) return total;
+
+  // 期間と重なる秒数 / セッション全体の秒数 で按分
+  // toDate は 23:59:59.999 まで含むため round で 1ms 誤差を吸収
+  const overlapStart = session.startedAt > fromDate ? session.startedAt : fromDate;
+  const overlapEnd = session.endedAt < toDate ? session.endedAt : toDate;
+  const overlapSec = Math.max(
+    0,
+    Math.round((overlapEnd.getTime() - overlapStart.getTime()) / 1000)
+  );
+  const sessionRealSec = Math.max(
+    1,
+    Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000)
+  );
+
+  return Math.floor(total * (overlapSec / sessionRealSec));
+}
+
+/** 「運用」区分ラベルのIDを取得（無ければ null） */
+async function getUnyoLabelId(db: Database): Promise<string | null> {
+  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
+  return allLabels.find((l) => l.name === '運用')?.id ?? null;
 }
 
 /** CSVインジェクション防止: 先頭が数式トリガー文字の場合にシングルクォートをプレフィクス */
@@ -66,25 +176,18 @@ async function fetchReportData(
   db: Database,
   fromDate: Date,
   toDate: Date,
-  type: 'normal' | 'brg',
+  type: ReportFetchType,
+  unyoLabelId: string | null,
   userId?: string
 ): Promise<{ items: ReportItem[]; totalDurationSec: number }> {
-  // 1. 「運用」区分ラベルのIDを取得
-  const allLabels = await db.select().from(labels).where(isNull(labels.projectId));
-
-  const unyoLabel = allLabels.find((l) => l.name === '運用');
-  if (!unyoLabel) {
+  // 「運用」区分ラベルが無ければ集計対象なし
+  if (!unyoLabelId) {
     return { items: [], totalDurationSec: 0 };
   }
 
-  // 2. 対象プロジェクトタイプをフィルタ
-  const targetTypes = PROJECT_TYPES.filter((pt) =>
-    type === 'brg' ? isBRGREGProject(pt) : !isBRGREGProject(pt)
-  );
-
-  // 3. 対象タスクを取得
-  // BRGタイプ: projectType=BRGREG の全タスク（kubunLabelId不問）
-  // 通常タイプ: kubunLabelId=運用 のタスクのみ
+  // 対象タスクを取得
+  // 独立集計タイプ(BRG/FAQ_IMP): projectType一致の全タスク（kubunLabelId不問）
+  // 通常タイプ: kubunLabelId=運用 のタスクのうち、独立集計タイプを除外
   const taskSelect = {
     id: tasks.id,
     title: tasks.title,
@@ -94,16 +197,22 @@ async function fetchReportData(
   };
 
   let targetTasks: TaskRow[];
-  if (type === 'brg') {
-    targetTasks = await db.select(taskSelect).from(tasks).where(eq(tasks.projectType, 'BRGREG'));
-  } else {
-    const allTasks = await db
+  if (type !== 'normal') {
+    targetTasks = await db
       .select(taskSelect)
       .from(tasks)
-      .where(eq(tasks.kubunLabelId, unyoLabel.id));
-    targetTasks = allTasks.filter((t) =>
-      targetTypes.includes(t.projectType as (typeof PROJECT_TYPES)[number])
-    );
+      .where(eq(tasks.projectType, STANDALONE_REPORT_PROJECT[type]));
+  } else {
+    // 運用区分 かつ 独立集計タイプ(BRGREG/FAQ_IMP)以外 を SQL レベルで絞る
+    targetTasks = await db
+      .select(taskSelect)
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.kubunLabelId, unyoLabelId),
+          notInArray(tasks.projectType, STANDALONE_PROJECT_TYPES_ARRAY)
+        )
+      );
   }
 
   if (targetTasks.length === 0) {
@@ -113,15 +222,15 @@ async function fetchReportData(
   const taskMap = new Map(targetTasks.map((t) => [t.id, t]));
   const taskIds = targetTasks.map((t) => t.id);
 
-  // 4. 対象タスクの日付範囲内セッションを取得
+  // 4. 対象タスクの「期間と重なる」セッションを取得（月またぎは按分処理）
   const sessions = await db
     .select()
     .from(taskSessions)
     .where(
       and(
         inArray(taskSessions.taskId, taskIds),
-        gte(taskSessions.startedAt, fromDate),
-        lte(taskSessions.startedAt, toDate)
+        lte(taskSessions.startedAt, toDate),
+        gte(taskSessions.endedAt, fromDate)
       )
     );
 
@@ -129,22 +238,16 @@ async function fetchReportData(
   const durationByTaskId = new Map<string, number>();
   const recordedUsersByTaskId = new Map<string, Set<string>>();
   for (const session of sessions) {
-    if (!session.endedAt) continue;
+    const duration = computeSessionDurationInRangeSec(session, fromDate, toDate);
+    if (duration <= 0) continue;
 
-    const duration =
-      session.durationSec > 0
-        ? session.durationSec
-        : Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000);
-
-    if (duration > 0) {
-      durationByTaskId.set(session.taskId, (durationByTaskId.get(session.taskId) ?? 0) + duration);
-      let userSet = recordedUsersByTaskId.get(session.taskId);
-      if (!userSet) {
-        userSet = new Set();
-        recordedUsersByTaskId.set(session.taskId, userSet);
-      }
-      userSet.add(session.userId);
+    durationByTaskId.set(session.taskId, (durationByTaskId.get(session.taskId) ?? 0) + duration);
+    let userSet = recordedUsersByTaskId.get(session.taskId);
+    if (!userSet) {
+      userSet = new Set();
+      recordedUsersByTaskId.set(session.taskId, userSet);
     }
+    userSet.add(session.userId);
   }
 
   // 6. 結果を構築
@@ -171,32 +274,192 @@ async function fetchReportData(
   return { items, totalDurationSec };
 }
 
+interface PartnerTaskItem {
+  taskId: string;
+  title: string;
+  projectType: string;
+  durationSec: number;
+}
+
+interface PartnerReportItem {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  avatarColor: string | null;
+  totalDurationSec: number;
+  tasks: PartnerTaskItem[];
+}
+
+/** 削除済みタスクのタイトル */
+const DELETED_TASK_TITLE = '[削除済みタスク]';
+
+/**
+ * パートナー稼働時間レポートを集計
+ * - users.role = 'partner' のユーザーごと（isAllowed問わず：過去の稼働実績も精算対象）
+ *   に期間内（または重なる）の task_sessions を集計
+ * - 月またぎセッションは期間内の重なり比率で按分
+ * - 「運用」ラベル等の条件は付けない（全タスクが対象）
+ * - 稼働ゼロのpartnerはレスポンスから除外
+ * - avatarUrl は R2 署名付きURLに解決して返す
+ */
+async function fetchPartnerReportData(
+  db: Database,
+  fromDate: Date,
+  toDate: Date,
+  signEnv: SignEnv
+): Promise<{ partners: PartnerReportItem[]; grandTotalDurationSec: number }> {
+  const partnerUsers = await db
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      avatarColor: users.avatarColor,
+    })
+    .from(users)
+    .where(eq(users.role, 'partner'));
+
+  if (partnerUsers.length === 0) {
+    return { partners: [], grandTotalDurationSec: 0 };
+  }
+
+  const partnerIds = partnerUsers.map((u) => u.id);
+
+  // 期間と重なるセッションを取得（endedAt is null = 未完了は SQL レベルで除外）
+  const sessions = await db
+    .select({
+      userId: taskSessions.userId,
+      taskId: taskSessions.taskId,
+      startedAt: taskSessions.startedAt,
+      endedAt: taskSessions.endedAt,
+      durationSec: taskSessions.durationSec,
+    })
+    .from(taskSessions)
+    .where(
+      and(
+        inArray(taskSessions.userId, partnerIds),
+        lte(taskSessions.startedAt, toDate),
+        gte(taskSessions.endedAt, fromDate)
+      )
+    );
+
+  // userId → taskId → durationSec の二重マップで集計（月またぎは按分）
+  const durationByUserTask = new Map<string, Map<string, number>>();
+  for (const session of sessions) {
+    const duration = computeSessionDurationInRangeSec(session, fromDate, toDate);
+    if (duration <= 0) continue;
+
+    let taskMap = durationByUserTask.get(session.userId);
+    if (!taskMap) {
+      taskMap = new Map();
+      durationByUserTask.set(session.userId, taskMap);
+    }
+    taskMap.set(session.taskId, (taskMap.get(session.taskId) ?? 0) + duration);
+  }
+
+  // 集計対象タスクの情報を一括取得
+  const allTaskIds = new Set<string>();
+  for (const taskMap of durationByUserTask.values()) {
+    for (const taskId of taskMap.keys()) allTaskIds.add(taskId);
+  }
+
+  const taskInfoMap = new Map<string, { title: string; projectType: string }>();
+  if (allTaskIds.size > 0) {
+    const taskRows = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        projectType: tasks.projectType,
+      })
+      .from(tasks)
+      .where(inArray(tasks.id, Array.from(allTaskIds)));
+    for (const t of taskRows) {
+      taskInfoMap.set(t.id, { title: t.title, projectType: t.projectType });
+    }
+  }
+
+  // 稼働ありの partner だけ抽出（ゼロ時間はノイズなので除外）
+  const partnersRaw = partnerUsers.flatMap((user) => {
+    const taskMap = durationByUserTask.get(user.id);
+    if (!taskMap || taskMap.size === 0) return [];
+
+    const taskItems: PartnerTaskItem[] = [];
+    let totalDurationSec = 0;
+
+    for (const [taskId, durationSec] of taskMap) {
+      // 削除済みタスクは「[削除済みタスク]」として保持（無音で落とすと精算とズレる）
+      const info = taskInfoMap.get(taskId) ?? { title: DELETED_TASK_TITLE, projectType: '' };
+      taskItems.push({
+        taskId,
+        title: info.title,
+        projectType: info.projectType,
+        durationSec,
+      });
+      totalDurationSec += durationSec;
+    }
+
+    if (totalDurationSec === 0) return [];
+
+    taskItems.sort((a, b) => b.durationSec - a.durationSec);
+
+    return [
+      {
+        userId: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        avatarColor: user.avatarColor,
+        totalDurationSec,
+        tasks: taskItems,
+      },
+    ];
+  });
+
+  // avatarUrl を R2 署名付きURLに変換
+  const partners: PartnerReportItem[] = await Promise.all(
+    partnersRaw.map((p) => resolveAvatarUrl(p, signEnv))
+  );
+
+  // 合計時間の降順
+  partners.sort((a, b) => b.totalDurationSec - a.totalDurationSec);
+
+  const grandTotalDurationSec = partners.reduce((sum, p) => sum + p.totalDurationSec, 0);
+
+  return { partners, grandTotalDurationSec };
+}
+
+/**
+ * GET /time/partners
+ * パートナー稼働時間レポート取得
+ */
+app.get('/time/partners', async (c) => {
+  const db = c.get('db');
+  const range = parseReportDateRange(c.req.query('from'), c.req.query('to'));
+  if ('error' in range) return c.json({ error: range.error }, range.status);
+
+  const env = c.env as ReportEnv['Bindings'];
+  const result = await fetchPartnerReportData(db, range.fromDate, range.toDate, env);
+  return c.json(result);
+});
+
 /**
  * GET /time
  * 時間レポート取得
  */
 app.get('/time', async (c) => {
   const db = c.get('db');
-  const from = c.req.query('from');
-  const to = c.req.query('to');
-  const type = (c.req.query('type') ?? 'normal') as 'normal' | 'brg';
-
-  if (!from || !to) {
-    return c.json({ error: 'Missing required parameters: from, to' }, 400);
-  }
-
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-
-  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-    return c.json({ error: 'Invalid date format' }, 400);
-  }
-
-  // toDateをその日の終了時刻まで含める
-  toDate.setHours(23, 59, 59, 999);
+  const type = normalizeReportType(c.req.query('type'));
+  const range = parseReportDateRange(c.req.query('from'), c.req.query('to'));
+  if ('error' in range) return c.json({ error: range.error }, range.status);
 
   const userId = c.get('userId');
-  const { items, totalDurationSec } = await fetchReportData(db, fromDate, toDate, type, userId);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items, totalDurationSec } = await fetchReportData(
+    db,
+    range.fromDate,
+    range.toDate,
+    type,
+    unyoLabelId,
+    userId
+  );
 
   return c.json({ items, totalDurationSec });
 });
@@ -209,22 +472,12 @@ app.get('/time/csv', async (c) => {
   const db = c.get('db');
   const from = c.req.query('from');
   const to = c.req.query('to');
-  const type = (c.req.query('type') ?? 'normal') as 'normal' | 'brg';
+  const type = normalizeReportType(c.req.query('type'));
+  const range = parseReportDateRange(from, to);
+  if ('error' in range) return c.json({ error: range.error }, range.status);
 
-  if (!from || !to) {
-    return c.json({ error: 'Missing required parameters: from, to' }, 400);
-  }
-
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-
-  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-    return c.json({ error: 'Invalid date format' }, 400);
-  }
-
-  toDate.setHours(23, 59, 59, 999);
-
-  const { items } = await fetchReportData(db, fromDate, toDate, type);
+  const unyoLabelId = await getUnyoLabelId(db);
+  const { items } = await fetchReportData(db, range.fromDate, range.toDate, type, unyoLabelId);
 
   // CSV生成（UTF-8+BOM/CRLF）
   const BOM = '\uFEFF';
@@ -263,25 +516,31 @@ function formatDuration(sec: number): string {
  */
 function buildDataSheetRows(
   normalItems: ReportItem[],
-  brgItems: ReportItem[]
+  brgItems: ReportItem[],
+  faqImpItems: ReportItem[]
 ): (string | number)[][] {
   const rows: (string | number)[][] = [];
 
+  const pushSection = (heading: string, items: ReportItem[]) => {
+    rows.push([heading, '', '']);
+    rows.push(['案件名', '実績時間', '3時間超内容']);
+    for (const item of items) {
+      rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
+    }
+  };
+
   // 通常セクション
-  rows.push(['■通常■', '', '']);
-  rows.push(['案件名', '実績時間', '3時間超内容']);
-  for (const item of normalItems) {
-    rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
-  }
+  pushSection('■通常■', normalItems);
 
   rows.push(['', '', '']); // 空行
 
   // BRGセクション
-  rows.push(['■BRG■', '', '']);
-  rows.push(['案件名', '実績時間', '3時間超内容']);
-  for (const item of brgItems) {
-    rows.push([item.title, formatDuration(item.durationSec), item.over3hours || '']);
-  }
+  pushSection('■BRG■', brgItems);
+
+  rows.push(['', '', '']); // 空行
+
+  // FAQ_IMPセクション
+  pushSection('■FAQ_IMP■', faqImpItems);
 
   return rows;
 }
@@ -449,13 +708,15 @@ app.post('/time/export', zValidator('json', exportSchema), async (c) => {
   );
   toDate.setHours(23, 59, 59, 999);
 
-  const [normalData, brgData] = await Promise.all([
-    fetchReportData(db, fromDate, toDate, 'normal'),
-    fetchReportData(db, fromDate, toDate, 'brg'),
+  const unyoLabelId = await getUnyoLabelId(db);
+  const [normalData, brgData, faqImpData] = await Promise.all([
+    fetchReportData(db, fromDate, toDate, 'normal', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'brg', unyoLabelId),
+    fetchReportData(db, fromDate, toDate, 'faq_imp', unyoLabelId),
   ]);
 
   // 「データ」シートにデータ書き込み
-  const rows = buildDataSheetRows(normalData.items, brgData.items);
+  const rows = buildDataSheetRows(normalData.items, brgData.items, faqImpData.items);
   const range = `データ!A1:C${rows.length}`;
   const written = await sheetsUpdateValues(accessToken, spreadsheetId, range, rows);
   if (!written) {

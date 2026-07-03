@@ -35,6 +35,7 @@ export const queryKeys = {
 
   // Reports
   reports: (type: string, from: string, to: string) => ['reports', type, from, to] as const,
+  partnerReport: (from: string, to: string) => ['reports', 'partners', from, to] as const,
 
   // Contacts
   contacts: (status?: string) =>

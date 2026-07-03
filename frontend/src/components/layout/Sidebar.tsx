@@ -18,6 +18,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { usePreviewMode } from '../../hooks/usePreviewMode';
+import { ROLE_LABELS_JA } from '../../lib/roleLabels';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'ダッシュボード', icon: <LayoutDashboard size={20} /> },
@@ -25,11 +26,6 @@ const NAV_ITEMS = [
   { path: '/report', label: 'レポート', icon: <BarChart3 size={20} /> },
   { path: '/contact', label: 'お問い合わせ', icon: <MessageSquare size={20} /> },
 ];
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: '管理者',
-  member: 'メンバー',
-};
 
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
@@ -40,7 +36,7 @@ export function Sidebar() {
   const displayName =
     currentUser?.displayName ?? clerkUser?.fullName ?? (isPreview ? 'プレビューユーザー' : '');
   const displayRole = currentUser?.role
-    ? (ROLE_LABELS[currentUser.role] ?? currentUser.role)
+    ? (ROLE_LABELS_JA[currentUser.role] ?? currentUser.role)
     : isPreview
       ? 'プレビュー'
       : '';
