@@ -131,22 +131,37 @@ app.post('/webhook', async (c) => {
       .limit(1);
 
     if (unlinkedTask) {
-      await db.insert(taskExternals).values({
-        id: generateId(),
-        taskId: unlinkedTask.id,
-        source: 'backlog',
-        issueId: finalIssueId,
-        issueKey,
-        url,
-        lastSyncedAt: now,
-        syncStatus: 'ok',
-      });
-      existingTaskId = unlinkedTask.id;
-      linked = true;
-      console.info('[backlog/webhook] linked unlinked task by title', {
-        taskId: unlinkedTask.id,
-        issueKey,
-      });
+      try {
+        await db.insert(taskExternals).values({
+          id: generateId(),
+          taskId: unlinkedTask.id,
+          source: 'backlog',
+          issueId: finalIssueId,
+          issueKey,
+          url,
+          lastSyncedAt: now,
+          syncStatus: 'ok',
+        });
+        existingTaskId = unlinkedTask.id;
+        linked = true;
+        console.info('[backlog/webhook] linked unlinked task by title', {
+          taskId: unlinkedTask.id,
+          issueKey,
+        });
+      } catch (err) {
+        // Webhookの重複配信で別リクエストが先にリンクした場合（UNIQUE制約違反）は
+        // 既存リンクへフォールバックして通常の更新フローに乗せる
+        const [raceExternal] = await db
+          .select({ taskId: taskExternals.taskId })
+          .from(taskExternals)
+          .where(eq(taskExternals.issueKey, issueKey));
+        if (!raceExternal) throw err;
+        existingTaskId = raceExternal.taskId;
+        console.info('[backlog/webhook] link race detected, fell back to existing link', {
+          taskId: raceExternal.taskId,
+          issueKey,
+        });
+      }
     }
   }
 

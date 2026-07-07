@@ -324,6 +324,45 @@ describe('Backlog API', () => {
       expect(body2.linked).toBeUndefined();
     });
 
+    it('同一課題の同時配信でも500にならず片方のタスクに収束する', async () => {
+      // 未リンクの手動作成タスク
+      await db.insert(schema.tasks).values({
+        id: 'manual-task-00000003',
+        projectType: 'REG2017',
+        title: 'REG2017-901 同時配信テスト',
+        flowStatus: '対応中',
+        assigneeIds: [],
+        kubunLabelId: '',
+        order: 1,
+        createdBy: 'user_test',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // 同じイベントの重複配信を並行実行
+      const payload = {
+        project: { projectKey: 'REG2017' },
+        content: { id: 901, key_id: 901, summary: '同時配信テスト' },
+      };
+      const [res1, res2] = await Promise.all([postWebhook(payload), postWebhook(payload)]);
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+
+      // タスクは増えず、リンクは1本だけ
+      const allTasks = await db
+        .select()
+        .from(schema.tasks)
+        .where(eq(schema.tasks.projectType, 'REG2017'));
+      expect(allTasks).toHaveLength(1);
+      const exts = await db
+        .select()
+        .from(schema.taskExternals)
+        .where(eq(schema.taskExternals.issueKey, 'REG2017-901'));
+      expect(exts).toHaveLength(1);
+      expect(exts[0].taskId).toBe('manual-task-00000003');
+    });
+
     it('課題番号が前方一致するだけの別タスクにはリンクしない', async () => {
       // REG2017-90 のタスク（REG2017-900 とは別課題）
       await db.insert(schema.tasks).values({
