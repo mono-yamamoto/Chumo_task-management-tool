@@ -165,21 +165,23 @@ app.post('/webhook', async (c) => {
       })
       .where(eq(tasks.id, existingTaskId));
 
-    await db
-      .update(taskExternals)
-      .set({
-        issueId: finalIssueId,
-        url,
-        lastSyncedAt: now,
-        syncStatus: 'ok',
-      })
-      .where(eq(taskExternals.taskId, existingTaskId));
+    // リンク直後は insert したばかりの値と同一なので更新不要
+    if (!linked) {
+      await db
+        .update(taskExternals)
+        .set({
+          issueId: finalIssueId,
+          url,
+          lastSyncedAt: now,
+          syncStatus: 'ok',
+        })
+        .where(eq(taskExternals.taskId, existingTaskId));
+    }
 
     console.info('[backlog/webhook] updated task', {
       taskId: existingTaskId,
       issueKey,
       projectType,
-      linked,
     });
 
     return c.json({

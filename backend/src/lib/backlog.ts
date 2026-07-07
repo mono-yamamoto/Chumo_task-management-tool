@@ -199,7 +199,8 @@ export function getChangedCustomFieldValue(
   if (!Array.isArray(changes)) return undefined;
 
   // TODO: 実ペイロードで field の表記が確定したら候補を絞る（route側の unmatched ログで確認可能）
-  const candidates = new Set<string>([`customField_${fieldId}`, String(fieldId), ...fieldNames]);
+  // 裸のID文字列は候補にしない: 新BacklogのIDは小さい整数（"25"等）で誤マッチのリスクがある
+  const candidates = new Set<string>([`customField_${fieldId}`, ...fieldNames]);
   const change = changes.find((c) => c.field != null && candidates.has(String(c.field).trim()));
   if (!change) return undefined;
 
@@ -226,16 +227,15 @@ export function resolveCustomDateField(
   if (!fieldId) return undefined;
 
   if (Array.isArray(customFields)) {
-    // ID一致を優先し、不一致なら属性名 + 日付型で照合
-    // （BacklogのバージョンアップでIDが振り直されても名前で追従できるようにする）
+    // 属性名 + 日付型での照合を優先し、name が無いペイロードでは ID で照合
+    // （BacklogのバージョンアップでIDが振り直し・再割当されても名前で正しく追従できるようにする）
     const field =
-      customFields.find((f) => f.id === fieldId) ??
       customFields.find(
         (f) =>
           f.fieldTypeId === FIELD_TYPE_DATE &&
           typeof f.name === 'string' &&
           fieldNames.includes(f.name.trim())
-      );
+      ) ?? customFields.find((f) => f.id === fieldId);
     if (field) return parseDateValue(extractCustomFieldValue(field));
   }
 

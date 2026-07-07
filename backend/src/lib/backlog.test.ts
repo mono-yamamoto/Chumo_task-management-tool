@@ -106,13 +106,9 @@ describe('Backlog ユーティリティ', () => {
       );
     });
 
-    it('ID文字列でマッチする', () => {
-      const changes = [
-        { field: '1073783169', new_value: '2026/07/15', old_value: '', type: 'custom' },
-      ];
-      expect(getChangedCustomFieldValue(changes, 1073783169, IT_UP_DATE_FIELD_NAMES)).toBe(
-        '2026/07/15'
-      );
+    it('裸のID文字列にはマッチしない（小さいIDの誤マッチ防止）', () => {
+      const changes = [{ field: '25', new_value: '2026/07/15', old_value: '', type: 'custom' }];
+      expect(getChangedCustomFieldValue(changes, 25, IT_UP_DATE_FIELD_NAMES)).toBeUndefined();
     });
 
     it('対象フィールドの変更が無い → undefined', () => {
@@ -133,15 +129,6 @@ describe('Backlog ユーティリティ', () => {
       expect(
         getChangedCustomFieldValue(undefined, 1073783169, IT_UP_DATE_FIELD_NAMES)
       ).toBeUndefined();
-    });
-
-    it('fieldが数値でもマッチする（外部JSONの型ゆらぎ対策）', () => {
-      const changes = [
-        { field: 1073783169 as unknown as string, new_value: '2026/07/15', old_value: '' },
-      ];
-      expect(getChangedCustomFieldValue(changes, 1073783169, IT_UP_DATE_FIELD_NAMES)).toBe(
-        '2026/07/15'
-      );
     });
 
     it('new_valueがnull → 空文字（クリア扱い）', () => {
