@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { tasks, taskExternals } from '../db/schema';
 import { generateId } from '../lib/id';
 import {
@@ -115,8 +115,42 @@ app.post('/webhook', async (c) => {
     .where(eq(taskExternals.issueKey, issueKey));
 
   const now = new Date();
+  let existingTaskId = existingExternal?.taskId ?? null;
+  let linked = false;
 
-  if (existingExternal) {
+  // 外部連携が無い場合、タイトル先頭の課題番号が一致する未リンクタスクを探してリンクする
+  // （Webhook停止期間などに手動作成されたタスクへの重複作成を防ぐ）
+  if (!existingTaskId) {
+    const titlePattern = `^${issueKey}([ 　]|$)`;
+    const [unlinkedTask] = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .leftJoin(taskExternals, eq(taskExternals.taskId, tasks.id))
+      .where(and(isNull(taskExternals.id), sql`${tasks.title} ~ ${titlePattern}`))
+      .orderBy(asc(tasks.createdAt))
+      .limit(1);
+
+    if (unlinkedTask) {
+      await db.insert(taskExternals).values({
+        id: generateId(),
+        taskId: unlinkedTask.id,
+        source: 'backlog',
+        issueId: finalIssueId,
+        issueKey,
+        url,
+        lastSyncedAt: now,
+        syncStatus: 'ok',
+      });
+      existingTaskId = unlinkedTask.id;
+      linked = true;
+      console.info('[backlog/webhook] linked unlinked task by title', {
+        taskId: unlinkedTask.id,
+        issueKey,
+      });
+    }
+  }
+
+  if (existingTaskId) {
     // 更新
     await db
       .update(tasks)
@@ -126,9 +160,10 @@ app.post('/webhook', async (c) => {
         projectType: projectType as (typeof tasks.projectType.enumValues)[number],
         ...(itUpDate !== undefined && { itUpDate }),
         ...(releaseDate !== undefined && { releaseDate }),
+        ...(linked && { backlogUrl: url }),
         updatedAt: now,
       })
-      .where(eq(tasks.id, existingExternal.taskId));
+      .where(eq(tasks.id, existingTaskId));
 
     await db
       .update(taskExternals)
@@ -138,20 +173,22 @@ app.post('/webhook', async (c) => {
         lastSyncedAt: now,
         syncStatus: 'ok',
       })
-      .where(eq(taskExternals.taskId, existingExternal.taskId));
+      .where(eq(taskExternals.taskId, existingTaskId));
 
     console.info('[backlog/webhook] updated task', {
-      taskId: existingExternal.taskId,
+      taskId: existingTaskId,
       issueKey,
       projectType,
+      linked,
     });
 
     return c.json({
       success: true,
-      taskId: existingExternal.taskId,
+      taskId: existingTaskId,
       projectType,
       issueKey,
       updated: true,
+      ...(linked && { linked: true }),
     });
   }
 

@@ -259,6 +259,97 @@ describe('Backlog API', () => {
       expect(task.releaseDate).toBeNull();
     });
 
+    it('外部連携なしの手動作成タスクに複製を作らずリンクして更新する', async () => {
+      // 手動作成タスク（task_externals なし・日付は手入力済み）
+      const manualTaskId = 'manual-task-00000001';
+      await db.insert(schema.tasks).values({
+        id: manualTaskId,
+        projectType: 'REG2017',
+        title: 'REG2017-900 手動作成タスク',
+        flowStatus: '対応中',
+        assigneeIds: [],
+        itUpDate: new Date('2026-07-13'),
+        releaseDate: new Date('2026-07-31'),
+        kubunLabelId: '',
+        order: 1,
+        createdBy: 'user_test',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // 同じ課題番号の更新イベント（日付情報なし）
+      const res = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 900,
+          key_id: 900,
+          summary: '手動作成タスク（Backlog側タイトル）',
+          changes: [
+            { field: 'assigner', new_value: 'user2', old_value: 'user1', type: 'standard' },
+          ],
+        },
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+
+      // 複製されず手動タスクにリンクされる
+      expect(body.taskId).toBe(manualTaskId);
+      expect(body.updated).toBe(true);
+      expect(body.linked).toBe(true);
+
+      const allTasks = await db
+        .select()
+        .from(schema.tasks)
+        .where(eq(schema.tasks.projectType, 'REG2017'));
+      expect(allTasks).toHaveLength(1);
+
+      // 外部連携が作成され、手入力の日付は保持される
+      const [ext] = await db
+        .select()
+        .from(schema.taskExternals)
+        .where(eq(schema.taskExternals.taskId, manualTaskId));
+      expect(ext.issueKey).toBe('REG2017-900');
+      const [task] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, manualTaskId));
+      expect(task.title).toBe('REG2017-900 手動作成タスク（Backlog側タイトル）');
+      expect(task.itUpDate).not.toBeNull();
+      expect(task.releaseDate).not.toBeNull();
+
+      // 2回目のイベントでも同じタスクが更新される（冪等）
+      const res2 = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: { id: 900, key_id: 900, summary: '再更新' },
+      });
+      const body2 = (await res2.json()) as any;
+      expect(body2.taskId).toBe(manualTaskId);
+      expect(body2.linked).toBeUndefined();
+    });
+
+    it('課題番号が前方一致するだけの別タスクにはリンクしない', async () => {
+      // REG2017-90 のタスク（REG2017-900 とは別課題）
+      await db.insert(schema.tasks).values({
+        id: 'manual-task-00000002',
+        projectType: 'REG2017',
+        title: 'REG2017-90 別のタスク',
+        flowStatus: '対応中',
+        assigneeIds: [],
+        kubunLabelId: '',
+        order: 1,
+        createdBy: 'user_test',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const res = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: { id: 900, key_id: 900, summary: '新規課題' },
+      });
+      const body = (await res.json()) as any;
+
+      // リンクされず新規作成される
+      expect(body.taskId).not.toBe('manual-task-00000002');
+      expect(body.linked).toBeUndefined();
+    });
+
     it('更新イベントで日付がクリアされたらnullにする', async () => {
       const res1 = await postWebhook({
         project: { projectKey: 'REG2017' },
