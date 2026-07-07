@@ -16,15 +16,21 @@ interface BacklogCustomFieldConfig {
   releaseDate?: number;
 }
 
+/**
+ * プロジェクトごとの日付カスタム属性ID。
+ * 2026年5月のBacklogバージョンアップで全プロジェクトのIDが振り直されたため、
+ * ID不一致の場合でも属性名（ＩＴ予定日/本番リリース予定日）+ 日付型で照合するフォールバックがある。
+ * IDの確認方法: GET /backlog/api/v2/projects/:projectKey/customFields
+ */
 const BACKLOG_CUSTOM_FIELDS: Record<ProjectType, BacklogCustomFieldConfig> = {
-  REG2017: { itUpDate: 1073783169, releaseDate: 1073783170 },
-  BRGREG: { itUpDate: 1073754985, releaseDate: 1073754988 },
-  PRREG: { itUpDate: 1073748055, releaseDate: 1073747940 },
+  REG2017: { itUpDate: 25, releaseDate: 30 },
+  BRGREG: { itUpDate: 4, releaseDate: 5 },
+  PRREG: { itUpDate: 32, releaseDate: 36 },
   MONO: {},
   MONO_ADMIN: {},
   DES_FIRE: {},
   DesignSystem: {},
-  DMREG2: { itUpDate: 1073767877, releaseDate: 1073767878 },
+  DMREG2: { itUpDate: 16, releaseDate: 15 },
   monosus: {},
   FAQ_IMP: {},
 };
@@ -46,9 +52,14 @@ export const RELEASE_DATE_FIELD_NAMES = ['本番リリース予定日', 'リリ�
 export interface BacklogCustomField {
   id: number;
   field?: string;
+  /** カスタム属性名（例: "ＩＴ予定日"） */
+  name?: string;
   value: string | { name?: string; value?: string } | null;
   fieldTypeId: number;
 }
+
+/** Backlogカスタム属性の日付型を表す fieldTypeId */
+const FIELD_TYPE_DATE = 4;
 
 /** 課題更新 Webhook の content.changes の1エントリ */
 export interface BacklogChange {
@@ -118,12 +129,15 @@ export function generateBacklogUrl(issueKey: string): string {
 }
 
 /**
- * 日付文字列（YYYY/MM/DD or YYYY-MM-DD）をDateに変換
+ * 日付文字列をDateに変換
+ * 対応形式: YYYY/MM/DD、YYYY-MM-DD、ISO日時（例: 2026-07-15T00:00:00Z ※日付部分のみ使用）
  */
 export function parseDateString(dateString: string | null | undefined): Date | null {
   if (!dateString || typeof dateString !== 'string') return null;
 
-  const match = dateString.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  // ISO日時形式は日付部分のみを対象にする（Backlog VUP後の日付属性はこの形式で届く）
+  const datePart = dateString.split('T')[0];
+  const match = datePart.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
   if (!match) return null;
 
   const [, year, month, day] = match;
@@ -185,7 +199,8 @@ export function getChangedCustomFieldValue(
   if (!Array.isArray(changes)) return undefined;
 
   // TODO: 実ペイロードで field の表記が確定したら候補を絞る（route側の unmatched ログで確認可能）
-  const candidates = new Set<string>([`customField_${fieldId}`, String(fieldId), ...fieldNames]);
+  // 裸のID文字列は候補にしない: 新BacklogのIDは小さい整数（"25"等）で誤マッチのリスクがある
+  const candidates = new Set<string>([`customField_${fieldId}`, ...fieldNames]);
   const change = changes.find((c) => c.field != null && candidates.has(String(c.field).trim()));
   if (!change) return undefined;
 
@@ -212,7 +227,15 @@ export function resolveCustomDateField(
   if (!fieldId) return undefined;
 
   if (Array.isArray(customFields)) {
-    const field = customFields.find((f) => f.id === fieldId);
+    // 属性名 + 日付型での照合を優先し、name が無いペイロードでは ID で照合
+    // （BacklogのバージョンアップでIDが振り直し・再割当されても名前で正しく追従できるようにする）
+    const field =
+      customFields.find(
+        (f) =>
+          f.fieldTypeId === FIELD_TYPE_DATE &&
+          typeof f.name === 'string' &&
+          fieldNames.includes(f.name.trim())
+      ) ?? customFields.find((f) => f.id === fieldId);
     if (field) return parseDateValue(extractCustomFieldValue(field));
   }
 

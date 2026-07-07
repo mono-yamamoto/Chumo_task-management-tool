@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod/v4';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { tasks, taskExternals } from '../db/schema';
 import { generateId } from '../lib/id';
 import {
@@ -115,8 +115,57 @@ app.post('/webhook', async (c) => {
     .where(eq(taskExternals.issueKey, issueKey));
 
   const now = new Date();
+  let existingTaskId = existingExternal?.taskId ?? null;
+  let linked = false;
 
-  if (existingExternal) {
+  // 外部連携が無い場合、タイトル先頭の課題番号が一致する未リンクタスクを探してリンクする
+  // （Webhook停止期間などに手動作成されたタスクへの重複作成を防ぐ）
+  if (!existingTaskId) {
+    const titlePattern = `^${issueKey}([ 　]|$)`;
+    const [unlinkedTask] = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .leftJoin(taskExternals, eq(taskExternals.taskId, tasks.id))
+      .where(and(isNull(taskExternals.id), sql`${tasks.title} ~ ${titlePattern}`))
+      .orderBy(asc(tasks.createdAt))
+      .limit(1);
+
+    if (unlinkedTask) {
+      try {
+        await db.insert(taskExternals).values({
+          id: generateId(),
+          taskId: unlinkedTask.id,
+          source: 'backlog',
+          issueId: finalIssueId,
+          issueKey,
+          url,
+          lastSyncedAt: now,
+          syncStatus: 'ok',
+        });
+        existingTaskId = unlinkedTask.id;
+        linked = true;
+        console.info('[backlog/webhook] linked unlinked task by title', {
+          taskId: unlinkedTask.id,
+          issueKey,
+        });
+      } catch (err) {
+        // Webhookの重複配信で別リクエストが先にリンクした場合（UNIQUE制約違反）は
+        // 既存リンクへフォールバックして通常の更新フローに乗せる
+        const [raceExternal] = await db
+          .select({ taskId: taskExternals.taskId })
+          .from(taskExternals)
+          .where(eq(taskExternals.issueKey, issueKey));
+        if (!raceExternal) throw err;
+        existingTaskId = raceExternal.taskId;
+        console.info('[backlog/webhook] link race detected, fell back to existing link', {
+          taskId: raceExternal.taskId,
+          issueKey,
+        });
+      }
+    }
+  }
+
+  if (existingTaskId) {
     // 更新
     await db
       .update(tasks)
@@ -126,32 +175,37 @@ app.post('/webhook', async (c) => {
         projectType: projectType as (typeof tasks.projectType.enumValues)[number],
         ...(itUpDate !== undefined && { itUpDate }),
         ...(releaseDate !== undefined && { releaseDate }),
+        ...(linked && { backlogUrl: url }),
         updatedAt: now,
       })
-      .where(eq(tasks.id, existingExternal.taskId));
+      .where(eq(tasks.id, existingTaskId));
 
-    await db
-      .update(taskExternals)
-      .set({
-        issueId: finalIssueId,
-        url,
-        lastSyncedAt: now,
-        syncStatus: 'ok',
-      })
-      .where(eq(taskExternals.taskId, existingExternal.taskId));
+    // リンク直後は insert したばかりの値と同一なので更新不要
+    if (!linked) {
+      await db
+        .update(taskExternals)
+        .set({
+          issueId: finalIssueId,
+          url,
+          lastSyncedAt: now,
+          syncStatus: 'ok',
+        })
+        .where(eq(taskExternals.taskId, existingTaskId));
+    }
 
     console.info('[backlog/webhook] updated task', {
-      taskId: existingExternal.taskId,
+      taskId: existingTaskId,
       issueKey,
       projectType,
     });
 
     return c.json({
       success: true,
-      taskId: existingExternal.taskId,
+      taskId: existingTaskId,
       projectType,
       issueKey,
       updated: true,
+      ...(linked && { linked: true }),
     });
   }
 
