@@ -73,6 +73,14 @@ describe('Backlog ユーティリティ', () => {
       expect(parseDateString('2025/13/01')).toBeNull();
     });
 
+    it('ISO日時形式（Backlog VUP後の日付属性値）をパースする', () => {
+      const date = parseDateString('2026-07-15T00:00:00Z');
+      expect(date).not.toBeNull();
+      expect(date!.getFullYear()).toBe(2026);
+      expect(date!.getMonth()).toBe(6);
+      expect(date!.getDate()).toBe(15);
+    });
+
     it('自動調整される日付 → null', () => {
       expect(parseDateString('2025/02/30')).toBeNull();
     });
@@ -205,7 +213,7 @@ describe('Backlog ユーティリティ', () => {
       const changes = [
         {
           field: 'ＩＴ予定日',
-          new_value: '2026-07-15T00:00:00Z',
+          new_value: '2026年7月15日',
           old_value: '',
           type: 'custom',
         },
@@ -221,13 +229,31 @@ describe('Backlog ユーティリティ', () => {
         resolveCustomDateField(customFields, undefined, 1073783169, IT_UP_DATE_FIELD_NAMES)
       ).toBeUndefined();
     });
+
+    it('IDが不一致でも属性名+日付型でフォールバック照合できる', () => {
+      // Backlog VUPでIDが振り直された想定: 設定ID(25)と実ID(999)が不一致
+      const customFields = [
+        { id: 999, fieldTypeId: 4, name: 'ＩＴ予定日', value: '2026-07-15T00:00:00Z' },
+        { id: 998, fieldTypeId: 5, name: 'リリース日の重要度', value: { name: '変更可' } },
+      ];
+      const date = resolveCustomDateField(customFields, undefined, 25, IT_UP_DATE_FIELD_NAMES);
+      expect(date).toBeInstanceOf(Date);
+      expect(date!.getDate()).toBe(15);
+    });
+
+    it('属性名が一致しても日付型でなければフォールバックしない', () => {
+      const customFields = [{ id: 999, fieldTypeId: 1, name: 'ＩＴ予定日', value: 'テキスト値' }];
+      expect(
+        resolveCustomDateField(customFields, undefined, 25, IT_UP_DATE_FIELD_NAMES)
+      ).toBeUndefined();
+    });
   });
 
   describe('getCustomFieldConfig', () => {
     it('REG2017のカスタムフィールドIDを返す', () => {
       const config = getCustomFieldConfig('REG2017');
-      expect(config.itUpDate).toBe(1073783169);
-      expect(config.releaseDate).toBe(1073783170);
+      expect(config.itUpDate).toBe(25);
+      expect(config.releaseDate).toBe(30);
     });
 
     it('MONOは空オブジェクトを返す', () => {

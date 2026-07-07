@@ -116,7 +116,7 @@ describe('Backlog API', () => {
       expect(body.projectType).toBe('MONO');
     });
 
-    it('カスタムフィールドから日付を抽出できる', async () => {
+    it('カスタムフィールドから日付を抽出できる（実ペイロード形式）', async () => {
       const res = await postWebhook({
         project: { projectKey: 'REG2017' },
         content: {
@@ -124,8 +124,8 @@ describe('Backlog API', () => {
           key_id: 200,
           summary: '日付テスト',
           customFields: [
-            { id: 1073783169, value: '2025/07/15', fieldTypeId: 4 },
-            { id: 1073783170, value: { name: '2025/08/01' }, fieldTypeId: 4 },
+            { id: 25, fieldTypeId: 4, name: 'ＩＴ予定日', value: '2026-07-15T00:00:00Z' },
+            { id: 30, fieldTypeId: 4, name: '本番リリース予定日', value: '2026-07-31T00:00:00Z' },
           ],
         },
       });
@@ -138,6 +138,27 @@ describe('Backlog API', () => {
       expect(task.releaseDate).not.toBeNull();
     });
 
+    it('設定IDと不一致でも属性名で日付を抽出できる（ID振り直し耐性）', async () => {
+      const res = await postWebhook({
+        project: { projectKey: 'REG2017' },
+        content: {
+          id: 201,
+          key_id: 201,
+          summary: 'IDずれテスト',
+          customFields: [
+            { id: 12345, fieldTypeId: 4, name: 'ＩＴ予定日', value: '2026-07-15T00:00:00Z' },
+          ],
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as any;
+
+      const [task] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, body.taskId));
+      expect(task.itUpDate).not.toBeNull();
+      expect(task.releaseDate).toBeNull();
+    });
+
     it('更新イベント（customFieldsなし）でも既存の日付を消さない', async () => {
       // 作成: 日付あり
       const res1 = await postWebhook({
@@ -147,8 +168,8 @@ describe('Backlog API', () => {
           key_id: 300,
           summary: '日付保持テスト',
           customFields: [
-            { id: 1073783169, value: '2026/07/15', fieldTypeId: 4 },
-            { id: 1073783170, value: '2026/08/01', fieldTypeId: 4 },
+            { id: 25, fieldTypeId: 4, name: 'ＩＴ予定日', value: '2026/07/15' },
+            { id: 30, fieldTypeId: 4, name: '本番リリース予定日', value: '2026/08/01' },
           ],
         },
       });
@@ -222,7 +243,7 @@ describe('Backlog API', () => {
           summary: 'ID形式テスト',
           changes: [
             {
-              field: 'customField_1073754985',
+              field: 'customField_4',
               new_value: '2026/07/22',
               old_value: '',
               type: 'custom',
@@ -245,7 +266,7 @@ describe('Backlog API', () => {
           id: 303,
           key_id: 303,
           summary: '日付クリアテスト',
-          customFields: [{ id: 1073783169, value: '2026/07/15', fieldTypeId: 4 }],
+          customFields: [{ id: 25, fieldTypeId: 4, name: 'ＩＴ予定日', value: '2026/07/15' }],
         },
       });
       const body1 = (await res1.json()) as any;
